@@ -29,11 +29,7 @@ class RawCollectionsClient:
         self._client_wrapper = client_wrapper
 
     def list_collections_v2(
-        self,
-        *,
-        limit: typing.Optional[int] = None,
-        offset: typing.Optional[int] = None,
-        request_options: typing.Optional[RequestOptions] = None,
+        self, *, request_options: typing.Optional[RequestOptions] = None
     ) -> HttpResponse[CollectionListResponseV2]:
         """
         List all collections for an organization.
@@ -42,12 +38,6 @@ class RawCollectionsClient:
 
         Parameters
         ----------
-        limit : typing.Optional[int]
-            Maximum number of collections to return
-
-        offset : typing.Optional[int]
-            Pagination offset
-
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
@@ -59,10 +49,6 @@ class RawCollectionsClient:
         _response = self._client_wrapper.httpx_client.request(
             "v2/collections",
             method="GET",
-            params={
-                "limit": limit,
-                "offset": offset,
-            },
             request_options=request_options,
         )
         try:
@@ -93,7 +79,6 @@ class RawCollectionsClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to create
 
         description : typing.Optional[str]
 
@@ -141,7 +126,6 @@ class RawCollectionsClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to delete
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -207,7 +191,6 @@ class RawCollectionsClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to move
 
         new_environment : ChangeEnvironmentRequestV2NewEnvironment
             The target environment to move the collection to
@@ -284,7 +267,6 @@ class RawCollectionsClient:
         self,
         collection_name: str,
         *,
-        limit: typing.Optional[int] = None,
         offset: typing.Optional[int] = None,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[DocumentListResponseV2]:
@@ -294,10 +276,6 @@ class RawCollectionsClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection
-
-        limit : typing.Optional[int]
-            Maximum number of documents to return
 
         offset : typing.Optional[int]
             Pagination offset
@@ -314,7 +292,6 @@ class RawCollectionsClient:
             f"v2/collections/{jsonable_encoder(collection_name)}/documents",
             method="GET",
             params={
-                "limit": limit,
                 "offset": offset,
             },
             request_options=request_options,
@@ -382,10 +359,8 @@ class RawCollectionsClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection
 
         document_id : str
-            ID of the document to delete
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -432,11 +407,7 @@ class AsyncRawCollectionsClient:
         self._client_wrapper = client_wrapper
 
     async def list_collections_v2(
-        self,
-        *,
-        limit: typing.Optional[int] = None,
-        offset: typing.Optional[int] = None,
-        request_options: typing.Optional[RequestOptions] = None,
+        self, *, request_options: typing.Optional[RequestOptions] = None
     ) -> AsyncHttpResponse[CollectionListResponseV2]:
         """
         List all collections for an organization.
@@ -445,12 +416,6 @@ class AsyncRawCollectionsClient:
 
         Parameters
         ----------
-        limit : typing.Optional[int]
-            Maximum number of collections to return
-
-        offset : typing.Optional[int]
-            Pagination offset
-
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
@@ -462,10 +427,6 @@ class AsyncRawCollectionsClient:
         _response = await self._client_wrapper.httpx_client.request(
             "v2/collections",
             method="GET",
-            params={
-                "limit": limit,
-                "offset": offset,
-            },
             request_options=request_options,
         )
         try:
@@ -496,7 +457,6 @@ class AsyncRawCollectionsClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to create
 
         description : typing.Optional[str]
 
@@ -544,7 +504,6 @@ class AsyncRawCollectionsClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to delete
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -610,7 +569,6 @@ class AsyncRawCollectionsClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to move
 
         new_environment : ChangeEnvironmentRequestV2NewEnvironment
             The target environment to move the collection to
@@ -687,7 +645,6 @@ class AsyncRawCollectionsClient:
         self,
         collection_name: str,
         *,
-        limit: typing.Optional[int] = None,
         offset: typing.Optional[int] = None,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[DocumentListResponseV2]:
@@ -697,10 +654,6 @@ class AsyncRawCollectionsClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection
-
-        limit : typing.Optional[int]
-            Maximum number of documents to return
 
         offset : typing.Optional[int]
             Pagination offset
@@ -717,7 +670,6 @@ class AsyncRawCollectionsClient:
             f"v2/collections/{jsonable_encoder(collection_name)}/documents",
             method="GET",
             params={
-                "limit": limit,
                 "offset": offset,
             },
             request_options=request_options,
@@ -785,10 +737,8 @@ class AsyncRawCollectionsClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection
 
         document_id : str
-            ID of the document to delete
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.

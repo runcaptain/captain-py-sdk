@@ -7,19 +7,9 @@ from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
 
 
 class CollectionItemV2(UniversalBaseModel):
-    collection_id: str = pydantic.Field()
-    """
-    Unique identifier for the collection
-    """
-
-    collection_name: str = pydantic.Field()
-    """
-    Name of the collection
-    """
-
     environment: typing.Optional[str] = pydantic.Field(default=None)
     """
-    Environment the collection belongs to (e.g. production, staging, development)
+    Environment the collection belongs to
     """
 
     is_active: typing.Optional[bool] = pydantic.Field(default=None)
@@ -37,9 +27,14 @@ class CollectionItemV2(UniversalBaseModel):
     Total number of API requests made against this collection
     """
 
-    document_count: typing.Optional[int] = pydantic.Field(default=None)
+    database_name: str = pydantic.Field()
     """
-    Total number of documents indexed in this collection
+    Name of the collection database
+    """
+
+    file_count: int = pydantic.Field()
+    """
+    Total number of files indexed in this collection
     """
 
     if IS_PYDANTIC_V2:

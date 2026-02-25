@@ -4,7 +4,7 @@ import typing
 
 from ..core.client_wrapper import AsyncClientWrapper, SyncClientWrapper
 from ..core.request_options import RequestOptions
-from ..types.query_response_v2 import QueryResponseV2
+from ..types.query_stream_event import QueryStreamEvent
 from .raw_client import AsyncRawQueryClient, RawQueryClient
 
 # this is used as the default value for optional parameters
@@ -26,20 +26,18 @@ class QueryClient:
         """
         return self._raw_client
 
-    def collection_v2(
+    def collection_v2stream(
         self,
         collection_name: str,
         *,
         query: str,
-        idempotency_key: typing.Optional[str] = None,
         inference: typing.Optional[bool] = OMIT,
-        stream: typing.Optional[bool] = OMIT,
         top_k: typing.Optional[int] = OMIT,
         rerank: typing.Optional[bool] = OMIT,
         metadata_filter: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
         custom_prompt: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> QueryResponseV2:
+    ) -> typing.Iterator[QueryStreamEvent]:
         """
         Execute a natural language query against a collection.
 
@@ -48,68 +46,158 @@ class QueryClient:
 
         ## Streaming (SSE)
 
-        When `stream: true` and `inference: true`, the JSON response includes a `request_id`. Refer to the sample implementations to best make use of streams.
+        When `stream: true` and `inference: true`, the response is a Server-Sent Events stream. Every `data:` field is a JSON object with a `type` discriminator.
 
         ### SSE Event Types
 
-        | Event | Format | Description |
-        |-------|--------|-------------|
-        | Text chunk | `data: <text>\\n\\n` | Incremental text of the AI response. Plain text (not JSON). Newlines within text are escaped as `\\n`. |
-        | Tool start | `event: tool_start\\ndata: {"type":"tool.start","name":"searchKnowledgeBase","tool_call_id":"tc_1","args":{"query":"..."}}\\n\\n` | The AI agent is performing a knowledge base search. The `args.query` field contains the search query. |
-        | Tool end | `event: tool_end\\ndata: {"type":"tool.end","name":"searchKnowledgeBase","tool_call_id":"tc_1","ok":true,"result_summary":{"resultCount":12}}\\n\\n` | A search completed. `tool_call_id` correlates with the preceding `tool_start`. `result_summary.resultCount` indicates how many results were found. |
-        | Complete | `event: complete\\ndata: {"type":"stream_complete"}\\n\\n` | Stream finished successfully. Close the connection after receiving this. |
-        | Error | `event: error\\ndata: {"type":"stream_error","error":"..."}\\n\\n` | An error occurred during generation. Close the connection. |
+        | `type` value | Schema | Description |
+        |---|---|---|
+        | `text` | `QueryStreamTextEvent` | Incremental text chunk of the AI response. |
+        | `tool.start` | `QueryStreamToolStartEvent` | The agent is performing a knowledge-base search. |
+        | `tool.end` | `QueryStreamToolEndEvent` | A tool call completed. `tool_call_id` correlates with the preceding `tool.start`. |
+        | `stream_complete` | `QueryStreamCompleteEvent` | Stream finished successfully. Close the connection. |
+        | `stream_error` | `QueryStreamErrorEvent` | An error occurred. Close the connection. |
 
         ### Example SSE Stream
 
         ```
-        event: tool_start
-        data: {"type":"tool.start","name":"searchKnowledgeBase","tool_call_id":"tc_1","args":{"query":"revenue projections Q4"}}
+        data: {"type":"tool.start","seq":1,"run_id":"run_abc","tool_call_id":"tc_1","name":"searchKnowledgeBase","args":{"query":"revenue projections Q4"}}
 
-        event: tool_end
-        data: {"type":"tool.end","name":"searchKnowledgeBase","tool_call_id":"tc_1","ok":true,"result_summary":{"resultCount":12}}
+        data: {"type":"tool.end","seq":2,"run_id":"run_abc","tool_call_id":"tc_1","name":"searchKnowledgeBase","ok":true,"result_summary":{"resultCount":12}}
 
-        data: Based on the documents
-        data:  provided, the revenue
-        data:  projections for Q4 show
-        data:  a 15% increase over Q3.
+        data: {"type":"text","content":"Based on the documents"}
+        data: {"type":"text","content":" provided, the revenue"}
+        data: {"type":"text","content":" projections for Q4 show"}
+        data: {"type":"text","content":" a 15% increase over Q3."}
 
-        event: tool_start
-        data: {"type":"tool.start","name":"searchKnowledgeBase","tool_call_id":"tc_2","args":{"query":"Q3 comparison metrics"}}
-
-        event: tool_end
-        data: {"type":"tool.end","name":"searchKnowledgeBase","tool_call_id":"tc_2","ok":true,"result_summary":{"resultCount":8}}
-
-        data:  Compared to Q3, the key
-        data:  drivers were operational
-        data:  efficiency gains.
-
-        event: complete
-        data: {"type":"stream_complete"}
+        data: {"type":"stream_complete","metadata":{"totalResults":12},"stats":{"totalTokens":150}}
         ```
 
         ### Notes
 
-        - The agent may perform multiple searches per query. Each search produces a `tool_start`/`tool_end` pair.
+        - The agent may perform multiple searches per query. Each search produces a `tool.start` / `tool.end` pair.
         - Text chunks are interleaved between tool events — text arrives after the agent has gathered results from a search.
         - Connect with `Accept: text/event-stream` and set a generous timeout (120s+) for long responses.
 
         Parameters
         ----------
         collection_name : str
-            Name of the collection to query
 
         query : str
             The natural language query to search for
 
-        idempotency_key : typing.Optional[str]
-            UUID for request deduplication
-
         inference : typing.Optional[bool]
             Enable LLM-generated answers based on the relevant sections retrieved. When false, returns raw search results.
 
-        stream : typing.Optional[bool]
-            Enable real-time streaming of the response
+        top_k : typing.Optional[int]
+            Number of results to return. Only valid when inference=false. Not supported when inference=true (the agent controls its own search strategy).
+
+        rerank : typing.Optional[bool]
+            Enable Voyage AI rerank-2.5 reranking for improved relevance ordering. Adds ~100-300ms latency.
+
+        metadata_filter : typing.Optional[typing.Dict[str, typing.Any]]
+            Filter expression for vector search. Supports: $eq, $ne, $gt, $gte, $lt, $lte, $in, $nin, $and, $or
+
+        custom_prompt : typing.Optional[str]
+            Custom system prompt to override the default RAG prompt when inference=true. Allows customizing how the LLM processes and responds to the query with the retrieved context.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Yields
+        ------
+        typing.Iterator[QueryStreamEvent]
+
+
+        Examples
+        --------
+        from runcaptain import Captain
+
+        client = Captain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+        response = client.query.collection_v2stream(
+            collection_name="collection_name",
+            query="query",
+        )
+        for chunk in response:
+            yield chunk
+        """
+        with self._raw_client.collection_v2stream(
+            collection_name,
+            query=query,
+            inference=inference,
+            top_k=top_k,
+            rerank=rerank,
+            metadata_filter=metadata_filter,
+            custom_prompt=custom_prompt,
+            request_options=request_options,
+        ) as r:
+            yield from r.data
+
+    def collection_v2(
+        self,
+        collection_name: str,
+        *,
+        query: str,
+        inference: typing.Optional[bool] = OMIT,
+        top_k: typing.Optional[int] = OMIT,
+        rerank: typing.Optional[bool] = OMIT,
+        metadata_filter: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
+        custom_prompt: typing.Optional[str] = OMIT,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> typing.Any:
+        """
+        Execute a natural language query against a collection.
+
+        When `inference=true`, returns an AI-generated response with relevant documents.
+        When `inference=false`, returns raw search results with content and metadata.
+
+        ## Streaming (SSE)
+
+        When `stream: true` and `inference: true`, the response is a Server-Sent Events stream. Every `data:` field is a JSON object with a `type` discriminator.
+
+        ### SSE Event Types
+
+        | `type` value | Schema | Description |
+        |---|---|---|
+        | `text` | `QueryStreamTextEvent` | Incremental text chunk of the AI response. |
+        | `tool.start` | `QueryStreamToolStartEvent` | The agent is performing a knowledge-base search. |
+        | `tool.end` | `QueryStreamToolEndEvent` | A tool call completed. `tool_call_id` correlates with the preceding `tool.start`. |
+        | `stream_complete` | `QueryStreamCompleteEvent` | Stream finished successfully. Close the connection. |
+        | `stream_error` | `QueryStreamErrorEvent` | An error occurred. Close the connection. |
+
+        ### Example SSE Stream
+
+        ```
+        data: {"type":"tool.start","seq":1,"run_id":"run_abc","tool_call_id":"tc_1","name":"searchKnowledgeBase","args":{"query":"revenue projections Q4"}}
+
+        data: {"type":"tool.end","seq":2,"run_id":"run_abc","tool_call_id":"tc_1","name":"searchKnowledgeBase","ok":true,"result_summary":{"resultCount":12}}
+
+        data: {"type":"text","content":"Based on the documents"}
+        data: {"type":"text","content":" provided, the revenue"}
+        data: {"type":"text","content":" projections for Q4 show"}
+        data: {"type":"text","content":" a 15% increase over Q3."}
+
+        data: {"type":"stream_complete","metadata":{"totalResults":12},"stats":{"totalTokens":150}}
+        ```
+
+        ### Notes
+
+        - The agent may perform multiple searches per query. Each search produces a `tool.start` / `tool.end` pair.
+        - Text chunks are interleaved between tool events — text arrives after the agent has gathered results from a search.
+        - Connect with `Accept: text/event-stream` and set a generous timeout (120s+) for long responses.
+
+        Parameters
+        ----------
+        collection_name : str
+
+        query : str
+            The natural language query to search for
+
+        inference : typing.Optional[bool]
+            Enable LLM-generated answers based on the relevant sections retrieved. When false, returns raw search results.
 
         top_k : typing.Optional[int]
             Number of results to return. Only valid when inference=false. Not supported when inference=true (the agent controls its own search strategy).
@@ -128,32 +216,26 @@ class QueryClient:
 
         Returns
         -------
-        QueryResponseV2
-            Successful Response — returns JSON when `stream: false`, or SSE event stream when `stream: true`.
+        typing.Any
+
 
         Examples
         --------
         from runcaptain import Captain
 
         client = Captain(
-            authorization="YOUR_AUTHORIZATION",
             organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
         )
         client.query.collection_v2(
-            collection_name="my_documents",
-            query="What are the key terms in the contract?",
-            inference=False,
-            stream=False,
-            top_k=10,
-            rerank=True,
+            collection_name="collection_name",
+            query="query",
         )
         """
         _response = self._raw_client.collection_v2(
             collection_name,
             query=query,
-            idempotency_key=idempotency_key,
             inference=inference,
-            stream=stream,
             top_k=top_k,
             rerank=rerank,
             metadata_filter=metadata_filter,
@@ -178,20 +260,18 @@ class AsyncQueryClient:
         """
         return self._raw_client
 
-    async def collection_v2(
+    async def collection_v2stream(
         self,
         collection_name: str,
         *,
         query: str,
-        idempotency_key: typing.Optional[str] = None,
         inference: typing.Optional[bool] = OMIT,
-        stream: typing.Optional[bool] = OMIT,
         top_k: typing.Optional[int] = OMIT,
         rerank: typing.Optional[bool] = OMIT,
         metadata_filter: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
         custom_prompt: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> QueryResponseV2:
+    ) -> typing.AsyncIterator[QueryStreamEvent]:
         """
         Execute a natural language query against a collection.
 
@@ -200,68 +280,167 @@ class AsyncQueryClient:
 
         ## Streaming (SSE)
 
-        When `stream: true` and `inference: true`, the JSON response includes a `request_id`. Refer to the sample implementations to best make use of streams.
+        When `stream: true` and `inference: true`, the response is a Server-Sent Events stream. Every `data:` field is a JSON object with a `type` discriminator.
 
         ### SSE Event Types
 
-        | Event | Format | Description |
-        |-------|--------|-------------|
-        | Text chunk | `data: <text>\\n\\n` | Incremental text of the AI response. Plain text (not JSON). Newlines within text are escaped as `\\n`. |
-        | Tool start | `event: tool_start\\ndata: {"type":"tool.start","name":"searchKnowledgeBase","tool_call_id":"tc_1","args":{"query":"..."}}\\n\\n` | The AI agent is performing a knowledge base search. The `args.query` field contains the search query. |
-        | Tool end | `event: tool_end\\ndata: {"type":"tool.end","name":"searchKnowledgeBase","tool_call_id":"tc_1","ok":true,"result_summary":{"resultCount":12}}\\n\\n` | A search completed. `tool_call_id` correlates with the preceding `tool_start`. `result_summary.resultCount` indicates how many results were found. |
-        | Complete | `event: complete\\ndata: {"type":"stream_complete"}\\n\\n` | Stream finished successfully. Close the connection after receiving this. |
-        | Error | `event: error\\ndata: {"type":"stream_error","error":"..."}\\n\\n` | An error occurred during generation. Close the connection. |
+        | `type` value | Schema | Description |
+        |---|---|---|
+        | `text` | `QueryStreamTextEvent` | Incremental text chunk of the AI response. |
+        | `tool.start` | `QueryStreamToolStartEvent` | The agent is performing a knowledge-base search. |
+        | `tool.end` | `QueryStreamToolEndEvent` | A tool call completed. `tool_call_id` correlates with the preceding `tool.start`. |
+        | `stream_complete` | `QueryStreamCompleteEvent` | Stream finished successfully. Close the connection. |
+        | `stream_error` | `QueryStreamErrorEvent` | An error occurred. Close the connection. |
 
         ### Example SSE Stream
 
         ```
-        event: tool_start
-        data: {"type":"tool.start","name":"searchKnowledgeBase","tool_call_id":"tc_1","args":{"query":"revenue projections Q4"}}
+        data: {"type":"tool.start","seq":1,"run_id":"run_abc","tool_call_id":"tc_1","name":"searchKnowledgeBase","args":{"query":"revenue projections Q4"}}
 
-        event: tool_end
-        data: {"type":"tool.end","name":"searchKnowledgeBase","tool_call_id":"tc_1","ok":true,"result_summary":{"resultCount":12}}
+        data: {"type":"tool.end","seq":2,"run_id":"run_abc","tool_call_id":"tc_1","name":"searchKnowledgeBase","ok":true,"result_summary":{"resultCount":12}}
 
-        data: Based on the documents
-        data:  provided, the revenue
-        data:  projections for Q4 show
-        data:  a 15% increase over Q3.
+        data: {"type":"text","content":"Based on the documents"}
+        data: {"type":"text","content":" provided, the revenue"}
+        data: {"type":"text","content":" projections for Q4 show"}
+        data: {"type":"text","content":" a 15% increase over Q3."}
 
-        event: tool_start
-        data: {"type":"tool.start","name":"searchKnowledgeBase","tool_call_id":"tc_2","args":{"query":"Q3 comparison metrics"}}
-
-        event: tool_end
-        data: {"type":"tool.end","name":"searchKnowledgeBase","tool_call_id":"tc_2","ok":true,"result_summary":{"resultCount":8}}
-
-        data:  Compared to Q3, the key
-        data:  drivers were operational
-        data:  efficiency gains.
-
-        event: complete
-        data: {"type":"stream_complete"}
+        data: {"type":"stream_complete","metadata":{"totalResults":12},"stats":{"totalTokens":150}}
         ```
 
         ### Notes
 
-        - The agent may perform multiple searches per query. Each search produces a `tool_start`/`tool_end` pair.
+        - The agent may perform multiple searches per query. Each search produces a `tool.start` / `tool.end` pair.
         - Text chunks are interleaved between tool events — text arrives after the agent has gathered results from a search.
         - Connect with `Accept: text/event-stream` and set a generous timeout (120s+) for long responses.
 
         Parameters
         ----------
         collection_name : str
-            Name of the collection to query
 
         query : str
             The natural language query to search for
 
-        idempotency_key : typing.Optional[str]
-            UUID for request deduplication
-
         inference : typing.Optional[bool]
             Enable LLM-generated answers based on the relevant sections retrieved. When false, returns raw search results.
 
-        stream : typing.Optional[bool]
-            Enable real-time streaming of the response
+        top_k : typing.Optional[int]
+            Number of results to return. Only valid when inference=false. Not supported when inference=true (the agent controls its own search strategy).
+
+        rerank : typing.Optional[bool]
+            Enable Voyage AI rerank-2.5 reranking for improved relevance ordering. Adds ~100-300ms latency.
+
+        metadata_filter : typing.Optional[typing.Dict[str, typing.Any]]
+            Filter expression for vector search. Supports: $eq, $ne, $gt, $gte, $lt, $lte, $in, $nin, $and, $or
+
+        custom_prompt : typing.Optional[str]
+            Custom system prompt to override the default RAG prompt when inference=true. Allows customizing how the LLM processes and responds to the query with the retrieved context.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Yields
+        ------
+        typing.AsyncIterator[QueryStreamEvent]
+
+
+        Examples
+        --------
+        import asyncio
+
+        from runcaptain import AsyncCaptain
+
+        client = AsyncCaptain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+
+
+        async def main() -> None:
+            response = await client.query.collection_v2stream(
+                collection_name="collection_name",
+                query="query",
+            )
+            async for chunk in response:
+                yield chunk
+
+
+        asyncio.run(main())
+        """
+        async with self._raw_client.collection_v2stream(
+            collection_name,
+            query=query,
+            inference=inference,
+            top_k=top_k,
+            rerank=rerank,
+            metadata_filter=metadata_filter,
+            custom_prompt=custom_prompt,
+            request_options=request_options,
+        ) as r:
+            async for _chunk in r.data:
+                yield _chunk
+
+    async def collection_v2(
+        self,
+        collection_name: str,
+        *,
+        query: str,
+        inference: typing.Optional[bool] = OMIT,
+        top_k: typing.Optional[int] = OMIT,
+        rerank: typing.Optional[bool] = OMIT,
+        metadata_filter: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
+        custom_prompt: typing.Optional[str] = OMIT,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> typing.Any:
+        """
+        Execute a natural language query against a collection.
+
+        When `inference=true`, returns an AI-generated response with relevant documents.
+        When `inference=false`, returns raw search results with content and metadata.
+
+        ## Streaming (SSE)
+
+        When `stream: true` and `inference: true`, the response is a Server-Sent Events stream. Every `data:` field is a JSON object with a `type` discriminator.
+
+        ### SSE Event Types
+
+        | `type` value | Schema | Description |
+        |---|---|---|
+        | `text` | `QueryStreamTextEvent` | Incremental text chunk of the AI response. |
+        | `tool.start` | `QueryStreamToolStartEvent` | The agent is performing a knowledge-base search. |
+        | `tool.end` | `QueryStreamToolEndEvent` | A tool call completed. `tool_call_id` correlates with the preceding `tool.start`. |
+        | `stream_complete` | `QueryStreamCompleteEvent` | Stream finished successfully. Close the connection. |
+        | `stream_error` | `QueryStreamErrorEvent` | An error occurred. Close the connection. |
+
+        ### Example SSE Stream
+
+        ```
+        data: {"type":"tool.start","seq":1,"run_id":"run_abc","tool_call_id":"tc_1","name":"searchKnowledgeBase","args":{"query":"revenue projections Q4"}}
+
+        data: {"type":"tool.end","seq":2,"run_id":"run_abc","tool_call_id":"tc_1","name":"searchKnowledgeBase","ok":true,"result_summary":{"resultCount":12}}
+
+        data: {"type":"text","content":"Based on the documents"}
+        data: {"type":"text","content":" provided, the revenue"}
+        data: {"type":"text","content":" projections for Q4 show"}
+        data: {"type":"text","content":" a 15% increase over Q3."}
+
+        data: {"type":"stream_complete","metadata":{"totalResults":12},"stats":{"totalTokens":150}}
+        ```
+
+        ### Notes
+
+        - The agent may perform multiple searches per query. Each search produces a `tool.start` / `tool.end` pair.
+        - Text chunks are interleaved between tool events — text arrives after the agent has gathered results from a search.
+        - Connect with `Accept: text/event-stream` and set a generous timeout (120s+) for long responses.
+
+        Parameters
+        ----------
+        collection_name : str
+
+        query : str
+            The natural language query to search for
+
+        inference : typing.Optional[bool]
+            Enable LLM-generated answers based on the relevant sections retrieved. When false, returns raw search results.
 
         top_k : typing.Optional[int]
             Number of results to return. Only valid when inference=false. Not supported when inference=true (the agent controls its own search strategy).
@@ -280,8 +459,8 @@ class AsyncQueryClient:
 
         Returns
         -------
-        QueryResponseV2
-            Successful Response — returns JSON when `stream: false`, or SSE event stream when `stream: true`.
+        typing.Any
+
 
         Examples
         --------
@@ -290,19 +469,15 @@ class AsyncQueryClient:
         from runcaptain import AsyncCaptain
 
         client = AsyncCaptain(
-            authorization="YOUR_AUTHORIZATION",
             organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
         )
 
 
         async def main() -> None:
             await client.query.collection_v2(
-                collection_name="my_documents",
-                query="What are the key terms in the contract?",
-                inference=False,
-                stream=False,
-                top_k=10,
-                rerank=True,
+                collection_name="collection_name",
+                query="query",
             )
 
 
@@ -311,9 +486,7 @@ class AsyncQueryClient:
         _response = await self._raw_client.collection_v2(
             collection_name,
             query=query,
-            idempotency_key=idempotency_key,
             inference=inference,
-            stream=stream,
             top_k=top_k,
             rerank=rerank,
             metadata_filter=metadata_filter,

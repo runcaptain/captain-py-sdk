@@ -1,6 +1,110 @@
 # Reference
+<details><summary><code>client.<a href="src/runcaptain/client.py">post_v2collections_collection_name_documents_wipe</a>(...) -&gt; AsyncHttpResponse[None]</code></summary>
+<dl>
+<dd>
+
+#### 🔌 Usage
+
+<dl>
+<dd>
+
+<dl>
+<dd>
+
+```python
+from runcaptain import Captain
+
+client = Captain(
+    organization_id="YOUR_ORGANIZATION_ID",
+    key="YOUR_KEY",
+)
+client.post_v2collections_collection_name_documents_wipe(
+    collection_name="collection_name",
+)
+
+```
+</dd>
+</dl>
+</dd>
+</dl>
+
+#### ⚙️ Parameters
+
+<dl>
+<dd>
+
+<dl>
+<dd>
+
+**collection_name:** `str` 
+    
+</dd>
+</dl>
+
+<dl>
+<dd>
+
+**request_options:** `typing.Optional[RequestOptions]` — Request-specific configuration.
+    
+</dd>
+</dl>
+</dd>
+</dl>
+
+
+</dd>
+</dl>
+</details>
+
+<details><summary><code>client.<a href="src/runcaptain/client.py">post_v2datasets_search</a>() -&gt; AsyncHttpResponse[None]</code></summary>
+<dl>
+<dd>
+
+#### 🔌 Usage
+
+<dl>
+<dd>
+
+<dl>
+<dd>
+
+```python
+from runcaptain import Captain
+
+client = Captain(
+    organization_id="YOUR_ORGANIZATION_ID",
+    key="YOUR_KEY",
+)
+client.post_v2datasets_search()
+
+```
+</dd>
+</dl>
+</dd>
+</dl>
+
+#### ⚙️ Parameters
+
+<dl>
+<dd>
+
+<dl>
+<dd>
+
+**request_options:** `typing.Optional[RequestOptions]` — Request-specific configuration.
+    
+</dd>
+</dl>
+</dd>
+</dl>
+
+
+</dd>
+</dl>
+</details>
+
 ## Collections
-<details><summary><code>client.collections.<a href="src/runcaptain/collections/client.py">list_collections_v2</a>(...) -&gt; AsyncHttpResponse[CollectionListResponseV2]</code></summary>
+<details><summary><code>client.collections.<a href="src/runcaptain/collections/client.py">list_collections_v2</a>() -&gt; AsyncHttpResponse[CollectionListResponseV2]</code></summary>
 <dl>
 <dd>
 
@@ -32,8 +136,8 @@ Returns an array of collection objects with collection_name, collection_id, and 
 from runcaptain import Captain
 
 client = Captain(
-    authorization="YOUR_AUTHORIZATION",
     organization_id="YOUR_ORGANIZATION_ID",
+    key="YOUR_KEY",
 )
 client.collections.list_collections_v2()
 
@@ -47,22 +151,6 @@ client.collections.list_collections_v2()
 
 <dl>
 <dd>
-
-<dl>
-<dd>
-
-**limit:** `typing.Optional[int]` — Maximum number of collections to return
-    
-</dd>
-</dl>
-
-<dl>
-<dd>
-
-**offset:** `typing.Optional[int]` — Pagination offset
-    
-</dd>
-</dl>
 
 <dl>
 <dd>
@@ -109,11 +197,11 @@ Create a new collection (idempotent). Returns 201 if created, 200 if already exi
 from runcaptain import Captain
 
 client = Captain(
-    authorization="YOUR_AUTHORIZATION",
     organization_id="YOUR_ORGANIZATION_ID",
+    key="YOUR_KEY",
 )
 client.collections.create_collection_v2(
-    collection_name="my_documents",
+    collection_name="collection_name",
 )
 
 ```
@@ -130,7 +218,7 @@ client.collections.create_collection_v2(
 <dl>
 <dd>
 
-**collection_name:** `str` — Name of the collection to create
+**collection_name:** `str` 
     
 </dd>
 </dl>
@@ -188,11 +276,11 @@ Delete a collection and all its indexed documents.
 from runcaptain import Captain
 
 client = Captain(
-    authorization="YOUR_AUTHORIZATION",
     organization_id="YOUR_ORGANIZATION_ID",
+    key="YOUR_KEY",
 )
 client.collections.delete_collection_v2(
-    collection_name="my_documents",
+    collection_name="collection_name",
 )
 
 ```
@@ -209,7 +297,7 @@ client.collections.delete_collection_v2(
 <dl>
 <dd>
 
-**collection_name:** `str` — Name of the collection to delete
+**collection_name:** `str` 
     
 </dd>
 </dl>
@@ -271,12 +359,12 @@ All files, indexed data, and vector embeddings are preserved. The collection's i
 from runcaptain import Captain
 
 client = Captain(
-    authorization="YOUR_AUTHORIZATION",
     organization_id="YOUR_ORGANIZATION_ID",
+    key="YOUR_KEY",
 )
 client.collections.change_collection_environment_v2(
-    collection_name="my_documents",
-    new_environment="production",
+    collection_name="collection_name",
+    new_environment="development",
 )
 
 ```
@@ -293,7 +381,7 @@ client.collections.change_collection_environment_v2(
 <dl>
 <dd>
 
-**collection_name:** `str` — Name of the collection to move
+**collection_name:** `str` 
     
 </dd>
 </dl>
@@ -351,13 +439,12 @@ List all documents in a collection with pagination support.
 from runcaptain import Captain
 
 client = Captain(
-    authorization="YOUR_AUTHORIZATION",
     organization_id="YOUR_ORGANIZATION_ID",
+    key="YOUR_KEY",
 )
 client.collections.list_documents_v2(
-    collection_name="my_documents",
-    limit=100,
-    offset=0,
+    collection_name="collection_name",
+    offset=1,
 )
 
 ```
@@ -374,15 +461,7 @@ client.collections.list_documents_v2(
 <dl>
 <dd>
 
-**collection_name:** `str` — Name of the collection
-    
-</dd>
-</dl>
-
-<dl>
-<dd>
-
-**limit:** `typing.Optional[int]` — Maximum number of documents to return
+**collection_name:** `str` 
     
 </dd>
 </dl>
@@ -440,8 +519,8 @@ Remove all documents from a collection while keeping the collection structure.
 from runcaptain import Captain
 
 client = Captain(
-    authorization="YOUR_AUTHORIZATION",
     organization_id="YOUR_ORGANIZATION_ID",
+    key="YOUR_KEY",
 )
 client.collections.wipe_collection_documents_v2(
     collection_name="collection_name",
@@ -511,8 +590,8 @@ Delete a specific document from a collection.
 from runcaptain import Captain
 
 client = Captain(
-    authorization="YOUR_AUTHORIZATION",
     organization_id="YOUR_ORGANIZATION_ID",
+    key="YOUR_KEY",
 )
 client.collections.delete_document_v2(
     collection_name="collection_name",
@@ -533,7 +612,7 @@ client.collections.delete_document_v2(
 <dl>
 <dd>
 
-**collection_name:** `str` — Name of the collection
+**collection_name:** `str` 
     
 </dd>
 </dl>
@@ -541,7 +620,7 @@ client.collections.delete_document_v2(
 <dl>
 <dd>
 
-**document_id:** `str` — ID of the document to delete
+**document_id:** `str` 
     
 </dd>
 </dl>
@@ -562,7 +641,7 @@ client.collections.delete_document_v2(
 </details>
 
 ## Query
-<details><summary><code>client.query.<a href="src/runcaptain/query/client.py">collection_v2</a>(...) -&gt; AsyncHttpResponse[QueryResponseV2]</code></summary>
+<details><summary><code>client.query.<a href="src/runcaptain/query/client.py">collection_v2stream</a>(...) -&gt; typing.AsyncIterator[AsyncHttpResponse[typing.AsyncIterator[QueryStreamEvent]]]</code></summary>
 <dl>
 <dd>
 
@@ -581,49 +660,36 @@ When `inference=false`, returns raw search results with content and metadata.
 
 ## Streaming (SSE)
 
-When `stream: true` and `inference: true`, the JSON response includes a `request_id`. Refer to the sample implementations to best make use of streams.
+When `stream: true` and `inference: true`, the response is a Server-Sent Events stream. Every `data:` field is a JSON object with a `type` discriminator.
 
 ### SSE Event Types
 
-| Event | Format | Description |
-|-------|--------|-------------|
-| Text chunk | `data: <text>\n\n` | Incremental text of the AI response. Plain text (not JSON). Newlines within text are escaped as `\n`. |
-| Tool start | `event: tool_start\ndata: {"type":"tool.start","name":"searchKnowledgeBase","tool_call_id":"tc_1","args":{"query":"..."}}\n\n` | The AI agent is performing a knowledge base search. The `args.query` field contains the search query. |
-| Tool end | `event: tool_end\ndata: {"type":"tool.end","name":"searchKnowledgeBase","tool_call_id":"tc_1","ok":true,"result_summary":{"resultCount":12}}\n\n` | A search completed. `tool_call_id` correlates with the preceding `tool_start`. `result_summary.resultCount` indicates how many results were found. |
-| Complete | `event: complete\ndata: {"type":"stream_complete"}\n\n` | Stream finished successfully. Close the connection after receiving this. |
-| Error | `event: error\ndata: {"type":"stream_error","error":"..."}\n\n` | An error occurred during generation. Close the connection. |
+| `type` value | Schema | Description |
+|---|---|---|
+| `text` | `QueryStreamTextEvent` | Incremental text chunk of the AI response. |
+| `tool.start` | `QueryStreamToolStartEvent` | The agent is performing a knowledge-base search. |
+| `tool.end` | `QueryStreamToolEndEvent` | A tool call completed. `tool_call_id` correlates with the preceding `tool.start`. |
+| `stream_complete` | `QueryStreamCompleteEvent` | Stream finished successfully. Close the connection. |
+| `stream_error` | `QueryStreamErrorEvent` | An error occurred. Close the connection. |
 
 ### Example SSE Stream
 
 ```
-event: tool_start
-data: {"type":"tool.start","name":"searchKnowledgeBase","tool_call_id":"tc_1","args":{"query":"revenue projections Q4"}}
+data: {"type":"tool.start","seq":1,"run_id":"run_abc","tool_call_id":"tc_1","name":"searchKnowledgeBase","args":{"query":"revenue projections Q4"}}
 
-event: tool_end
-data: {"type":"tool.end","name":"searchKnowledgeBase","tool_call_id":"tc_1","ok":true,"result_summary":{"resultCount":12}}
+data: {"type":"tool.end","seq":2,"run_id":"run_abc","tool_call_id":"tc_1","name":"searchKnowledgeBase","ok":true,"result_summary":{"resultCount":12}}
 
-data: Based on the documents
-data:  provided, the revenue
-data:  projections for Q4 show
-data:  a 15% increase over Q3.
+data: {"type":"text","content":"Based on the documents"}
+data: {"type":"text","content":" provided, the revenue"}
+data: {"type":"text","content":" projections for Q4 show"}
+data: {"type":"text","content":" a 15% increase over Q3."}
 
-event: tool_start
-data: {"type":"tool.start","name":"searchKnowledgeBase","tool_call_id":"tc_2","args":{"query":"Q3 comparison metrics"}}
-
-event: tool_end
-data: {"type":"tool.end","name":"searchKnowledgeBase","tool_call_id":"tc_2","ok":true,"result_summary":{"resultCount":8}}
-
-data:  Compared to Q3, the key
-data:  drivers were operational
-data:  efficiency gains.
-
-event: complete
-data: {"type":"stream_complete"}
+data: {"type":"stream_complete","metadata":{"totalResults":12},"stats":{"totalTokens":150}}
 ```
 
 ### Notes
 
-- The agent may perform multiple searches per query. Each search produces a `tool_start`/`tool_end` pair.
+- The agent may perform multiple searches per query. Each search produces a `tool.start` / `tool.end` pair.
 - Text chunks are interleaved between tool events — text arrives after the agent has gathered results from a search.
 - Connect with `Accept: text/event-stream` and set a generous timeout (120s+) for long responses.
 </dd>
@@ -643,15 +709,172 @@ data: {"type":"stream_complete"}
 from runcaptain import Captain
 
 client = Captain(
-    authorization="YOUR_AUTHORIZATION",
     organization_id="YOUR_ORGANIZATION_ID",
+    key="YOUR_KEY",
+)
+response = client.query.collection_v2stream(
+    collection_name="collection_name",
+    query="query",
+)
+for chunk in response.data:
+    yield chunk
+
+```
+</dd>
+</dl>
+</dd>
+</dl>
+
+#### ⚙️ Parameters
+
+<dl>
+<dd>
+
+<dl>
+<dd>
+
+**collection_name:** `str` 
+    
+</dd>
+</dl>
+
+<dl>
+<dd>
+
+**query:** `str` — The natural language query to search for
+    
+</dd>
+</dl>
+
+<dl>
+<dd>
+
+**inference:** `typing.Optional[bool]` — Enable LLM-generated answers based on the relevant sections retrieved. When false, returns raw search results.
+    
+</dd>
+</dl>
+
+<dl>
+<dd>
+
+**top_k:** `typing.Optional[int]` — Number of results to return. Only valid when inference=false. Not supported when inference=true (the agent controls its own search strategy).
+    
+</dd>
+</dl>
+
+<dl>
+<dd>
+
+**rerank:** `typing.Optional[bool]` — Enable Voyage AI rerank-2.5 reranking for improved relevance ordering. Adds ~100-300ms latency.
+    
+</dd>
+</dl>
+
+<dl>
+<dd>
+
+**metadata_filter:** `typing.Optional[typing.Dict[str, typing.Any]]` — Filter expression for vector search. Supports: $eq, $ne, $gt, $gte, $lt, $lte, $in, $nin, $and, $or
+    
+</dd>
+</dl>
+
+<dl>
+<dd>
+
+**custom_prompt:** `typing.Optional[str]` — Custom system prompt to override the default RAG prompt when inference=true. Allows customizing how the LLM processes and responds to the query with the retrieved context.
+    
+</dd>
+</dl>
+
+<dl>
+<dd>
+
+**request_options:** `typing.Optional[RequestOptions]` — Request-specific configuration.
+    
+</dd>
+</dl>
+</dd>
+</dl>
+
+
+</dd>
+</dl>
+</details>
+
+<details><summary><code>client.query.<a href="src/runcaptain/query/client.py">collection_v2</a>(...) -&gt; AsyncHttpResponse[typing.Any]</code></summary>
+<dl>
+<dd>
+
+#### 📝 Description
+
+<dl>
+<dd>
+
+<dl>
+<dd>
+
+Execute a natural language query against a collection.
+
+When `inference=true`, returns an AI-generated response with relevant documents.
+When `inference=false`, returns raw search results with content and metadata.
+
+## Streaming (SSE)
+
+When `stream: true` and `inference: true`, the response is a Server-Sent Events stream. Every `data:` field is a JSON object with a `type` discriminator.
+
+### SSE Event Types
+
+| `type` value | Schema | Description |
+|---|---|---|
+| `text` | `QueryStreamTextEvent` | Incremental text chunk of the AI response. |
+| `tool.start` | `QueryStreamToolStartEvent` | The agent is performing a knowledge-base search. |
+| `tool.end` | `QueryStreamToolEndEvent` | A tool call completed. `tool_call_id` correlates with the preceding `tool.start`. |
+| `stream_complete` | `QueryStreamCompleteEvent` | Stream finished successfully. Close the connection. |
+| `stream_error` | `QueryStreamErrorEvent` | An error occurred. Close the connection. |
+
+### Example SSE Stream
+
+```
+data: {"type":"tool.start","seq":1,"run_id":"run_abc","tool_call_id":"tc_1","name":"searchKnowledgeBase","args":{"query":"revenue projections Q4"}}
+
+data: {"type":"tool.end","seq":2,"run_id":"run_abc","tool_call_id":"tc_1","name":"searchKnowledgeBase","ok":true,"result_summary":{"resultCount":12}}
+
+data: {"type":"text","content":"Based on the documents"}
+data: {"type":"text","content":" provided, the revenue"}
+data: {"type":"text","content":" projections for Q4 show"}
+data: {"type":"text","content":" a 15% increase over Q3."}
+
+data: {"type":"stream_complete","metadata":{"totalResults":12},"stats":{"totalTokens":150}}
+```
+
+### Notes
+
+- The agent may perform multiple searches per query. Each search produces a `tool.start` / `tool.end` pair.
+- Text chunks are interleaved between tool events — text arrives after the agent has gathered results from a search.
+- Connect with `Accept: text/event-stream` and set a generous timeout (120s+) for long responses.
+</dd>
+</dl>
+</dd>
+</dl>
+
+#### 🔌 Usage
+
+<dl>
+<dd>
+
+<dl>
+<dd>
+
+```python
+from runcaptain import Captain
+
+client = Captain(
+    organization_id="YOUR_ORGANIZATION_ID",
+    key="YOUR_KEY",
 )
 client.query.collection_v2(
-    collection_name="my_documents",
-    query="What are the key terms in the contract?",
-    inference=True,
-    stream=True,
-    rerank=True,
+    collection_name="collection_name",
+    query="query",
 )
 
 ```
@@ -668,7 +891,7 @@ client.query.collection_v2(
 <dl>
 <dd>
 
-**collection_name:** `str` — Name of the collection to query
+**collection_name:** `str` 
     
 </dd>
 </dl>
@@ -684,23 +907,7 @@ client.query.collection_v2(
 <dl>
 <dd>
 
-**idempotency_key:** `typing.Optional[str]` — UUID for request deduplication
-    
-</dd>
-</dl>
-
-<dl>
-<dd>
-
 **inference:** `typing.Optional[bool]` — Enable LLM-generated answers based on the relevant sections retrieved. When false, returns raw search results.
-    
-</dd>
-</dl>
-
-<dl>
-<dd>
-
-**stream:** `typing.Optional[bool]` — Enable real-time streaming of the response
     
 </dd>
 </dl>
@@ -783,14 +990,14 @@ Index all files from an S3 bucket into a collection. Returns a job_id for tracki
 from runcaptain import Captain
 
 client = Captain(
-    authorization="YOUR_AUTHORIZATION",
     organization_id="YOUR_ORGANIZATION_ID",
+    key="YOUR_KEY",
 )
 client.indexing.index_s3bucket_v2(
-    collection_name="my_documents",
-    bucket_name="my-s3-bucket",
+    collection_name="collection_name",
+    bucket_name="my-company-docs",
     aws_access_key_id="AKIAIOSFODNN7EXAMPLE",
-    aws_secret_access_key="your_secret_key",
+    aws_secret_access_key="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
     bucket_region="us-east-1",
     processing_type="advanced",
 )
@@ -809,7 +1016,7 @@ client.indexing.index_s3bucket_v2(
 <dl>
 <dd>
 
-**collection_name:** `str` — Name of the collection to index into
+**collection_name:** `str` 
     
 </dd>
 </dl>
@@ -842,14 +1049,6 @@ client.indexing.index_s3bucket_v2(
 <dd>
 
 **processing_type:** `IndexS3RequestV2ProcessingType` — Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
-    
-</dd>
-</dl>
-
-<dl>
-<dd>
-
-**idempotency_key:** `typing.Optional[str]` — UUID for request deduplication
     
 </dd>
 </dl>
@@ -931,15 +1130,15 @@ Index a single file from an S3 bucket into a collection. Returns a job_id for tr
 from runcaptain import Captain
 
 client = Captain(
-    authorization="YOUR_AUTHORIZATION",
     organization_id="YOUR_ORGANIZATION_ID",
+    key="YOUR_KEY",
 )
 client.indexing.index_s3file_v2(
-    collection_name="my_documents",
-    bucket_name="my-s3-bucket",
-    file_uri="s3://my-s3-bucket/contracts/acme_contract.pdf",
+    collection_name="collection_name",
+    bucket_name="my-company-docs",
+    file_uri="s3://my-company-docs/contracts/acme_contract.pdf",
     aws_access_key_id="AKIAIOSFODNN7EXAMPLE",
-    aws_secret_access_key="your_secret_key",
+    aws_secret_access_key="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
     bucket_region="us-east-1",
     processing_type="advanced",
 )
@@ -958,7 +1157,7 @@ client.indexing.index_s3file_v2(
 <dl>
 <dd>
 
-**collection_name:** `str` — Name of the collection to index into
+**collection_name:** `str` 
     
 </dd>
 </dl>
@@ -1064,12 +1263,12 @@ Index all files from a Google Cloud Storage bucket into a collection. Returns a 
 from runcaptain import Captain
 
 client = Captain(
-    authorization="YOUR_AUTHORIZATION",
     organization_id="YOUR_ORGANIZATION_ID",
+    key="YOUR_KEY",
 )
 client.indexing.index_gcs_bucket_v2(
-    collection_name="my_documents",
-    bucket_name="my-gcs-bucket",
+    collection_name="collection_name",
+    bucket_name="my-company-docs",
     service_account_json='{"type":"service_account","project_id":"my-project",...}',
     processing_type="advanced",
 )
@@ -1088,7 +1287,7 @@ client.indexing.index_gcs_bucket_v2(
 <dl>
 <dd>
 
-**collection_name:** `str` — Name of the collection to index into
+**collection_name:** `str` 
     
 </dd>
 </dl>
@@ -1186,8 +1385,8 @@ Index a single file from a GCS bucket into a collection. Returns a job_id for tr
 from runcaptain import Captain
 
 client = Captain(
-    authorization="YOUR_AUTHORIZATION",
     organization_id="YOUR_ORGANIZATION_ID",
+    key="YOUR_KEY",
 )
 client.indexing.index_gcs_file_v2(
     collection_name="collection_name",
@@ -1211,7 +1410,7 @@ client.indexing.index_gcs_file_v2(
 <dl>
 <dd>
 
-**collection_name:** `str` — Name of the collection to index into
+**collection_name:** `str` 
     
 </dd>
 </dl>
@@ -1301,15 +1500,15 @@ Index all files from a specific directory in an S3 bucket into a collection. Use
 from runcaptain import Captain
 
 client = Captain(
-    authorization="YOUR_AUTHORIZATION",
     organization_id="YOUR_ORGANIZATION_ID",
+    key="YOUR_KEY",
 )
 client.indexing.index_s3directory_v2(
-    collection_name="my_documents",
-    bucket_name="my-s3-bucket",
+    collection_name="collection_name",
+    bucket_name="my-company-docs",
     directory_path="reports/2024/january",
     aws_access_key_id="AKIAIOSFODNN7EXAMPLE",
-    aws_secret_access_key="your_secret_key",
+    aws_secret_access_key="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
     bucket_region="us-east-1",
     processing_type="advanced",
 )
@@ -1328,7 +1527,7 @@ client.indexing.index_s3directory_v2(
 <dl>
 <dd>
 
-**collection_name:** `str` — Name of the collection to index into
+**collection_name:** `str` 
     
 </dd>
 </dl>
@@ -1369,14 +1568,6 @@ client.indexing.index_s3directory_v2(
 <dd>
 
 **processing_type:** `IndexS3DirectoryRequestV2ProcessingType` — Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
-    
-</dd>
-</dl>
-
-<dl>
-<dd>
-
-**idempotency_key:** `typing.Optional[str]` — UUID for request deduplication
     
 </dd>
 </dl>
@@ -1458,12 +1649,12 @@ Index all files from a specific directory in a GCS bucket into a collection. Use
 from runcaptain import Captain
 
 client = Captain(
-    authorization="YOUR_AUTHORIZATION",
     organization_id="YOUR_ORGANIZATION_ID",
+    key="YOUR_KEY",
 )
 client.indexing.index_gcs_directory_v2(
-    collection_name="my_documents",
-    bucket_name="my-gcs-bucket",
+    collection_name="collection_name",
+    bucket_name="my-company-docs",
     directory_path="reports/2024/january",
     service_account_json='{"type":"service_account","project_id":"my-project",...}',
     processing_type="advanced",
@@ -1483,7 +1674,7 @@ client.indexing.index_gcs_directory_v2(
 <dl>
 <dd>
 
-**collection_name:** `str` — Name of the collection to index into
+**collection_name:** `str` 
     
 </dd>
 </dl>
@@ -1516,14 +1707,6 @@ client.indexing.index_gcs_directory_v2(
 <dd>
 
 **processing_type:** `IndexGcsDirectoryRequestV2ProcessingType` — Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
-    
-</dd>
-</dl>
-
-<dl>
-<dd>
-
-**idempotency_key:** `typing.Optional[str]` — UUID for request deduplication
     
 </dd>
 </dl>
@@ -1597,14 +1780,14 @@ Index all files from an Azure Blob Storage container into a collection. Returns 
 from runcaptain import Captain
 
 client = Captain(
-    authorization="YOUR_AUTHORIZATION",
     organization_id="YOUR_ORGANIZATION_ID",
+    key="YOUR_KEY",
 )
 client.indexing.index_azure_container_v2(
-    collection_name="my_documents",
+    collection_name="collection_name",
     container_name="my-container",
     account_name="mystorageaccount",
-    account_key="your_account_key",
+    account_key="your_account_key_base64",
     processing_type="advanced",
 )
 
@@ -1622,7 +1805,7 @@ client.indexing.index_azure_container_v2(
 <dl>
 <dd>
 
-**collection_name:** `str` — Name of the collection to index into
+**collection_name:** `str` 
     
 </dd>
 </dl>
@@ -1655,14 +1838,6 @@ client.indexing.index_azure_container_v2(
 <dd>
 
 **processing_type:** `IndexAzureRequestV2ProcessingType` — Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
-    
-</dd>
-</dl>
-
-<dl>
-<dd>
-
-**idempotency_key:** `typing.Optional[str]` — UUID for request deduplication
     
 </dd>
 </dl>
@@ -1736,15 +1911,15 @@ Index a single file from an Azure Blob Storage container into a collection. Retu
 from runcaptain import Captain
 
 client = Captain(
-    authorization="YOUR_AUTHORIZATION",
     organization_id="YOUR_ORGANIZATION_ID",
+    key="YOUR_KEY",
 )
 client.indexing.index_azure_file_v2(
-    collection_name="my_documents",
+    collection_name="collection_name",
     container_name="my-container",
     file_uri="https://mystorageaccount.blob.core.windows.net/my-container/contracts/acme_contract.pdf",
     account_name="mystorageaccount",
-    account_key="your_account_key",
+    account_key="your_account_key_base64",
     processing_type="advanced",
 )
 
@@ -1762,7 +1937,7 @@ client.indexing.index_azure_file_v2(
 <dl>
 <dd>
 
-**collection_name:** `str` — Name of the collection to index into
+**collection_name:** `str` 
     
 </dd>
 </dl>
@@ -1860,15 +2035,15 @@ Index all files from a specific directory (prefix) in an Azure Blob Storage cont
 from runcaptain import Captain
 
 client = Captain(
-    authorization="YOUR_AUTHORIZATION",
     organization_id="YOUR_ORGANIZATION_ID",
+    key="YOUR_KEY",
 )
 client.indexing.index_azure_directory_v2(
-    collection_name="my_documents",
+    collection_name="collection_name",
     container_name="my-container",
     directory_path="reports/2024/january",
     account_name="mystorageaccount",
-    account_key="your_account_key",
+    account_key="your_account_key_base64",
     processing_type="advanced",
 )
 
@@ -1886,7 +2061,7 @@ client.indexing.index_azure_directory_v2(
 <dl>
 <dd>
 
-**collection_name:** `str` — Name of the collection to index into
+**collection_name:** `str` 
     
 </dd>
 </dl>
@@ -1927,14 +2102,6 @@ client.indexing.index_azure_directory_v2(
 <dd>
 
 **processing_type:** `IndexAzureDirectoryRequestV2ProcessingType` — Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
-    
-</dd>
-</dl>
-
-<dl>
-<dd>
-
-**idempotency_key:** `typing.Optional[str]` — UUID for request deduplication
     
 </dd>
 </dl>
@@ -2034,11 +2201,11 @@ Each file in the `files` array has a status:
 from runcaptain import Captain
 
 client = Captain(
-    authorization="YOUR_AUTHORIZATION",
     organization_id="YOUR_ORGANIZATION_ID",
+    key="YOUR_KEY",
 )
 client.jobs.get_job_status_v2(
-    job_id="abc123xyz-1234567890",
+    job_id="job_id",
 )
 
 ```
@@ -2055,7 +2222,7 @@ client.jobs.get_job_status_v2(
 <dl>
 <dd>
 
-**job_id:** `str` — The job ID returned from an indexing request
+**job_id:** `str` 
     
 </dd>
 </dl>
@@ -2109,11 +2276,11 @@ Behavior:
 from runcaptain import Captain
 
 client = Captain(
-    authorization="YOUR_AUTHORIZATION",
     organization_id="YOUR_ORGANIZATION_ID",
+    key="YOUR_KEY",
 )
 client.jobs.cancel_job_v2(
-    job_id="abc123xyz-1234567890",
+    job_id="job_id",
 )
 
 ```
@@ -2130,7 +2297,7 @@ client.jobs.cancel_job_v2(
 <dl>
 <dd>
 
-**job_id:** `str` — The job ID to cancel
+**job_id:** `str` 
     
 </dd>
 </dl>
@@ -2191,12 +2358,13 @@ Returns a list of search results with title, URL, snippet, and date.
 from runcaptain import Captain
 
 client = Captain(
-    authorization="YOUR_AUTHORIZATION",
     organization_id="YOUR_ORGANIZATION_ID",
+    key="YOUR_KEY",
 )
 client.datasets.search_dataset(
     dataset="nytimes",
-    q="",
+    q="q",
+    limit=1,
 )
 
 ```
@@ -2290,12 +2458,12 @@ Returns the full article content in markdown format, along with metadata like ti
 from runcaptain import Captain
 
 client = Captain(
-    authorization="YOUR_AUTHORIZATION",
     organization_id="YOUR_ORGANIZATION_ID",
+    key="YOUR_KEY",
 )
 client.datasets.get_dataset_article(
     dataset="nytimes",
-    url="https://www.washingtonpost.com/example/news_example.html",
+    url="url",
 )
 
 ```
