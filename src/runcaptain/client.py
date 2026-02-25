@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
+import os
 import typing
 
 import httpx
+from .core.api_error import ApiError
 from .core.client_wrapper import AsyncClientWrapper, SyncClientWrapper
 from .core.logging import LogConfig, Logger
+from .core.request_options import RequestOptions
 from .environment import CaptainEnvironment
+from .raw_client import AsyncRawCaptain, RawCaptain
 
 if typing.TYPE_CHECKING:
     from .collections.client import AsyncCollectionsClient, CollectionsClient
@@ -35,8 +39,8 @@ class Captain:
 
 
 
-    authorization : str
     organization_id : typing.Optional[str]
+    key : typing.Optional[typing.Union[str, typing.Callable[[], str]]]
     headers : typing.Optional[typing.Dict[str, str]]
         Additional headers to send with every request.
 
@@ -57,8 +61,8 @@ class Captain:
     from runcaptain import Captain
 
     client = Captain(
-        authorization="YOUR_AUTHORIZATION",
         organization_id="YOUR_ORGANIZATION_ID",
+        key="YOUR_KEY",
     )
     """
 
@@ -67,8 +71,8 @@ class Captain:
         *,
         base_url: typing.Optional[str] = None,
         environment: CaptainEnvironment = CaptainEnvironment.DEFAULT,
-        authorization: str,
-        organization_id: typing.Optional[str] = None,
+        organization_id: typing.Optional[str] = os.getenv("CAPTAIN_ORGANIZATION_ID"),
+        key: typing.Optional[typing.Union[str, typing.Callable[[], str]]] = os.getenv("CAPTAIN_API_KEY"),
         headers: typing.Optional[typing.Dict[str, str]] = None,
         timeout: typing.Optional[float] = None,
         follow_redirects: typing.Optional[bool] = True,
@@ -78,10 +82,16 @@ class Captain:
         _defaulted_timeout = (
             timeout if timeout is not None else 60 if httpx_client is None else httpx_client.timeout.read
         )
+        if organization_id is None:
+            raise ApiError(
+                body="The client must be instantiated be either passing in organization_id or setting CAPTAIN_ORGANIZATION_ID"
+            )
+        if key is None:
+            raise ApiError(body="The client must be instantiated be either passing in key or setting CAPTAIN_API_KEY")
         self._client_wrapper = SyncClientWrapper(
             base_url=_get_base_url(base_url=base_url, environment=environment),
-            authorization=authorization,
             organization_id=organization_id,
+            key=key,
             headers=headers,
             httpx_client=httpx_client
             if httpx_client is not None
@@ -91,11 +101,79 @@ class Captain:
             timeout=_defaulted_timeout,
             logging=logging,
         )
+        self._raw_client = RawCaptain(client_wrapper=self._client_wrapper)
         self._collections: typing.Optional[CollectionsClient] = None
         self._query: typing.Optional[QueryClient] = None
         self._indexing: typing.Optional[IndexingClient] = None
         self._jobs: typing.Optional[JobsClient] = None
         self._datasets: typing.Optional[DatasetsClient] = None
+
+    @property
+    def with_raw_response(self) -> RawCaptain:
+        """
+        Retrieves a raw implementation of this client that returns raw responses.
+
+        Returns
+        -------
+        RawCaptain
+        """
+        return self._raw_client
+
+    def post_v2collections_collection_name_documents_wipe(
+        self, collection_name: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> None:
+        """
+        Parameters
+        ----------
+        collection_name : str
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        None
+
+        Examples
+        --------
+        from runcaptain import Captain
+
+        client = Captain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+        client.post_v2collections_collection_name_documents_wipe(
+            collection_name="collection_name",
+        )
+        """
+        _response = self._raw_client.post_v2collections_collection_name_documents_wipe(
+            collection_name, request_options=request_options
+        )
+        return _response.data
+
+    def post_v2datasets_search(self, *, request_options: typing.Optional[RequestOptions] = None) -> None:
+        """
+        Parameters
+        ----------
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        None
+
+        Examples
+        --------
+        from runcaptain import Captain
+
+        client = Captain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+        client.post_v2datasets_search()
+        """
+        _response = self._raw_client.post_v2datasets_search(request_options=request_options)
+        return _response.data
 
     @property
     def collections(self):
@@ -156,8 +234,8 @@ class AsyncCaptain:
 
 
 
-    authorization : str
     organization_id : typing.Optional[str]
+    key : typing.Optional[typing.Union[str, typing.Callable[[], str]]]
     headers : typing.Optional[typing.Dict[str, str]]
         Additional headers to send with every request.
 
@@ -178,8 +256,8 @@ class AsyncCaptain:
     from runcaptain import AsyncCaptain
 
     client = AsyncCaptain(
-        authorization="YOUR_AUTHORIZATION",
         organization_id="YOUR_ORGANIZATION_ID",
+        key="YOUR_KEY",
     )
     """
 
@@ -188,8 +266,8 @@ class AsyncCaptain:
         *,
         base_url: typing.Optional[str] = None,
         environment: CaptainEnvironment = CaptainEnvironment.DEFAULT,
-        authorization: str,
-        organization_id: typing.Optional[str] = None,
+        organization_id: typing.Optional[str] = os.getenv("CAPTAIN_ORGANIZATION_ID"),
+        key: typing.Optional[typing.Union[str, typing.Callable[[], str]]] = os.getenv("CAPTAIN_API_KEY"),
         headers: typing.Optional[typing.Dict[str, str]] = None,
         timeout: typing.Optional[float] = None,
         follow_redirects: typing.Optional[bool] = True,
@@ -199,10 +277,16 @@ class AsyncCaptain:
         _defaulted_timeout = (
             timeout if timeout is not None else 60 if httpx_client is None else httpx_client.timeout.read
         )
+        if organization_id is None:
+            raise ApiError(
+                body="The client must be instantiated be either passing in organization_id or setting CAPTAIN_ORGANIZATION_ID"
+            )
+        if key is None:
+            raise ApiError(body="The client must be instantiated be either passing in key or setting CAPTAIN_API_KEY")
         self._client_wrapper = AsyncClientWrapper(
             base_url=_get_base_url(base_url=base_url, environment=environment),
-            authorization=authorization,
             organization_id=organization_id,
+            key=key,
             headers=headers,
             httpx_client=httpx_client
             if httpx_client is not None
@@ -212,11 +296,95 @@ class AsyncCaptain:
             timeout=_defaulted_timeout,
             logging=logging,
         )
+        self._raw_client = AsyncRawCaptain(client_wrapper=self._client_wrapper)
         self._collections: typing.Optional[AsyncCollectionsClient] = None
         self._query: typing.Optional[AsyncQueryClient] = None
         self._indexing: typing.Optional[AsyncIndexingClient] = None
         self._jobs: typing.Optional[AsyncJobsClient] = None
         self._datasets: typing.Optional[AsyncDatasetsClient] = None
+
+    @property
+    def with_raw_response(self) -> AsyncRawCaptain:
+        """
+        Retrieves a raw implementation of this client that returns raw responses.
+
+        Returns
+        -------
+        AsyncRawCaptain
+        """
+        return self._raw_client
+
+    async def post_v2collections_collection_name_documents_wipe(
+        self, collection_name: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> None:
+        """
+        Parameters
+        ----------
+        collection_name : str
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        None
+
+        Examples
+        --------
+        import asyncio
+
+        from runcaptain import AsyncCaptain
+
+        client = AsyncCaptain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.post_v2collections_collection_name_documents_wipe(
+                collection_name="collection_name",
+            )
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.post_v2collections_collection_name_documents_wipe(
+            collection_name, request_options=request_options
+        )
+        return _response.data
+
+    async def post_v2datasets_search(self, *, request_options: typing.Optional[RequestOptions] = None) -> None:
+        """
+        Parameters
+        ----------
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        None
+
+        Examples
+        --------
+        import asyncio
+
+        from runcaptain import AsyncCaptain
+
+        client = AsyncCaptain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.post_v2datasets_search()
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.post_v2datasets_search(request_options=request_options)
+        return _response.data
 
     @property
     def collections(self):

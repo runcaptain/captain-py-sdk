@@ -37,15 +37,11 @@ Instantiate and use the client with the following:
 from runcaptain import Captain
 
 client = Captain(
-    authorization="YOUR_AUTHORIZATION",
     organization_id="YOUR_ORGANIZATION_ID",
+    key="YOUR_KEY",
 )
-client.query.collection_v2(
-    collection_name="my_documents",
-    query="What are the key terms in the contract?",
-    inference=True,
-    stream=True,
-    rerank=True,
+client.post_v2collections_collection_name_documents_wipe(
+    collection_name="collection_name",
 )
 ```
 
@@ -59,18 +55,14 @@ import asyncio
 from runcaptain import AsyncCaptain
 
 client = AsyncCaptain(
-    authorization="YOUR_AUTHORIZATION",
     organization_id="YOUR_ORGANIZATION_ID",
+    key="YOUR_KEY",
 )
 
 
 async def main() -> None:
-    await client.query.collection_v2(
-        collection_name="my_documents",
-        query="What are the key terms in the contract?",
-        inference=True,
-        stream=True,
-        rerank=True,
+    await client.post_v2collections_collection_name_documents_wipe(
+        collection_name="collection_name",
     )
 
 
@@ -86,7 +78,7 @@ will be thrown.
 from runcaptain.core.api_error import ApiError
 
 try:
-    client.query.collection_v2(...)
+    client.post_v2collections_collection_name_documents_wipe(...)
 except ApiError as e:
     print(e.status_code)
     print(e.body)
@@ -105,7 +97,11 @@ from runcaptain import Captain
 client = Captain(
     ...,
 )
-response = client.query.with_raw_response.collection_v2(...)
+response = (
+    client.with_raw_response.post_v2collections_collection_name_documents_wipe(
+        ...
+    )
+)
 print(response.headers)  # access the response headers
 print(response.status_code)  # access the response status code
 print(response.data)  # access the underlying object
@@ -126,7 +122,7 @@ A request is deemed retryable when any of the following HTTP status codes is ret
 Use the `max_retries` request option to configure this behavior.
 
 ```python
-client.query.collection_v2(..., request_options={
+client.post_v2collections_collection_name_documents_wipe(..., request_options={
     "max_retries": 1
 })
 ```
@@ -146,7 +142,7 @@ client = Captain(
 
 
 # Override timeout for a specific method
-client.query.collection_v2(..., request_options={
+client.post_v2collections_collection_name_documents_wipe(..., request_options={
     "timeout_in_seconds": 1
 })
 ```

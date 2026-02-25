@@ -36,7 +36,6 @@ class RawIndexingClient:
         aws_access_key_id: str,
         aws_secret_access_key: str,
         processing_type: IndexS3RequestV2ProcessingType,
-        idempotency_key: typing.Optional[str] = None,
         bucket_region: typing.Optional[str] = OMIT,
         max_files: typing.Optional[int] = OMIT,
         skip_existing: typing.Optional[bool] = OMIT,
@@ -49,7 +48,6 @@ class RawIndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         bucket_name : str
             Name of the S3 bucket
@@ -62,9 +60,6 @@ class RawIndexingClient:
 
         processing_type : IndexS3RequestV2ProcessingType
             Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
-
-        idempotency_key : typing.Optional[str]
-            UUID for request deduplication
 
         bucket_region : typing.Optional[str]
             AWS region where the bucket is located
@@ -101,7 +96,6 @@ class RawIndexingClient:
             },
             headers={
                 "content-type": "application/json",
-                "Idempotency-Key": str(idempotency_key) if idempotency_key is not None else None,
             },
             request_options=request_options,
             omit=OMIT,
@@ -140,7 +134,6 @@ class RawIndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         bucket_name : str
             Name of the S3 bucket
@@ -222,7 +215,6 @@ class RawIndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         bucket_name : str
             Name of the GCS bucket
@@ -299,7 +291,6 @@ class RawIndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         bucket_name : str
             Name of the GCS bucket
@@ -364,7 +355,6 @@ class RawIndexingClient:
         aws_access_key_id: str,
         aws_secret_access_key: str,
         processing_type: IndexS3DirectoryRequestV2ProcessingType,
-        idempotency_key: typing.Optional[str] = None,
         bucket_region: typing.Optional[str] = OMIT,
         max_files: typing.Optional[int] = OMIT,
         skip_existing: typing.Optional[bool] = OMIT,
@@ -377,7 +367,6 @@ class RawIndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         bucket_name : str
             Name of the S3 bucket
@@ -393,9 +382,6 @@ class RawIndexingClient:
 
         processing_type : IndexS3DirectoryRequestV2ProcessingType
             Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
-
-        idempotency_key : typing.Optional[str]
-            UUID for request deduplication
 
         bucket_region : typing.Optional[str]
             AWS region where the bucket is located
@@ -433,7 +419,6 @@ class RawIndexingClient:
             },
             headers={
                 "content-type": "application/json",
-                "Idempotency-Key": str(idempotency_key) if idempotency_key is not None else None,
             },
             request_options=request_options,
             omit=OMIT,
@@ -461,7 +446,6 @@ class RawIndexingClient:
         directory_path: str,
         service_account_json: str,
         processing_type: IndexGcsDirectoryRequestV2ProcessingType,
-        idempotency_key: typing.Optional[str] = None,
         max_files: typing.Optional[int] = OMIT,
         skip_existing: typing.Optional[bool] = OMIT,
         custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
@@ -473,7 +457,6 @@ class RawIndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         bucket_name : str
             Name of the GCS bucket
@@ -486,9 +469,6 @@ class RawIndexingClient:
 
         processing_type : IndexGcsDirectoryRequestV2ProcessingType
             Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
-
-        idempotency_key : typing.Optional[str]
-            UUID for request deduplication
 
         max_files : typing.Optional[int]
             Maximum number of files to index (optional)
@@ -521,7 +501,6 @@ class RawIndexingClient:
             },
             headers={
                 "content-type": "application/json",
-                "Idempotency-Key": str(idempotency_key) if idempotency_key is not None else None,
             },
             request_options=request_options,
             omit=OMIT,
@@ -549,7 +528,6 @@ class RawIndexingClient:
         account_name: str,
         account_key: str,
         processing_type: IndexAzureRequestV2ProcessingType,
-        idempotency_key: typing.Optional[str] = None,
         max_files: typing.Optional[int] = OMIT,
         skip_existing: typing.Optional[bool] = OMIT,
         custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
@@ -561,7 +539,6 @@ class RawIndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         container_name : str
             Name of the Azure Blob Storage container
@@ -574,9 +551,6 @@ class RawIndexingClient:
 
         processing_type : IndexAzureRequestV2ProcessingType
             Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
-
-        idempotency_key : typing.Optional[str]
-            UUID for request deduplication
 
         max_files : typing.Optional[int]
             Maximum number of files to index (optional)
@@ -609,7 +583,6 @@ class RawIndexingClient:
             },
             headers={
                 "content-type": "application/json",
-                "Idempotency-Key": str(idempotency_key) if idempotency_key is not None else None,
             },
             request_options=request_options,
             omit=OMIT,
@@ -647,7 +620,6 @@ class RawIndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         container_name : str
             Name of the Azure Blob Storage container
@@ -716,7 +688,6 @@ class RawIndexingClient:
         account_name: str,
         account_key: str,
         processing_type: IndexAzureDirectoryRequestV2ProcessingType,
-        idempotency_key: typing.Optional[str] = None,
         max_files: typing.Optional[int] = OMIT,
         skip_existing: typing.Optional[bool] = OMIT,
         custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
@@ -728,7 +699,6 @@ class RawIndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         container_name : str
             Name of the Azure Blob Storage container
@@ -744,9 +714,6 @@ class RawIndexingClient:
 
         processing_type : IndexAzureDirectoryRequestV2ProcessingType
             Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
-
-        idempotency_key : typing.Optional[str]
-            UUID for request deduplication
 
         max_files : typing.Optional[int]
             Maximum number of files to index (optional)
@@ -780,7 +747,6 @@ class RawIndexingClient:
             },
             headers={
                 "content-type": "application/json",
-                "Idempotency-Key": str(idempotency_key) if idempotency_key is not None else None,
             },
             request_options=request_options,
             omit=OMIT,
@@ -813,7 +779,6 @@ class AsyncRawIndexingClient:
         aws_access_key_id: str,
         aws_secret_access_key: str,
         processing_type: IndexS3RequestV2ProcessingType,
-        idempotency_key: typing.Optional[str] = None,
         bucket_region: typing.Optional[str] = OMIT,
         max_files: typing.Optional[int] = OMIT,
         skip_existing: typing.Optional[bool] = OMIT,
@@ -826,7 +791,6 @@ class AsyncRawIndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         bucket_name : str
             Name of the S3 bucket
@@ -839,9 +803,6 @@ class AsyncRawIndexingClient:
 
         processing_type : IndexS3RequestV2ProcessingType
             Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
-
-        idempotency_key : typing.Optional[str]
-            UUID for request deduplication
 
         bucket_region : typing.Optional[str]
             AWS region where the bucket is located
@@ -878,7 +839,6 @@ class AsyncRawIndexingClient:
             },
             headers={
                 "content-type": "application/json",
-                "Idempotency-Key": str(idempotency_key) if idempotency_key is not None else None,
             },
             request_options=request_options,
             omit=OMIT,
@@ -917,7 +877,6 @@ class AsyncRawIndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         bucket_name : str
             Name of the S3 bucket
@@ -999,7 +958,6 @@ class AsyncRawIndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         bucket_name : str
             Name of the GCS bucket
@@ -1076,7 +1034,6 @@ class AsyncRawIndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         bucket_name : str
             Name of the GCS bucket
@@ -1141,7 +1098,6 @@ class AsyncRawIndexingClient:
         aws_access_key_id: str,
         aws_secret_access_key: str,
         processing_type: IndexS3DirectoryRequestV2ProcessingType,
-        idempotency_key: typing.Optional[str] = None,
         bucket_region: typing.Optional[str] = OMIT,
         max_files: typing.Optional[int] = OMIT,
         skip_existing: typing.Optional[bool] = OMIT,
@@ -1154,7 +1110,6 @@ class AsyncRawIndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         bucket_name : str
             Name of the S3 bucket
@@ -1170,9 +1125,6 @@ class AsyncRawIndexingClient:
 
         processing_type : IndexS3DirectoryRequestV2ProcessingType
             Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
-
-        idempotency_key : typing.Optional[str]
-            UUID for request deduplication
 
         bucket_region : typing.Optional[str]
             AWS region where the bucket is located
@@ -1210,7 +1162,6 @@ class AsyncRawIndexingClient:
             },
             headers={
                 "content-type": "application/json",
-                "Idempotency-Key": str(idempotency_key) if idempotency_key is not None else None,
             },
             request_options=request_options,
             omit=OMIT,
@@ -1238,7 +1189,6 @@ class AsyncRawIndexingClient:
         directory_path: str,
         service_account_json: str,
         processing_type: IndexGcsDirectoryRequestV2ProcessingType,
-        idempotency_key: typing.Optional[str] = None,
         max_files: typing.Optional[int] = OMIT,
         skip_existing: typing.Optional[bool] = OMIT,
         custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
@@ -1250,7 +1200,6 @@ class AsyncRawIndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         bucket_name : str
             Name of the GCS bucket
@@ -1263,9 +1212,6 @@ class AsyncRawIndexingClient:
 
         processing_type : IndexGcsDirectoryRequestV2ProcessingType
             Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
-
-        idempotency_key : typing.Optional[str]
-            UUID for request deduplication
 
         max_files : typing.Optional[int]
             Maximum number of files to index (optional)
@@ -1298,7 +1244,6 @@ class AsyncRawIndexingClient:
             },
             headers={
                 "content-type": "application/json",
-                "Idempotency-Key": str(idempotency_key) if idempotency_key is not None else None,
             },
             request_options=request_options,
             omit=OMIT,
@@ -1326,7 +1271,6 @@ class AsyncRawIndexingClient:
         account_name: str,
         account_key: str,
         processing_type: IndexAzureRequestV2ProcessingType,
-        idempotency_key: typing.Optional[str] = None,
         max_files: typing.Optional[int] = OMIT,
         skip_existing: typing.Optional[bool] = OMIT,
         custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
@@ -1338,7 +1282,6 @@ class AsyncRawIndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         container_name : str
             Name of the Azure Blob Storage container
@@ -1351,9 +1294,6 @@ class AsyncRawIndexingClient:
 
         processing_type : IndexAzureRequestV2ProcessingType
             Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
-
-        idempotency_key : typing.Optional[str]
-            UUID for request deduplication
 
         max_files : typing.Optional[int]
             Maximum number of files to index (optional)
@@ -1386,7 +1326,6 @@ class AsyncRawIndexingClient:
             },
             headers={
                 "content-type": "application/json",
-                "Idempotency-Key": str(idempotency_key) if idempotency_key is not None else None,
             },
             request_options=request_options,
             omit=OMIT,
@@ -1424,7 +1363,6 @@ class AsyncRawIndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         container_name : str
             Name of the Azure Blob Storage container
@@ -1493,7 +1431,6 @@ class AsyncRawIndexingClient:
         account_name: str,
         account_key: str,
         processing_type: IndexAzureDirectoryRequestV2ProcessingType,
-        idempotency_key: typing.Optional[str] = None,
         max_files: typing.Optional[int] = OMIT,
         skip_existing: typing.Optional[bool] = OMIT,
         custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
@@ -1505,7 +1442,6 @@ class AsyncRawIndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         container_name : str
             Name of the Azure Blob Storage container
@@ -1521,9 +1457,6 @@ class AsyncRawIndexingClient:
 
         processing_type : IndexAzureDirectoryRequestV2ProcessingType
             Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
-
-        idempotency_key : typing.Optional[str]
-            UUID for request deduplication
 
         max_files : typing.Optional[int]
             Maximum number of files to index (optional)
@@ -1557,7 +1490,6 @@ class AsyncRawIndexingClient:
             },
             headers={
                 "content-type": "application/json",
-                "Idempotency-Key": str(idempotency_key) if idempotency_key is not None else None,
             },
             request_options=request_options,
             omit=OMIT,

@@ -31,7 +31,6 @@ class QueryClient:
         collection_name: str,
         *,
         query: str,
-        idempotency_key: typing.Optional[str] = None,
         inference: typing.Optional[bool] = OMIT,
         stream: typing.Optional[bool] = OMIT,
         top_k: typing.Optional[int] = OMIT,
@@ -97,13 +96,9 @@ class QueryClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to query
 
         query : str
             The natural language query to search for
-
-        idempotency_key : typing.Optional[str]
-            UUID for request deduplication
 
         inference : typing.Optional[bool]
             Enable LLM-generated answers based on the relevant sections retrieved. When false, returns raw search results.
@@ -136,22 +131,19 @@ class QueryClient:
         from runcaptain import Captain
 
         client = Captain(
-            authorization="YOUR_AUTHORIZATION",
             organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
         )
         client.query.collection_v2(
-            collection_name="my_documents",
-            query="What are the key terms in the contract?",
-            inference=False,
+            collection_name="collection_name",
+            query="Find Q3 contracts mentioning 'termination for convenience'",
+            inference=True,
             stream=False,
-            top_k=10,
-            rerank=True,
         )
         """
         _response = self._raw_client.collection_v2(
             collection_name,
             query=query,
-            idempotency_key=idempotency_key,
             inference=inference,
             stream=stream,
             top_k=top_k,
@@ -183,7 +175,6 @@ class AsyncQueryClient:
         collection_name: str,
         *,
         query: str,
-        idempotency_key: typing.Optional[str] = None,
         inference: typing.Optional[bool] = OMIT,
         stream: typing.Optional[bool] = OMIT,
         top_k: typing.Optional[int] = OMIT,
@@ -249,13 +240,9 @@ class AsyncQueryClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to query
 
         query : str
             The natural language query to search for
-
-        idempotency_key : typing.Optional[str]
-            UUID for request deduplication
 
         inference : typing.Optional[bool]
             Enable LLM-generated answers based on the relevant sections retrieved. When false, returns raw search results.
@@ -290,19 +277,17 @@ class AsyncQueryClient:
         from runcaptain import AsyncCaptain
 
         client = AsyncCaptain(
-            authorization="YOUR_AUTHORIZATION",
             organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
         )
 
 
         async def main() -> None:
             await client.query.collection_v2(
-                collection_name="my_documents",
-                query="What are the key terms in the contract?",
-                inference=False,
+                collection_name="collection_name",
+                query="Find Q3 contracts mentioning 'termination for convenience'",
+                inference=True,
                 stream=False,
-                top_k=10,
-                rerank=True,
             )
 
 
@@ -311,7 +296,6 @@ class AsyncQueryClient:
         _response = await self._raw_client.collection_v2(
             collection_name,
             query=query,
-            idempotency_key=idempotency_key,
             inference=inference,
             stream=stream,
             top_k=top_k,

@@ -24,7 +24,6 @@ class RawQueryClient:
         collection_name: str,
         *,
         query: str,
-        idempotency_key: typing.Optional[str] = None,
         inference: typing.Optional[bool] = OMIT,
         stream: typing.Optional[bool] = OMIT,
         top_k: typing.Optional[int] = OMIT,
@@ -90,13 +89,9 @@ class RawQueryClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to query
 
         query : str
             The natural language query to search for
-
-        idempotency_key : typing.Optional[str]
-            UUID for request deduplication
 
         inference : typing.Optional[bool]
             Enable LLM-generated answers based on the relevant sections retrieved. When false, returns raw search results.
@@ -138,7 +133,6 @@ class RawQueryClient:
             },
             headers={
                 "content-type": "application/json",
-                "Idempotency-Key": str(idempotency_key) if idempotency_key is not None else None,
             },
             request_options=request_options,
             omit=OMIT,
@@ -168,7 +162,6 @@ class AsyncRawQueryClient:
         collection_name: str,
         *,
         query: str,
-        idempotency_key: typing.Optional[str] = None,
         inference: typing.Optional[bool] = OMIT,
         stream: typing.Optional[bool] = OMIT,
         top_k: typing.Optional[int] = OMIT,
@@ -234,13 +227,9 @@ class AsyncRawQueryClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to query
 
         query : str
             The natural language query to search for
-
-        idempotency_key : typing.Optional[str]
-            UUID for request deduplication
 
         inference : typing.Optional[bool]
             Enable LLM-generated answers based on the relevant sections retrieved. When false, returns raw search results.
@@ -282,7 +271,6 @@ class AsyncRawQueryClient:
             },
             headers={
                 "content-type": "application/json",
-                "Idempotency-Key": str(idempotency_key) if idempotency_key is not None else None,
             },
             request_options=request_options,
             omit=OMIT,
