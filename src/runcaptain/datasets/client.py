@@ -71,13 +71,13 @@ class DatasetsClient:
         from runcaptain import Captain
 
         client = Captain(
-            authorization="YOUR_AUTHORIZATION",
             organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
         )
         client.datasets.search_dataset(
             dataset="nytimes",
-            q="artificial intelligence",
-            limit=5,
+            q="q",
+            limit=1,
         )
         """
         _response = self._raw_client.search_dataset(dataset, q=q, limit=limit, request_options=request_options)
@@ -125,12 +125,12 @@ class DatasetsClient:
         from runcaptain import Captain
 
         client = Captain(
-            authorization="YOUR_AUTHORIZATION",
             organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
         )
         client.datasets.get_dataset_article(
             dataset="nytimes",
-            url="https://www.nytimes.com/example/news_example.html",
+            url="url",
         )
         """
         _response = self._raw_client.get_dataset_article(dataset, url, request_options=request_options)
@@ -199,16 +199,16 @@ class AsyncDatasetsClient:
         from runcaptain import AsyncCaptain
 
         client = AsyncCaptain(
-            authorization="YOUR_AUTHORIZATION",
             organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
         )
 
 
         async def main() -> None:
             await client.datasets.search_dataset(
                 dataset="nytimes",
-                q="artificial intelligence",
-                limit=5,
+                q="q",
+                limit=1,
             )
 
 
@@ -261,15 +261,15 @@ class AsyncDatasetsClient:
         from runcaptain import AsyncCaptain
 
         client = AsyncCaptain(
-            authorization="YOUR_AUTHORIZATION",
             organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
         )
 
 
         async def main() -> None:
             await client.datasets.get_dataset_article(
                 dataset="nytimes",
-                url="https://www.nytimes.com/example/news_example.html",
+                url="url",
             )
 
 

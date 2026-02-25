@@ -43,7 +43,6 @@ class IndexingClient:
         aws_access_key_id: str,
         aws_secret_access_key: str,
         processing_type: IndexS3RequestV2ProcessingType,
-        idempotency_key: typing.Optional[str] = None,
         bucket_region: typing.Optional[str] = OMIT,
         max_files: typing.Optional[int] = OMIT,
         skip_existing: typing.Optional[bool] = OMIT,
@@ -56,7 +55,6 @@ class IndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         bucket_name : str
             Name of the S3 bucket
@@ -69,9 +67,6 @@ class IndexingClient:
 
         processing_type : IndexS3RequestV2ProcessingType
             Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
-
-        idempotency_key : typing.Optional[str]
-            UUID for request deduplication
 
         bucket_region : typing.Optional[str]
             AWS region where the bucket is located
@@ -98,14 +93,14 @@ class IndexingClient:
         from runcaptain import Captain
 
         client = Captain(
-            authorization="YOUR_AUTHORIZATION",
             organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
         )
         client.indexing.index_s3bucket_v2(
-            collection_name="my_documents",
-            bucket_name="my-s3-bucket",
+            collection_name="collection_name",
+            bucket_name="my-company-docs",
             aws_access_key_id="AKIAIOSFODNN7EXAMPLE",
-            aws_secret_access_key="your_secret_key",
+            aws_secret_access_key="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
             bucket_region="us-east-1",
             processing_type="advanced",
         )
@@ -116,7 +111,6 @@ class IndexingClient:
             aws_access_key_id=aws_access_key_id,
             aws_secret_access_key=aws_secret_access_key,
             processing_type=processing_type,
-            idempotency_key=idempotency_key,
             bucket_region=bucket_region,
             max_files=max_files,
             skip_existing=skip_existing,
@@ -144,7 +138,6 @@ class IndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         bucket_name : str
             Name of the S3 bucket
@@ -180,15 +173,15 @@ class IndexingClient:
         from runcaptain import Captain
 
         client = Captain(
-            authorization="YOUR_AUTHORIZATION",
             organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
         )
         client.indexing.index_s3file_v2(
-            collection_name="my_documents",
-            bucket_name="my-s3-bucket",
-            file_uri="s3://my-s3-bucket/contracts/acme_contract.pdf",
+            collection_name="collection_name",
+            bucket_name="my-company-docs",
+            file_uri="s3://my-company-docs/contracts/acme_contract.pdf",
             aws_access_key_id="AKIAIOSFODNN7EXAMPLE",
-            aws_secret_access_key="your_secret_key",
+            aws_secret_access_key="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
             bucket_region="us-east-1",
             processing_type="advanced",
         )
@@ -224,7 +217,6 @@ class IndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         bucket_name : str
             Name of the GCS bucket
@@ -257,12 +249,12 @@ class IndexingClient:
         from runcaptain import Captain
 
         client = Captain(
-            authorization="YOUR_AUTHORIZATION",
             organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
         )
         client.indexing.index_gcs_bucket_v2(
-            collection_name="my_documents",
-            bucket_name="my-gcs-bucket",
+            collection_name="collection_name",
+            bucket_name="my-company-docs",
             service_account_json='{"type":"service_account","project_id":"my-project",...}',
             processing_type="advanced",
         )
@@ -296,7 +288,6 @@ class IndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         bucket_name : str
             Name of the GCS bucket
@@ -326,8 +317,8 @@ class IndexingClient:
         from runcaptain import Captain
 
         client = Captain(
-            authorization="YOUR_AUTHORIZATION",
             organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
         )
         client.indexing.index_gcs_file_v2(
             collection_name="collection_name",
@@ -357,7 +348,6 @@ class IndexingClient:
         aws_access_key_id: str,
         aws_secret_access_key: str,
         processing_type: IndexS3DirectoryRequestV2ProcessingType,
-        idempotency_key: typing.Optional[str] = None,
         bucket_region: typing.Optional[str] = OMIT,
         max_files: typing.Optional[int] = OMIT,
         skip_existing: typing.Optional[bool] = OMIT,
@@ -370,7 +360,6 @@ class IndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         bucket_name : str
             Name of the S3 bucket
@@ -386,9 +375,6 @@ class IndexingClient:
 
         processing_type : IndexS3DirectoryRequestV2ProcessingType
             Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
-
-        idempotency_key : typing.Optional[str]
-            UUID for request deduplication
 
         bucket_region : typing.Optional[str]
             AWS region where the bucket is located
@@ -415,15 +401,15 @@ class IndexingClient:
         from runcaptain import Captain
 
         client = Captain(
-            authorization="YOUR_AUTHORIZATION",
             organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
         )
         client.indexing.index_s3directory_v2(
-            collection_name="my_documents",
-            bucket_name="my-s3-bucket",
+            collection_name="collection_name",
+            bucket_name="my-company-docs",
             directory_path="reports/2024/january",
             aws_access_key_id="AKIAIOSFODNN7EXAMPLE",
-            aws_secret_access_key="your_secret_key",
+            aws_secret_access_key="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
             bucket_region="us-east-1",
             processing_type="advanced",
         )
@@ -435,7 +421,6 @@ class IndexingClient:
             aws_access_key_id=aws_access_key_id,
             aws_secret_access_key=aws_secret_access_key,
             processing_type=processing_type,
-            idempotency_key=idempotency_key,
             bucket_region=bucket_region,
             max_files=max_files,
             skip_existing=skip_existing,
@@ -452,7 +437,6 @@ class IndexingClient:
         directory_path: str,
         service_account_json: str,
         processing_type: IndexGcsDirectoryRequestV2ProcessingType,
-        idempotency_key: typing.Optional[str] = None,
         max_files: typing.Optional[int] = OMIT,
         skip_existing: typing.Optional[bool] = OMIT,
         custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
@@ -464,7 +448,6 @@ class IndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         bucket_name : str
             Name of the GCS bucket
@@ -477,9 +460,6 @@ class IndexingClient:
 
         processing_type : IndexGcsDirectoryRequestV2ProcessingType
             Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
-
-        idempotency_key : typing.Optional[str]
-            UUID for request deduplication
 
         max_files : typing.Optional[int]
             Maximum number of files to index (optional)
@@ -503,12 +483,12 @@ class IndexingClient:
         from runcaptain import Captain
 
         client = Captain(
-            authorization="YOUR_AUTHORIZATION",
             organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
         )
         client.indexing.index_gcs_directory_v2(
-            collection_name="my_documents",
-            bucket_name="my-gcs-bucket",
+            collection_name="collection_name",
+            bucket_name="my-company-docs",
             directory_path="reports/2024/january",
             service_account_json='{"type":"service_account","project_id":"my-project",...}',
             processing_type="advanced",
@@ -520,7 +500,6 @@ class IndexingClient:
             directory_path=directory_path,
             service_account_json=service_account_json,
             processing_type=processing_type,
-            idempotency_key=idempotency_key,
             max_files=max_files,
             skip_existing=skip_existing,
             custom_metadata=custom_metadata,
@@ -536,7 +515,6 @@ class IndexingClient:
         account_name: str,
         account_key: str,
         processing_type: IndexAzureRequestV2ProcessingType,
-        idempotency_key: typing.Optional[str] = None,
         max_files: typing.Optional[int] = OMIT,
         skip_existing: typing.Optional[bool] = OMIT,
         custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
@@ -548,7 +526,6 @@ class IndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         container_name : str
             Name of the Azure Blob Storage container
@@ -561,9 +538,6 @@ class IndexingClient:
 
         processing_type : IndexAzureRequestV2ProcessingType
             Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
-
-        idempotency_key : typing.Optional[str]
-            UUID for request deduplication
 
         max_files : typing.Optional[int]
             Maximum number of files to index (optional)
@@ -587,14 +561,14 @@ class IndexingClient:
         from runcaptain import Captain
 
         client = Captain(
-            authorization="YOUR_AUTHORIZATION",
             organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
         )
         client.indexing.index_azure_container_v2(
-            collection_name="my_documents",
+            collection_name="collection_name",
             container_name="my-container",
             account_name="mystorageaccount",
-            account_key="your_account_key",
+            account_key="your_account_key_base64",
             processing_type="advanced",
         )
         """
@@ -604,7 +578,6 @@ class IndexingClient:
             account_name=account_name,
             account_key=account_key,
             processing_type=processing_type,
-            idempotency_key=idempotency_key,
             max_files=max_files,
             skip_existing=skip_existing,
             custom_metadata=custom_metadata,
@@ -630,7 +603,6 @@ class IndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         container_name : str
             Name of the Azure Blob Storage container
@@ -663,15 +635,15 @@ class IndexingClient:
         from runcaptain import Captain
 
         client = Captain(
-            authorization="YOUR_AUTHORIZATION",
             organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
         )
         client.indexing.index_azure_file_v2(
-            collection_name="my_documents",
+            collection_name="collection_name",
             container_name="my-container",
             file_uri="https://mystorageaccount.blob.core.windows.net/my-container/contracts/acme_contract.pdf",
             account_name="mystorageaccount",
-            account_key="your_account_key",
+            account_key="your_account_key_base64",
             processing_type="advanced",
         )
         """
@@ -696,7 +668,6 @@ class IndexingClient:
         account_name: str,
         account_key: str,
         processing_type: IndexAzureDirectoryRequestV2ProcessingType,
-        idempotency_key: typing.Optional[str] = None,
         max_files: typing.Optional[int] = OMIT,
         skip_existing: typing.Optional[bool] = OMIT,
         custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
@@ -708,7 +679,6 @@ class IndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         container_name : str
             Name of the Azure Blob Storage container
@@ -724,9 +694,6 @@ class IndexingClient:
 
         processing_type : IndexAzureDirectoryRequestV2ProcessingType
             Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
-
-        idempotency_key : typing.Optional[str]
-            UUID for request deduplication
 
         max_files : typing.Optional[int]
             Maximum number of files to index (optional)
@@ -750,15 +717,15 @@ class IndexingClient:
         from runcaptain import Captain
 
         client = Captain(
-            authorization="YOUR_AUTHORIZATION",
             organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
         )
         client.indexing.index_azure_directory_v2(
-            collection_name="my_documents",
+            collection_name="collection_name",
             container_name="my-container",
             directory_path="reports/2024/january",
             account_name="mystorageaccount",
-            account_key="your_account_key",
+            account_key="your_account_key_base64",
             processing_type="advanced",
         )
         """
@@ -769,7 +736,6 @@ class IndexingClient:
             account_name=account_name,
             account_key=account_key,
             processing_type=processing_type,
-            idempotency_key=idempotency_key,
             max_files=max_files,
             skip_existing=skip_existing,
             custom_metadata=custom_metadata,
@@ -801,7 +767,6 @@ class AsyncIndexingClient:
         aws_access_key_id: str,
         aws_secret_access_key: str,
         processing_type: IndexS3RequestV2ProcessingType,
-        idempotency_key: typing.Optional[str] = None,
         bucket_region: typing.Optional[str] = OMIT,
         max_files: typing.Optional[int] = OMIT,
         skip_existing: typing.Optional[bool] = OMIT,
@@ -814,7 +779,6 @@ class AsyncIndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         bucket_name : str
             Name of the S3 bucket
@@ -827,9 +791,6 @@ class AsyncIndexingClient:
 
         processing_type : IndexS3RequestV2ProcessingType
             Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
-
-        idempotency_key : typing.Optional[str]
-            UUID for request deduplication
 
         bucket_region : typing.Optional[str]
             AWS region where the bucket is located
@@ -858,17 +819,17 @@ class AsyncIndexingClient:
         from runcaptain import AsyncCaptain
 
         client = AsyncCaptain(
-            authorization="YOUR_AUTHORIZATION",
             organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
         )
 
 
         async def main() -> None:
             await client.indexing.index_s3bucket_v2(
-                collection_name="my_documents",
-                bucket_name="my-s3-bucket",
+                collection_name="collection_name",
+                bucket_name="my-company-docs",
                 aws_access_key_id="AKIAIOSFODNN7EXAMPLE",
-                aws_secret_access_key="your_secret_key",
+                aws_secret_access_key="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
                 bucket_region="us-east-1",
                 processing_type="advanced",
             )
@@ -882,7 +843,6 @@ class AsyncIndexingClient:
             aws_access_key_id=aws_access_key_id,
             aws_secret_access_key=aws_secret_access_key,
             processing_type=processing_type,
-            idempotency_key=idempotency_key,
             bucket_region=bucket_region,
             max_files=max_files,
             skip_existing=skip_existing,
@@ -910,7 +870,6 @@ class AsyncIndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         bucket_name : str
             Name of the S3 bucket
@@ -948,18 +907,18 @@ class AsyncIndexingClient:
         from runcaptain import AsyncCaptain
 
         client = AsyncCaptain(
-            authorization="YOUR_AUTHORIZATION",
             organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
         )
 
 
         async def main() -> None:
             await client.indexing.index_s3file_v2(
-                collection_name="my_documents",
-                bucket_name="my-s3-bucket",
-                file_uri="s3://my-s3-bucket/contracts/acme_contract.pdf",
+                collection_name="collection_name",
+                bucket_name="my-company-docs",
+                file_uri="s3://my-company-docs/contracts/acme_contract.pdf",
                 aws_access_key_id="AKIAIOSFODNN7EXAMPLE",
-                aws_secret_access_key="your_secret_key",
+                aws_secret_access_key="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
                 bucket_region="us-east-1",
                 processing_type="advanced",
             )
@@ -998,7 +957,6 @@ class AsyncIndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         bucket_name : str
             Name of the GCS bucket
@@ -1033,15 +991,15 @@ class AsyncIndexingClient:
         from runcaptain import AsyncCaptain
 
         client = AsyncCaptain(
-            authorization="YOUR_AUTHORIZATION",
             organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
         )
 
 
         async def main() -> None:
             await client.indexing.index_gcs_bucket_v2(
-                collection_name="my_documents",
-                bucket_name="my-gcs-bucket",
+                collection_name="collection_name",
+                bucket_name="my-company-docs",
                 service_account_json='{"type":"service_account","project_id":"my-project",...}',
                 processing_type="advanced",
             )
@@ -1078,7 +1036,6 @@ class AsyncIndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         bucket_name : str
             Name of the GCS bucket
@@ -1110,8 +1067,8 @@ class AsyncIndexingClient:
         from runcaptain import AsyncCaptain
 
         client = AsyncCaptain(
-            authorization="YOUR_AUTHORIZATION",
             organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
         )
 
 
@@ -1147,7 +1104,6 @@ class AsyncIndexingClient:
         aws_access_key_id: str,
         aws_secret_access_key: str,
         processing_type: IndexS3DirectoryRequestV2ProcessingType,
-        idempotency_key: typing.Optional[str] = None,
         bucket_region: typing.Optional[str] = OMIT,
         max_files: typing.Optional[int] = OMIT,
         skip_existing: typing.Optional[bool] = OMIT,
@@ -1160,7 +1116,6 @@ class AsyncIndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         bucket_name : str
             Name of the S3 bucket
@@ -1176,9 +1131,6 @@ class AsyncIndexingClient:
 
         processing_type : IndexS3DirectoryRequestV2ProcessingType
             Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
-
-        idempotency_key : typing.Optional[str]
-            UUID for request deduplication
 
         bucket_region : typing.Optional[str]
             AWS region where the bucket is located
@@ -1207,18 +1159,18 @@ class AsyncIndexingClient:
         from runcaptain import AsyncCaptain
 
         client = AsyncCaptain(
-            authorization="YOUR_AUTHORIZATION",
             organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
         )
 
 
         async def main() -> None:
             await client.indexing.index_s3directory_v2(
-                collection_name="my_documents",
-                bucket_name="my-s3-bucket",
+                collection_name="collection_name",
+                bucket_name="my-company-docs",
                 directory_path="reports/2024/january",
                 aws_access_key_id="AKIAIOSFODNN7EXAMPLE",
-                aws_secret_access_key="your_secret_key",
+                aws_secret_access_key="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
                 bucket_region="us-east-1",
                 processing_type="advanced",
             )
@@ -1233,7 +1185,6 @@ class AsyncIndexingClient:
             aws_access_key_id=aws_access_key_id,
             aws_secret_access_key=aws_secret_access_key,
             processing_type=processing_type,
-            idempotency_key=idempotency_key,
             bucket_region=bucket_region,
             max_files=max_files,
             skip_existing=skip_existing,
@@ -1250,7 +1201,6 @@ class AsyncIndexingClient:
         directory_path: str,
         service_account_json: str,
         processing_type: IndexGcsDirectoryRequestV2ProcessingType,
-        idempotency_key: typing.Optional[str] = None,
         max_files: typing.Optional[int] = OMIT,
         skip_existing: typing.Optional[bool] = OMIT,
         custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
@@ -1262,7 +1212,6 @@ class AsyncIndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         bucket_name : str
             Name of the GCS bucket
@@ -1275,9 +1224,6 @@ class AsyncIndexingClient:
 
         processing_type : IndexGcsDirectoryRequestV2ProcessingType
             Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
-
-        idempotency_key : typing.Optional[str]
-            UUID for request deduplication
 
         max_files : typing.Optional[int]
             Maximum number of files to index (optional)
@@ -1303,15 +1249,15 @@ class AsyncIndexingClient:
         from runcaptain import AsyncCaptain
 
         client = AsyncCaptain(
-            authorization="YOUR_AUTHORIZATION",
             organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
         )
 
 
         async def main() -> None:
             await client.indexing.index_gcs_directory_v2(
-                collection_name="my_documents",
-                bucket_name="my-gcs-bucket",
+                collection_name="collection_name",
+                bucket_name="my-company-docs",
                 directory_path="reports/2024/january",
                 service_account_json='{"type":"service_account","project_id":"my-project",...}',
                 processing_type="advanced",
@@ -1326,7 +1272,6 @@ class AsyncIndexingClient:
             directory_path=directory_path,
             service_account_json=service_account_json,
             processing_type=processing_type,
-            idempotency_key=idempotency_key,
             max_files=max_files,
             skip_existing=skip_existing,
             custom_metadata=custom_metadata,
@@ -1342,7 +1287,6 @@ class AsyncIndexingClient:
         account_name: str,
         account_key: str,
         processing_type: IndexAzureRequestV2ProcessingType,
-        idempotency_key: typing.Optional[str] = None,
         max_files: typing.Optional[int] = OMIT,
         skip_existing: typing.Optional[bool] = OMIT,
         custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
@@ -1354,7 +1298,6 @@ class AsyncIndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         container_name : str
             Name of the Azure Blob Storage container
@@ -1367,9 +1310,6 @@ class AsyncIndexingClient:
 
         processing_type : IndexAzureRequestV2ProcessingType
             Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
-
-        idempotency_key : typing.Optional[str]
-            UUID for request deduplication
 
         max_files : typing.Optional[int]
             Maximum number of files to index (optional)
@@ -1395,17 +1335,17 @@ class AsyncIndexingClient:
         from runcaptain import AsyncCaptain
 
         client = AsyncCaptain(
-            authorization="YOUR_AUTHORIZATION",
             organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
         )
 
 
         async def main() -> None:
             await client.indexing.index_azure_container_v2(
-                collection_name="my_documents",
+                collection_name="collection_name",
                 container_name="my-container",
                 account_name="mystorageaccount",
-                account_key="your_account_key",
+                account_key="your_account_key_base64",
                 processing_type="advanced",
             )
 
@@ -1418,7 +1358,6 @@ class AsyncIndexingClient:
             account_name=account_name,
             account_key=account_key,
             processing_type=processing_type,
-            idempotency_key=idempotency_key,
             max_files=max_files,
             skip_existing=skip_existing,
             custom_metadata=custom_metadata,
@@ -1444,7 +1383,6 @@ class AsyncIndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         container_name : str
             Name of the Azure Blob Storage container
@@ -1479,18 +1417,18 @@ class AsyncIndexingClient:
         from runcaptain import AsyncCaptain
 
         client = AsyncCaptain(
-            authorization="YOUR_AUTHORIZATION",
             organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
         )
 
 
         async def main() -> None:
             await client.indexing.index_azure_file_v2(
-                collection_name="my_documents",
+                collection_name="collection_name",
                 container_name="my-container",
                 file_uri="https://mystorageaccount.blob.core.windows.net/my-container/contracts/acme_contract.pdf",
                 account_name="mystorageaccount",
-                account_key="your_account_key",
+                account_key="your_account_key_base64",
                 processing_type="advanced",
             )
 
@@ -1518,7 +1456,6 @@ class AsyncIndexingClient:
         account_name: str,
         account_key: str,
         processing_type: IndexAzureDirectoryRequestV2ProcessingType,
-        idempotency_key: typing.Optional[str] = None,
         max_files: typing.Optional[int] = OMIT,
         skip_existing: typing.Optional[bool] = OMIT,
         custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
@@ -1530,7 +1467,6 @@ class AsyncIndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         container_name : str
             Name of the Azure Blob Storage container
@@ -1546,9 +1482,6 @@ class AsyncIndexingClient:
 
         processing_type : IndexAzureDirectoryRequestV2ProcessingType
             Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
-
-        idempotency_key : typing.Optional[str]
-            UUID for request deduplication
 
         max_files : typing.Optional[int]
             Maximum number of files to index (optional)
@@ -1574,18 +1507,18 @@ class AsyncIndexingClient:
         from runcaptain import AsyncCaptain
 
         client = AsyncCaptain(
-            authorization="YOUR_AUTHORIZATION",
             organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
         )
 
 
         async def main() -> None:
             await client.indexing.index_azure_directory_v2(
-                collection_name="my_documents",
+                collection_name="collection_name",
                 container_name="my-container",
                 directory_path="reports/2024/january",
                 account_name="mystorageaccount",
-                account_key="your_account_key",
+                account_key="your_account_key_base64",
                 processing_type="advanced",
             )
 
@@ -1599,7 +1532,6 @@ class AsyncIndexingClient:
             account_name=account_name,
             account_key=account_key,
             processing_type=processing_type,
-            idempotency_key=idempotency_key,
             max_files=max_files,
             skip_existing=skip_existing,
             custom_metadata=custom_metadata,

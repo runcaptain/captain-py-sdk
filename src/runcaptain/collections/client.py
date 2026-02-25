@@ -33,11 +33,7 @@ class CollectionsClient:
         return self._raw_client
 
     def list_collections_v2(
-        self,
-        *,
-        limit: typing.Optional[int] = None,
-        offset: typing.Optional[int] = None,
-        request_options: typing.Optional[RequestOptions] = None,
+        self, *, request_options: typing.Optional[RequestOptions] = None
     ) -> CollectionListResponseV2:
         """
         List all collections for an organization.
@@ -46,12 +42,6 @@ class CollectionsClient:
 
         Parameters
         ----------
-        limit : typing.Optional[int]
-            Maximum number of collections to return
-
-        offset : typing.Optional[int]
-            Pagination offset
-
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
@@ -65,12 +55,12 @@ class CollectionsClient:
         from runcaptain import Captain
 
         client = Captain(
-            authorization="YOUR_AUTHORIZATION",
             organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
         )
         client.collections.list_collections_v2()
         """
-        _response = self._raw_client.list_collections_v2(limit=limit, offset=offset, request_options=request_options)
+        _response = self._raw_client.list_collections_v2(request_options=request_options)
         return _response.data
 
     def create_collection_v2(
@@ -86,7 +76,6 @@ class CollectionsClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to create
 
         description : typing.Optional[str]
 
@@ -103,11 +92,11 @@ class CollectionsClient:
         from runcaptain import Captain
 
         client = Captain(
-            authorization="YOUR_AUTHORIZATION",
             organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
         )
         client.collections.create_collection_v2(
-            collection_name="my_documents",
+            collection_name="collection_name",
         )
         """
         _response = self._raw_client.create_collection_v2(
@@ -124,7 +113,6 @@ class CollectionsClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to delete
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -139,11 +127,11 @@ class CollectionsClient:
         from runcaptain import Captain
 
         client = Captain(
-            authorization="YOUR_AUTHORIZATION",
             organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
         )
         client.collections.delete_collection_v2(
-            collection_name="my_documents",
+            collection_name="collection_name",
         )
         """
         _response = self._raw_client.delete_collection_v2(collection_name, request_options=request_options)
@@ -174,7 +162,6 @@ class CollectionsClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to move
 
         new_environment : ChangeEnvironmentRequestV2NewEnvironment
             The target environment to move the collection to
@@ -192,12 +179,12 @@ class CollectionsClient:
         from runcaptain import Captain
 
         client = Captain(
-            authorization="YOUR_AUTHORIZATION",
             organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
         )
         client.collections.change_collection_environment_v2(
-            collection_name="my_documents",
-            new_environment="production",
+            collection_name="collection_name",
+            new_environment="development",
         )
         """
         _response = self._raw_client.change_collection_environment_v2(
@@ -209,7 +196,6 @@ class CollectionsClient:
         self,
         collection_name: str,
         *,
-        limit: typing.Optional[int] = None,
         offset: typing.Optional[int] = None,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> DocumentListResponseV2:
@@ -219,10 +205,6 @@ class CollectionsClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection
-
-        limit : typing.Optional[int]
-            Maximum number of documents to return
 
         offset : typing.Optional[int]
             Pagination offset
@@ -240,18 +222,15 @@ class CollectionsClient:
         from runcaptain import Captain
 
         client = Captain(
-            authorization="YOUR_AUTHORIZATION",
             organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
         )
         client.collections.list_documents_v2(
-            collection_name="my_documents",
-            limit=100,
-            offset=0,
+            collection_name="collection_name",
+            offset=1,
         )
         """
-        _response = self._raw_client.list_documents_v2(
-            collection_name, limit=limit, offset=offset, request_options=request_options
-        )
+        _response = self._raw_client.list_documents_v2(collection_name, offset=offset, request_options=request_options)
         return _response.data
 
     def wipe_collection_documents_v2(
@@ -278,8 +257,8 @@ class CollectionsClient:
         from runcaptain import Captain
 
         client = Captain(
-            authorization="YOUR_AUTHORIZATION",
             organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
         )
         client.collections.wipe_collection_documents_v2(
             collection_name="collection_name",
@@ -297,10 +276,8 @@ class CollectionsClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection
 
         document_id : str
-            ID of the document to delete
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -315,8 +292,8 @@ class CollectionsClient:
         from runcaptain import Captain
 
         client = Captain(
-            authorization="YOUR_AUTHORIZATION",
             organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
         )
         client.collections.delete_document_v2(
             collection_name="collection_name",
@@ -343,11 +320,7 @@ class AsyncCollectionsClient:
         return self._raw_client
 
     async def list_collections_v2(
-        self,
-        *,
-        limit: typing.Optional[int] = None,
-        offset: typing.Optional[int] = None,
-        request_options: typing.Optional[RequestOptions] = None,
+        self, *, request_options: typing.Optional[RequestOptions] = None
     ) -> CollectionListResponseV2:
         """
         List all collections for an organization.
@@ -356,12 +329,6 @@ class AsyncCollectionsClient:
 
         Parameters
         ----------
-        limit : typing.Optional[int]
-            Maximum number of collections to return
-
-        offset : typing.Optional[int]
-            Pagination offset
-
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
@@ -377,8 +344,8 @@ class AsyncCollectionsClient:
         from runcaptain import AsyncCaptain
 
         client = AsyncCaptain(
-            authorization="YOUR_AUTHORIZATION",
             organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
         )
 
 
@@ -388,9 +355,7 @@ class AsyncCollectionsClient:
 
         asyncio.run(main())
         """
-        _response = await self._raw_client.list_collections_v2(
-            limit=limit, offset=offset, request_options=request_options
-        )
+        _response = await self._raw_client.list_collections_v2(request_options=request_options)
         return _response.data
 
     async def create_collection_v2(
@@ -406,7 +371,6 @@ class AsyncCollectionsClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to create
 
         description : typing.Optional[str]
 
@@ -425,14 +389,14 @@ class AsyncCollectionsClient:
         from runcaptain import AsyncCaptain
 
         client = AsyncCaptain(
-            authorization="YOUR_AUTHORIZATION",
             organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
         )
 
 
         async def main() -> None:
             await client.collections.create_collection_v2(
-                collection_name="my_documents",
+                collection_name="collection_name",
             )
 
 
@@ -452,7 +416,6 @@ class AsyncCollectionsClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to delete
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -469,14 +432,14 @@ class AsyncCollectionsClient:
         from runcaptain import AsyncCaptain
 
         client = AsyncCaptain(
-            authorization="YOUR_AUTHORIZATION",
             organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
         )
 
 
         async def main() -> None:
             await client.collections.delete_collection_v2(
-                collection_name="my_documents",
+                collection_name="collection_name",
             )
 
 
@@ -510,7 +473,6 @@ class AsyncCollectionsClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to move
 
         new_environment : ChangeEnvironmentRequestV2NewEnvironment
             The target environment to move the collection to
@@ -530,15 +492,15 @@ class AsyncCollectionsClient:
         from runcaptain import AsyncCaptain
 
         client = AsyncCaptain(
-            authorization="YOUR_AUTHORIZATION",
             organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
         )
 
 
         async def main() -> None:
             await client.collections.change_collection_environment_v2(
-                collection_name="my_documents",
-                new_environment="production",
+                collection_name="collection_name",
+                new_environment="development",
             )
 
 
@@ -553,7 +515,6 @@ class AsyncCollectionsClient:
         self,
         collection_name: str,
         *,
-        limit: typing.Optional[int] = None,
         offset: typing.Optional[int] = None,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> DocumentListResponseV2:
@@ -563,10 +524,6 @@ class AsyncCollectionsClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection
-
-        limit : typing.Optional[int]
-            Maximum number of documents to return
 
         offset : typing.Optional[int]
             Pagination offset
@@ -586,23 +543,22 @@ class AsyncCollectionsClient:
         from runcaptain import AsyncCaptain
 
         client = AsyncCaptain(
-            authorization="YOUR_AUTHORIZATION",
             organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
         )
 
 
         async def main() -> None:
             await client.collections.list_documents_v2(
-                collection_name="my_documents",
-                limit=100,
-                offset=0,
+                collection_name="collection_name",
+                offset=1,
             )
 
 
         asyncio.run(main())
         """
         _response = await self._raw_client.list_documents_v2(
-            collection_name, limit=limit, offset=offset, request_options=request_options
+            collection_name, offset=offset, request_options=request_options
         )
         return _response.data
 
@@ -632,8 +588,8 @@ class AsyncCollectionsClient:
         from runcaptain import AsyncCaptain
 
         client = AsyncCaptain(
-            authorization="YOUR_AUTHORIZATION",
             organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
         )
 
 
@@ -659,10 +615,8 @@ class AsyncCollectionsClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection
 
         document_id : str
-            ID of the document to delete
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -679,8 +633,8 @@ class AsyncCollectionsClient:
         from runcaptain import AsyncCaptain
 
         client = AsyncCaptain(
-            authorization="YOUR_AUTHORIZATION",
             organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
         )
 
 

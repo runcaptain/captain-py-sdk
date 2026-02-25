@@ -52,7 +52,6 @@ class RawJobsClient:
         Parameters
         ----------
         job_id : str
-            The job ID returned from an indexing request
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -106,7 +105,6 @@ class RawJobsClient:
         Parameters
         ----------
         job_id : str
-            The job ID to cancel
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -175,7 +173,6 @@ class AsyncRawJobsClient:
         Parameters
         ----------
         job_id : str
-            The job ID returned from an indexing request
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -229,7 +226,6 @@ class AsyncRawJobsClient:
         Parameters
         ----------
         job_id : str
-            The job ID to cancel
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
