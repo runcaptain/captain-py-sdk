@@ -4,7 +4,6 @@ import typing
 
 import pydantic
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
-from .dataset_search_response_dataset import DatasetSearchResponseDataset
 from .dataset_search_result import DatasetSearchResult
 
 
@@ -13,7 +12,7 @@ class DatasetSearchResponse(UniversalBaseModel):
     Response containing search results from a news dataset
     """
 
-    dataset: DatasetSearchResponseDataset = pydantic.Field()
+    dataset: str = pydantic.Field()
     """
     The dataset that was searched
     """

@@ -58,7 +58,6 @@ class JobsClient:
         Parameters
         ----------
         job_id : str
-            The job ID returned from an indexing request
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -73,11 +72,11 @@ class JobsClient:
         from runcaptain import Captain
 
         client = Captain(
-            authorization="YOUR_AUTHORIZATION",
             organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
         )
         client.jobs.get_job_status_v2(
-            job_id="abc123xyz-1234567890",
+            job_id="job_s3_abc123",
         )
         """
         _response = self._raw_client.get_job_status_v2(job_id, request_options=request_options)
@@ -96,7 +95,6 @@ class JobsClient:
         Parameters
         ----------
         job_id : str
-            The job ID to cancel
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -111,11 +109,11 @@ class JobsClient:
         from runcaptain import Captain
 
         client = Captain(
-            authorization="YOUR_AUTHORIZATION",
             organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
         )
         client.jobs.cancel_job_v2(
-            job_id="abc123xyz-1234567890",
+            job_id="job_s3_abc123",
         )
         """
         _response = self._raw_client.cancel_job_v2(job_id, request_options=request_options)
@@ -171,7 +169,6 @@ class AsyncJobsClient:
         Parameters
         ----------
         job_id : str
-            The job ID returned from an indexing request
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -188,14 +185,14 @@ class AsyncJobsClient:
         from runcaptain import AsyncCaptain
 
         client = AsyncCaptain(
-            authorization="YOUR_AUTHORIZATION",
             organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
         )
 
 
         async def main() -> None:
             await client.jobs.get_job_status_v2(
-                job_id="abc123xyz-1234567890",
+                job_id="job_s3_abc123",
             )
 
 
@@ -217,7 +214,6 @@ class AsyncJobsClient:
         Parameters
         ----------
         job_id : str
-            The job ID to cancel
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -234,14 +230,14 @@ class AsyncJobsClient:
         from runcaptain import AsyncCaptain
 
         client = AsyncCaptain(
-            authorization="YOUR_AUTHORIZATION",
             organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
         )
 
 
         async def main() -> None:
             await client.jobs.cancel_job_v2(
-                job_id="abc123xyz-1234567890",
+                job_id="job_s3_abc123",
             )
 
 

@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import os
 import typing
 
 import httpx
+from .core.api_error import ApiError
 from .core.client_wrapper import AsyncClientWrapper, SyncClientWrapper
 from .core.logging import LogConfig, Logger
 from .environment import CaptainEnvironment
@@ -35,8 +37,8 @@ class Captain:
 
 
 
-    authorization : str
     organization_id : typing.Optional[str]
+    key : typing.Optional[typing.Union[str, typing.Callable[[], str]]]
     headers : typing.Optional[typing.Dict[str, str]]
         Additional headers to send with every request.
 
@@ -57,8 +59,8 @@ class Captain:
     from runcaptain import Captain
 
     client = Captain(
-        authorization="YOUR_AUTHORIZATION",
         organization_id="YOUR_ORGANIZATION_ID",
+        key="YOUR_KEY",
     )
     """
 
@@ -67,8 +69,8 @@ class Captain:
         *,
         base_url: typing.Optional[str] = None,
         environment: CaptainEnvironment = CaptainEnvironment.DEFAULT,
-        authorization: str,
-        organization_id: typing.Optional[str] = None,
+        organization_id: typing.Optional[str] = os.getenv("CAPTAIN_ORGANIZATION_ID"),
+        key: typing.Optional[typing.Union[str, typing.Callable[[], str]]] = os.getenv("CAPTAIN_API_KEY"),
         headers: typing.Optional[typing.Dict[str, str]] = None,
         timeout: typing.Optional[float] = None,
         follow_redirects: typing.Optional[bool] = True,
@@ -78,10 +80,16 @@ class Captain:
         _defaulted_timeout = (
             timeout if timeout is not None else 60 if httpx_client is None else httpx_client.timeout.read
         )
+        if organization_id is None:
+            raise ApiError(
+                body="The client must be instantiated be either passing in organization_id or setting CAPTAIN_ORGANIZATION_ID"
+            )
+        if key is None:
+            raise ApiError(body="The client must be instantiated be either passing in key or setting CAPTAIN_API_KEY")
         self._client_wrapper = SyncClientWrapper(
             base_url=_get_base_url(base_url=base_url, environment=environment),
-            authorization=authorization,
             organization_id=organization_id,
+            key=key,
             headers=headers,
             httpx_client=httpx_client
             if httpx_client is not None
@@ -156,8 +164,8 @@ class AsyncCaptain:
 
 
 
-    authorization : str
     organization_id : typing.Optional[str]
+    key : typing.Optional[typing.Union[str, typing.Callable[[], str]]]
     headers : typing.Optional[typing.Dict[str, str]]
         Additional headers to send with every request.
 
@@ -178,8 +186,8 @@ class AsyncCaptain:
     from runcaptain import AsyncCaptain
 
     client = AsyncCaptain(
-        authorization="YOUR_AUTHORIZATION",
         organization_id="YOUR_ORGANIZATION_ID",
+        key="YOUR_KEY",
     )
     """
 
@@ -188,8 +196,8 @@ class AsyncCaptain:
         *,
         base_url: typing.Optional[str] = None,
         environment: CaptainEnvironment = CaptainEnvironment.DEFAULT,
-        authorization: str,
-        organization_id: typing.Optional[str] = None,
+        organization_id: typing.Optional[str] = os.getenv("CAPTAIN_ORGANIZATION_ID"),
+        key: typing.Optional[typing.Union[str, typing.Callable[[], str]]] = os.getenv("CAPTAIN_API_KEY"),
         headers: typing.Optional[typing.Dict[str, str]] = None,
         timeout: typing.Optional[float] = None,
         follow_redirects: typing.Optional[bool] = True,
@@ -199,10 +207,16 @@ class AsyncCaptain:
         _defaulted_timeout = (
             timeout if timeout is not None else 60 if httpx_client is None else httpx_client.timeout.read
         )
+        if organization_id is None:
+            raise ApiError(
+                body="The client must be instantiated be either passing in organization_id or setting CAPTAIN_ORGANIZATION_ID"
+            )
+        if key is None:
+            raise ApiError(body="The client must be instantiated be either passing in key or setting CAPTAIN_API_KEY")
         self._client_wrapper = AsyncClientWrapper(
             base_url=_get_base_url(base_url=base_url, environment=environment),
-            authorization=authorization,
             organization_id=organization_id,
+            key=key,
             headers=headers,
             httpx_client=httpx_client
             if httpx_client is not None

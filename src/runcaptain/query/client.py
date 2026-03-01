@@ -31,7 +31,6 @@ class QueryClient:
         collection_name: str,
         *,
         query: str,
-        idempotency_key: typing.Optional[str] = None,
         inference: typing.Optional[bool] = OMIT,
         stream: typing.Optional[bool] = OMIT,
         top_k: typing.Optional[int] = OMIT,
@@ -48,62 +47,45 @@ class QueryClient:
 
         ## Streaming (SSE)
 
-        When `stream: true` and `inference: true`, the JSON response includes a `request_id`. Refer to the sample implementations to best make use of streams.
+        When `stream: true` and `inference: true`, the response is a Server-Sent Events stream. Every `data:` field is a JSON object with a `type` discriminator.
 
         ### SSE Event Types
 
-        | Event | Format | Description |
-        |-------|--------|-------------|
-        | Text chunk | `data: <text>\\n\\n` | Incremental text of the AI response. Plain text (not JSON). Newlines within text are escaped as `\\n`. |
-        | Tool start | `event: tool_start\\ndata: {"type":"tool.start","name":"searchKnowledgeBase","tool_call_id":"tc_1","args":{"query":"..."}}\\n\\n` | The AI agent is performing a knowledge base search. The `args.query` field contains the search query. |
-        | Tool end | `event: tool_end\\ndata: {"type":"tool.end","name":"searchKnowledgeBase","tool_call_id":"tc_1","ok":true,"result_summary":{"resultCount":12}}\\n\\n` | A search completed. `tool_call_id` correlates with the preceding `tool_start`. `result_summary.resultCount` indicates how many results were found. |
-        | Complete | `event: complete\\ndata: {"type":"stream_complete"}\\n\\n` | Stream finished successfully. Close the connection after receiving this. |
-        | Error | `event: error\\ndata: {"type":"stream_error","error":"..."}\\n\\n` | An error occurred during generation. Close the connection. |
+        | `type` value | Schema | Description |
+        |---|---|---|
+        | `text.delta` | `QueryStreamTextEvent` | Incremental text chunk of the AI response. |
+        | `tool.start` | `QueryStreamToolStartEvent` | The agent is performing a knowledge-base search. |
+        | `tool.end` | `QueryStreamToolEndEvent` | A tool call completed. `tool_call_id` correlates with the preceding `tool.start`. |
+        | `stream_complete` | `QueryStreamCompleteEvent` | Stream finished successfully. Close the connection. |
+        | `stream_error` | `QueryStreamErrorEvent` | An error occurred. Close the connection. |
 
         ### Example SSE Stream
 
         ```
-        event: tool_start
-        data: {"type":"tool.start","name":"searchKnowledgeBase","tool_call_id":"tc_1","args":{"query":"revenue projections Q4"}}
+        data: {"type":"tool.start","seq":1,"run_id":"run_abc","tool_call_id":"tc_1","name":"searchKnowledgeBase","args":{"query":"revenue projections Q4"}}
 
-        event: tool_end
-        data: {"type":"tool.end","name":"searchKnowledgeBase","tool_call_id":"tc_1","ok":true,"result_summary":{"resultCount":12}}
+        data: {"type":"tool.end","seq":2,"run_id":"run_abc","tool_call_id":"tc_1","name":"searchKnowledgeBase","ok":true,"result_summary":{"resultCount":12}}
 
-        data: Based on the documents
-        data:  provided, the revenue
-        data:  projections for Q4 show
-        data:  a 15% increase over Q3.
+        data: {"type":"text.delta","seq":3,"run_id":"run_abc","data":"Based on the documents"}
+        data: {"type":"text.delta","seq":4,"run_id":"run_abc","data":" provided, the revenue"}
+        data: {"type":"text.delta","seq":5,"run_id":"run_abc","data":" projections for Q4 show"}
+        data: {"type":"text.delta","seq":6,"run_id":"run_abc","data":" a 15% increase over Q3."}
 
-        event: tool_start
-        data: {"type":"tool.start","name":"searchKnowledgeBase","tool_call_id":"tc_2","args":{"query":"Q3 comparison metrics"}}
-
-        event: tool_end
-        data: {"type":"tool.end","name":"searchKnowledgeBase","tool_call_id":"tc_2","ok":true,"result_summary":{"resultCount":8}}
-
-        data:  Compared to Q3, the key
-        data:  drivers were operational
-        data:  efficiency gains.
-
-        event: complete
-        data: {"type":"stream_complete"}
+        data: {"type":"stream_complete","metadata":{"totalResults":12,"totalSearches":1},"stats":{"totalTokens":150}}
         ```
 
         ### Notes
 
-        - The agent may perform multiple searches per query. Each search produces a `tool_start`/`tool_end` pair.
+        - The agent may perform multiple searches per query. Each search produces a `tool.start` / `tool.end` pair.
         - Text chunks are interleaved between tool events — text arrives after the agent has gathered results from a search.
         - Connect with `Accept: text/event-stream` and set a generous timeout (120s+) for long responses.
 
         Parameters
         ----------
         collection_name : str
-            Name of the collection to query
 
         query : str
             The natural language query to search for
-
-        idempotency_key : typing.Optional[str]
-            UUID for request deduplication
 
         inference : typing.Optional[bool]
             Enable LLM-generated answers based on the relevant sections retrieved. When false, returns raw search results.
@@ -136,22 +118,21 @@ class QueryClient:
         from runcaptain import Captain
 
         client = Captain(
-            authorization="YOUR_AUTHORIZATION",
             organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
         )
         client.query.collection_v2(
             collection_name="my_documents",
             query="What are the key terms in the contract?",
             inference=False,
             stream=False,
-            top_k=10,
             rerank=True,
+            top_k=10,
         )
         """
         _response = self._raw_client.collection_v2(
             collection_name,
             query=query,
-            idempotency_key=idempotency_key,
             inference=inference,
             stream=stream,
             top_k=top_k,
@@ -183,7 +164,6 @@ class AsyncQueryClient:
         collection_name: str,
         *,
         query: str,
-        idempotency_key: typing.Optional[str] = None,
         inference: typing.Optional[bool] = OMIT,
         stream: typing.Optional[bool] = OMIT,
         top_k: typing.Optional[int] = OMIT,
@@ -200,62 +180,45 @@ class AsyncQueryClient:
 
         ## Streaming (SSE)
 
-        When `stream: true` and `inference: true`, the JSON response includes a `request_id`. Refer to the sample implementations to best make use of streams.
+        When `stream: true` and `inference: true`, the response is a Server-Sent Events stream. Every `data:` field is a JSON object with a `type` discriminator.
 
         ### SSE Event Types
 
-        | Event | Format | Description |
-        |-------|--------|-------------|
-        | Text chunk | `data: <text>\\n\\n` | Incremental text of the AI response. Plain text (not JSON). Newlines within text are escaped as `\\n`. |
-        | Tool start | `event: tool_start\\ndata: {"type":"tool.start","name":"searchKnowledgeBase","tool_call_id":"tc_1","args":{"query":"..."}}\\n\\n` | The AI agent is performing a knowledge base search. The `args.query` field contains the search query. |
-        | Tool end | `event: tool_end\\ndata: {"type":"tool.end","name":"searchKnowledgeBase","tool_call_id":"tc_1","ok":true,"result_summary":{"resultCount":12}}\\n\\n` | A search completed. `tool_call_id` correlates with the preceding `tool_start`. `result_summary.resultCount` indicates how many results were found. |
-        | Complete | `event: complete\\ndata: {"type":"stream_complete"}\\n\\n` | Stream finished successfully. Close the connection after receiving this. |
-        | Error | `event: error\\ndata: {"type":"stream_error","error":"..."}\\n\\n` | An error occurred during generation. Close the connection. |
+        | `type` value | Schema | Description |
+        |---|---|---|
+        | `text.delta` | `QueryStreamTextEvent` | Incremental text chunk of the AI response. |
+        | `tool.start` | `QueryStreamToolStartEvent` | The agent is performing a knowledge-base search. |
+        | `tool.end` | `QueryStreamToolEndEvent` | A tool call completed. `tool_call_id` correlates with the preceding `tool.start`. |
+        | `stream_complete` | `QueryStreamCompleteEvent` | Stream finished successfully. Close the connection. |
+        | `stream_error` | `QueryStreamErrorEvent` | An error occurred. Close the connection. |
 
         ### Example SSE Stream
 
         ```
-        event: tool_start
-        data: {"type":"tool.start","name":"searchKnowledgeBase","tool_call_id":"tc_1","args":{"query":"revenue projections Q4"}}
+        data: {"type":"tool.start","seq":1,"run_id":"run_abc","tool_call_id":"tc_1","name":"searchKnowledgeBase","args":{"query":"revenue projections Q4"}}
 
-        event: tool_end
-        data: {"type":"tool.end","name":"searchKnowledgeBase","tool_call_id":"tc_1","ok":true,"result_summary":{"resultCount":12}}
+        data: {"type":"tool.end","seq":2,"run_id":"run_abc","tool_call_id":"tc_1","name":"searchKnowledgeBase","ok":true,"result_summary":{"resultCount":12}}
 
-        data: Based on the documents
-        data:  provided, the revenue
-        data:  projections for Q4 show
-        data:  a 15% increase over Q3.
+        data: {"type":"text.delta","seq":3,"run_id":"run_abc","data":"Based on the documents"}
+        data: {"type":"text.delta","seq":4,"run_id":"run_abc","data":" provided, the revenue"}
+        data: {"type":"text.delta","seq":5,"run_id":"run_abc","data":" projections for Q4 show"}
+        data: {"type":"text.delta","seq":6,"run_id":"run_abc","data":" a 15% increase over Q3."}
 
-        event: tool_start
-        data: {"type":"tool.start","name":"searchKnowledgeBase","tool_call_id":"tc_2","args":{"query":"Q3 comparison metrics"}}
-
-        event: tool_end
-        data: {"type":"tool.end","name":"searchKnowledgeBase","tool_call_id":"tc_2","ok":true,"result_summary":{"resultCount":8}}
-
-        data:  Compared to Q3, the key
-        data:  drivers were operational
-        data:  efficiency gains.
-
-        event: complete
-        data: {"type":"stream_complete"}
+        data: {"type":"stream_complete","metadata":{"totalResults":12,"totalSearches":1},"stats":{"totalTokens":150}}
         ```
 
         ### Notes
 
-        - The agent may perform multiple searches per query. Each search produces a `tool_start`/`tool_end` pair.
+        - The agent may perform multiple searches per query. Each search produces a `tool.start` / `tool.end` pair.
         - Text chunks are interleaved between tool events — text arrives after the agent has gathered results from a search.
         - Connect with `Accept: text/event-stream` and set a generous timeout (120s+) for long responses.
 
         Parameters
         ----------
         collection_name : str
-            Name of the collection to query
 
         query : str
             The natural language query to search for
-
-        idempotency_key : typing.Optional[str]
-            UUID for request deduplication
 
         inference : typing.Optional[bool]
             Enable LLM-generated answers based on the relevant sections retrieved. When false, returns raw search results.
@@ -290,8 +253,8 @@ class AsyncQueryClient:
         from runcaptain import AsyncCaptain
 
         client = AsyncCaptain(
-            authorization="YOUR_AUTHORIZATION",
             organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
         )
 
 
@@ -301,8 +264,8 @@ class AsyncQueryClient:
                 query="What are the key terms in the contract?",
                 inference=False,
                 stream=False,
-                top_k=10,
                 rerank=True,
+                top_k=10,
             )
 
 
@@ -311,7 +274,6 @@ class AsyncQueryClient:
         _response = await self._raw_client.collection_v2(
             collection_name,
             query=query,
-            idempotency_key=idempotency_key,
             inference=inference,
             stream=stream,
             top_k=top_k,

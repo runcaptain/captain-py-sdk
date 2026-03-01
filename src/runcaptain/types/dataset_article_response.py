@@ -4,7 +4,6 @@ import typing
 
 import pydantic
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
-from .dataset_article_response_dataset import DatasetArticleResponseDataset
 
 
 class DatasetArticleResponse(UniversalBaseModel):
@@ -12,7 +11,7 @@ class DatasetArticleResponse(UniversalBaseModel):
     Response containing an article from a news dataset
     """
 
-    dataset: DatasetArticleResponseDataset = pydantic.Field()
+    dataset: str = pydantic.Field()
     """
     The dataset the article was retrieved from
     """

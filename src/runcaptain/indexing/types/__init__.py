@@ -12,9 +12,16 @@ if typing.TYPE_CHECKING:
     from .index_gcs_directory_request_v2processing_type import IndexGcsDirectoryRequestV2ProcessingType
     from .index_gcs_file_request_v2processing_type import IndexGcsFileRequestV2ProcessingType
     from .index_gcs_request_v2processing_type import IndexGcsRequestV2ProcessingType
+    from .index_r2directory_request_v2jurisdiction import IndexR2DirectoryRequestV2Jurisdiction
+    from .index_r2directory_request_v2processing_type import IndexR2DirectoryRequestV2ProcessingType
+    from .index_r2file_request_v2jurisdiction import IndexR2FileRequestV2Jurisdiction
+    from .index_r2file_request_v2processing_type import IndexR2FileRequestV2ProcessingType
+    from .index_r2request_v2jurisdiction import IndexR2RequestV2Jurisdiction
+    from .index_r2request_v2processing_type import IndexR2RequestV2ProcessingType
     from .index_s3directory_request_v2processing_type import IndexS3DirectoryRequestV2ProcessingType
     from .index_s3file_request_v2processing_type import IndexS3FileRequestV2ProcessingType
     from .index_s3request_v2processing_type import IndexS3RequestV2ProcessingType
+    from .index_url_request_v2processing_type import IndexUrlRequestV2ProcessingType
 _dynamic_imports: typing.Dict[str, str] = {
     "IndexAzureDirectoryRequestV2ProcessingType": ".index_azure_directory_request_v2processing_type",
     "IndexAzureFileRequestV2ProcessingType": ".index_azure_file_request_v2processing_type",
@@ -22,9 +29,16 @@ _dynamic_imports: typing.Dict[str, str] = {
     "IndexGcsDirectoryRequestV2ProcessingType": ".index_gcs_directory_request_v2processing_type",
     "IndexGcsFileRequestV2ProcessingType": ".index_gcs_file_request_v2processing_type",
     "IndexGcsRequestV2ProcessingType": ".index_gcs_request_v2processing_type",
+    "IndexR2DirectoryRequestV2Jurisdiction": ".index_r2directory_request_v2jurisdiction",
+    "IndexR2DirectoryRequestV2ProcessingType": ".index_r2directory_request_v2processing_type",
+    "IndexR2FileRequestV2Jurisdiction": ".index_r2file_request_v2jurisdiction",
+    "IndexR2FileRequestV2ProcessingType": ".index_r2file_request_v2processing_type",
+    "IndexR2RequestV2Jurisdiction": ".index_r2request_v2jurisdiction",
+    "IndexR2RequestV2ProcessingType": ".index_r2request_v2processing_type",
     "IndexS3DirectoryRequestV2ProcessingType": ".index_s3directory_request_v2processing_type",
     "IndexS3FileRequestV2ProcessingType": ".index_s3file_request_v2processing_type",
     "IndexS3RequestV2ProcessingType": ".index_s3request_v2processing_type",
+    "IndexUrlRequestV2ProcessingType": ".index_url_request_v2processing_type",
 }
 
 
@@ -56,7 +70,14 @@ __all__ = [
     "IndexGcsDirectoryRequestV2ProcessingType",
     "IndexGcsFileRequestV2ProcessingType",
     "IndexGcsRequestV2ProcessingType",
+    "IndexR2DirectoryRequestV2Jurisdiction",
+    "IndexR2DirectoryRequestV2ProcessingType",
+    "IndexR2FileRequestV2Jurisdiction",
+    "IndexR2FileRequestV2ProcessingType",
+    "IndexR2RequestV2Jurisdiction",
+    "IndexR2RequestV2ProcessingType",
     "IndexS3DirectoryRequestV2ProcessingType",
     "IndexS3FileRequestV2ProcessingType",
     "IndexS3RequestV2ProcessingType",
+    "IndexUrlRequestV2ProcessingType",
 ]
