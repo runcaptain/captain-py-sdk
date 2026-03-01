@@ -37,8 +37,8 @@ Instantiate and use the client with the following:
 from runcaptain import Captain
 
 client = Captain(
-    authorization="YOUR_AUTHORIZATION",
     organization_id="YOUR_ORGANIZATION_ID",
+    key="YOUR_KEY",
 )
 client.query.collection_v2(
     collection_name="my_documents",
@@ -46,6 +46,7 @@ client.query.collection_v2(
     inference=True,
     stream=True,
     rerank=True,
+    top_k=10,
 )
 ```
 
@@ -59,8 +60,8 @@ import asyncio
 from runcaptain import AsyncCaptain
 
 client = AsyncCaptain(
-    authorization="YOUR_AUTHORIZATION",
     organization_id="YOUR_ORGANIZATION_ID",
+    key="YOUR_KEY",
 )
 
 
@@ -71,6 +72,7 @@ async def main() -> None:
         inference=True,
         stream=True,
         rerank=True,
+        top_k=10,
     )
 
 

@@ -15,8 +15,6 @@ from ..errors.service_unavailable_error import ServiceUnavailableError
 from ..errors.unauthorized_error import UnauthorizedError
 from ..types.dataset_article_response import DatasetArticleResponse
 from ..types.dataset_search_response import DatasetSearchResponse
-from .types.get_dataset_article_request_dataset import GetDatasetArticleRequestDataset
-from .types.search_dataset_request_dataset import SearchDatasetRequestDataset
 
 
 class RawDatasetsClient:
@@ -24,36 +22,20 @@ class RawDatasetsClient:
         self._client_wrapper = client_wrapper
 
     def search_dataset(
-        self,
-        dataset: SearchDatasetRequestDataset,
-        *,
-        q: str,
-        limit: typing.Optional[int] = None,
-        request_options: typing.Optional[RequestOptions] = None,
+        self, dataset: typing.Optional[str], *, request_options: typing.Optional[RequestOptions] = None
     ) -> HttpResponse[DatasetSearchResponse]:
         """
         Search for articles within a news dataset.
 
-        Uses Google Search constrained to the dataset's domain to find relevant articles.
-
-        ## Supported Datasets
-        - **nytimes**: New York Times (nytimes.com)
-        - **washpost**: Washington Post (washingtonpost.com)
-        - **sfstandard**: SF Standard (sfstandard.com)
+        Contact your Account Executive for available datasets.
 
         ## Response
         Returns a list of search results with title, URL, snippet, and date.
 
         Parameters
         ----------
-        dataset : SearchDatasetRequestDataset
-            The news dataset to search. Supported: nytimes, washpost, sfstandard
-
-        q : str
-            Search query
-
-        limit : typing.Optional[int]
-            Maximum number of results to return (default: 10, max: 100)
+        dataset : typing.Optional[str]
+            The dataset to search. Contact your Account Executive for available datasets.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -66,10 +48,6 @@ class RawDatasetsClient:
         _response = self._client_wrapper.httpx_client.request(
             f"v2/datasets/{jsonable_encoder(dataset)}/search",
             method="GET",
-            params={
-                "q": q,
-                "limit": limit,
-            },
             request_options=request_options,
         )
         try:
@@ -132,19 +110,12 @@ class RawDatasetsClient:
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     def get_dataset_article(
-        self,
-        dataset: GetDatasetArticleRequestDataset,
-        url: str,
-        *,
-        request_options: typing.Optional[RequestOptions] = None,
+        self, dataset: typing.Optional[str], url: str, *, request_options: typing.Optional[RequestOptions] = None
     ) -> HttpResponse[DatasetArticleResponse]:
         """
         Get a full article from a supported news dataset.
 
-        ## Supported Datasets
-        - **nytimes**: New York Times (nytimes.com)
-        - **washpost**: Washington Post (washingtonpost.com)
-        - **sfstandard**: SF Standard (sfstandard.com)
+        Contact your Account Executive for available datasets.
 
         ## URL Path
         The article URL is appended directly to the endpoint path. The URL must match the domain of the specified dataset.
@@ -154,11 +125,10 @@ class RawDatasetsClient:
 
         Parameters
         ----------
-        dataset : GetDatasetArticleRequestDataset
-            The news dataset to get articles from. Supported: nytimes, washpost, sfstandard
+        dataset : typing.Optional[str]
+            The dataset to get articles from. Contact your Account Executive for available datasets.
 
         url : str
-            Full URL of the article to get, appended to the path. Must match the dataset's domain.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -238,36 +208,20 @@ class AsyncRawDatasetsClient:
         self._client_wrapper = client_wrapper
 
     async def search_dataset(
-        self,
-        dataset: SearchDatasetRequestDataset,
-        *,
-        q: str,
-        limit: typing.Optional[int] = None,
-        request_options: typing.Optional[RequestOptions] = None,
+        self, dataset: typing.Optional[str], *, request_options: typing.Optional[RequestOptions] = None
     ) -> AsyncHttpResponse[DatasetSearchResponse]:
         """
         Search for articles within a news dataset.
 
-        Uses Google Search constrained to the dataset's domain to find relevant articles.
-
-        ## Supported Datasets
-        - **nytimes**: New York Times (nytimes.com)
-        - **washpost**: Washington Post (washingtonpost.com)
-        - **sfstandard**: SF Standard (sfstandard.com)
+        Contact your Account Executive for available datasets.
 
         ## Response
         Returns a list of search results with title, URL, snippet, and date.
 
         Parameters
         ----------
-        dataset : SearchDatasetRequestDataset
-            The news dataset to search. Supported: nytimes, washpost, sfstandard
-
-        q : str
-            Search query
-
-        limit : typing.Optional[int]
-            Maximum number of results to return (default: 10, max: 100)
+        dataset : typing.Optional[str]
+            The dataset to search. Contact your Account Executive for available datasets.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -280,10 +234,6 @@ class AsyncRawDatasetsClient:
         _response = await self._client_wrapper.httpx_client.request(
             f"v2/datasets/{jsonable_encoder(dataset)}/search",
             method="GET",
-            params={
-                "q": q,
-                "limit": limit,
-            },
             request_options=request_options,
         )
         try:
@@ -346,19 +296,12 @@ class AsyncRawDatasetsClient:
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def get_dataset_article(
-        self,
-        dataset: GetDatasetArticleRequestDataset,
-        url: str,
-        *,
-        request_options: typing.Optional[RequestOptions] = None,
+        self, dataset: typing.Optional[str], url: str, *, request_options: typing.Optional[RequestOptions] = None
     ) -> AsyncHttpResponse[DatasetArticleResponse]:
         """
         Get a full article from a supported news dataset.
 
-        ## Supported Datasets
-        - **nytimes**: New York Times (nytimes.com)
-        - **washpost**: Washington Post (washingtonpost.com)
-        - **sfstandard**: SF Standard (sfstandard.com)
+        Contact your Account Executive for available datasets.
 
         ## URL Path
         The article URL is appended directly to the endpoint path. The URL must match the domain of the specified dataset.
@@ -368,11 +311,10 @@ class AsyncRawDatasetsClient:
 
         Parameters
         ----------
-        dataset : GetDatasetArticleRequestDataset
-            The news dataset to get articles from. Supported: nytimes, washpost, sfstandard
+        dataset : typing.Optional[str]
+            The dataset to get articles from. Contact your Account Executive for available datasets.
 
         url : str
-            Full URL of the article to get, appended to the path. Must match the dataset's domain.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.

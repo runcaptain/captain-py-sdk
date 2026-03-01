@@ -11,15 +11,15 @@ class BaseClientWrapper:
     def __init__(
         self,
         *,
-        authorization: str,
-        organization_id: typing.Optional[str] = None,
+        organization_id: str,
+        key: typing.Union[str, typing.Callable[[], str]],
         headers: typing.Optional[typing.Dict[str, str]] = None,
         base_url: str,
         timeout: typing.Optional[float] = None,
         logging: typing.Optional[typing.Union[LogConfig, Logger]] = None,
     ):
-        self._authorization = authorization
         self._organization_id = organization_id
+        self._key = key
         self._headers = headers
         self._base_url = base_url
         self._timeout = timeout
@@ -29,18 +29,23 @@ class BaseClientWrapper:
         import platform
 
         headers: typing.Dict[str, str] = {
-            "User-Agent": "captain-sdk/0.0.0",
+            "User-Agent": "captain-sdk/0.0.1",
             "X-Fern-Language": "Python",
             "X-Fern-Runtime": f"python/{platform.python_version()}",
             "X-Fern-Platform": f"{platform.system().lower()}/{platform.release()}",
             "X-Fern-SDK-Name": "captain-sdk",
-            "X-Fern-SDK-Version": "0.0.0",
+            "X-Fern-SDK-Version": "0.0.1",
             **(self.get_custom_headers() or {}),
         }
-        headers["Authorization"] = self._authorization
-        if self._organization_id is not None:
-            headers["X-Organization-ID"] = self._organization_id
+        headers["X-Organization-ID"] = self._organization_id
+        headers["Authorization"] = f"Bearer {self._get_key()}"
         return headers
+
+    def _get_key(self) -> str:
+        if isinstance(self._key, str):
+            return self._key
+        else:
+            return self._key()
 
     def get_custom_headers(self) -> typing.Optional[typing.Dict[str, str]]:
         return self._headers
@@ -56,8 +61,8 @@ class SyncClientWrapper(BaseClientWrapper):
     def __init__(
         self,
         *,
-        authorization: str,
-        organization_id: typing.Optional[str] = None,
+        organization_id: str,
+        key: typing.Union[str, typing.Callable[[], str]],
         headers: typing.Optional[typing.Dict[str, str]] = None,
         base_url: str,
         timeout: typing.Optional[float] = None,
@@ -65,8 +70,8 @@ class SyncClientWrapper(BaseClientWrapper):
         httpx_client: httpx.Client,
     ):
         super().__init__(
-            authorization=authorization,
             organization_id=organization_id,
+            key=key,
             headers=headers,
             base_url=base_url,
             timeout=timeout,
@@ -85,8 +90,8 @@ class AsyncClientWrapper(BaseClientWrapper):
     def __init__(
         self,
         *,
-        authorization: str,
-        organization_id: typing.Optional[str] = None,
+        organization_id: str,
+        key: typing.Union[str, typing.Callable[[], str]],
         headers: typing.Optional[typing.Dict[str, str]] = None,
         base_url: str,
         timeout: typing.Optional[float] = None,
@@ -95,8 +100,8 @@ class AsyncClientWrapper(BaseClientWrapper):
         httpx_client: httpx.AsyncClient,
     ):
         super().__init__(
-            authorization=authorization,
             organization_id=organization_id,
+            key=key,
             headers=headers,
             base_url=base_url,
             timeout=timeout,

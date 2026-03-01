@@ -13,9 +13,16 @@ if typing.TYPE_CHECKING:
         IndexGcsDirectoryRequestV2ProcessingType,
         IndexGcsFileRequestV2ProcessingType,
         IndexGcsRequestV2ProcessingType,
+        IndexR2DirectoryRequestV2Jurisdiction,
+        IndexR2DirectoryRequestV2ProcessingType,
+        IndexR2FileRequestV2Jurisdiction,
+        IndexR2FileRequestV2ProcessingType,
+        IndexR2RequestV2Jurisdiction,
+        IndexR2RequestV2ProcessingType,
         IndexS3DirectoryRequestV2ProcessingType,
         IndexS3FileRequestV2ProcessingType,
         IndexS3RequestV2ProcessingType,
+        IndexUrlRequestV2ProcessingType,
     )
 _dynamic_imports: typing.Dict[str, str] = {
     "IndexAzureDirectoryRequestV2ProcessingType": ".types",
@@ -24,9 +31,16 @@ _dynamic_imports: typing.Dict[str, str] = {
     "IndexGcsDirectoryRequestV2ProcessingType": ".types",
     "IndexGcsFileRequestV2ProcessingType": ".types",
     "IndexGcsRequestV2ProcessingType": ".types",
+    "IndexR2DirectoryRequestV2Jurisdiction": ".types",
+    "IndexR2DirectoryRequestV2ProcessingType": ".types",
+    "IndexR2FileRequestV2Jurisdiction": ".types",
+    "IndexR2FileRequestV2ProcessingType": ".types",
+    "IndexR2RequestV2Jurisdiction": ".types",
+    "IndexR2RequestV2ProcessingType": ".types",
     "IndexS3DirectoryRequestV2ProcessingType": ".types",
     "IndexS3FileRequestV2ProcessingType": ".types",
     "IndexS3RequestV2ProcessingType": ".types",
+    "IndexUrlRequestV2ProcessingType": ".types",
 }
 
 
@@ -58,7 +72,14 @@ __all__ = [
     "IndexGcsDirectoryRequestV2ProcessingType",
     "IndexGcsFileRequestV2ProcessingType",
     "IndexGcsRequestV2ProcessingType",
+    "IndexR2DirectoryRequestV2Jurisdiction",
+    "IndexR2DirectoryRequestV2ProcessingType",
+    "IndexR2FileRequestV2Jurisdiction",
+    "IndexR2FileRequestV2ProcessingType",
+    "IndexR2RequestV2Jurisdiction",
+    "IndexR2RequestV2ProcessingType",
     "IndexS3DirectoryRequestV2ProcessingType",
     "IndexS3FileRequestV2ProcessingType",
     "IndexS3RequestV2ProcessingType",
+    "IndexUrlRequestV2ProcessingType",
 ]

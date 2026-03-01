@@ -4,7 +4,15 @@ import typing
 
 JobStatusResponseV2JobType = typing.Union[
     typing.Literal[
-        "index_s3", "index_s3_file", "index_s3_directory", "index_gcs", "index_gcs_file", "index_gcs_directory"
+        "index_s3",
+        "index_s3_file",
+        "index_s3_directory",
+        "index_gcs",
+        "index_gcs_file",
+        "index_gcs_directory",
+        "index_r2",
+        "index_r2_file",
+        "index_r2_directory",
     ],
     typing.Any,
 ]

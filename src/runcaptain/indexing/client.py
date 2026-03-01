@@ -12,9 +12,16 @@ from .types.index_azure_request_v2processing_type import IndexAzureRequestV2Proc
 from .types.index_gcs_directory_request_v2processing_type import IndexGcsDirectoryRequestV2ProcessingType
 from .types.index_gcs_file_request_v2processing_type import IndexGcsFileRequestV2ProcessingType
 from .types.index_gcs_request_v2processing_type import IndexGcsRequestV2ProcessingType
+from .types.index_r2directory_request_v2jurisdiction import IndexR2DirectoryRequestV2Jurisdiction
+from .types.index_r2directory_request_v2processing_type import IndexR2DirectoryRequestV2ProcessingType
+from .types.index_r2file_request_v2jurisdiction import IndexR2FileRequestV2Jurisdiction
+from .types.index_r2file_request_v2processing_type import IndexR2FileRequestV2ProcessingType
+from .types.index_r2request_v2jurisdiction import IndexR2RequestV2Jurisdiction
+from .types.index_r2request_v2processing_type import IndexR2RequestV2ProcessingType
 from .types.index_s3directory_request_v2processing_type import IndexS3DirectoryRequestV2ProcessingType
 from .types.index_s3file_request_v2processing_type import IndexS3FileRequestV2ProcessingType
 from .types.index_s3request_v2processing_type import IndexS3RequestV2ProcessingType
+from .types.index_url_request_v2processing_type import IndexUrlRequestV2ProcessingType
 
 # this is used as the default value for optional parameters
 OMIT = typing.cast(typing.Any, ...)
@@ -43,7 +50,6 @@ class IndexingClient:
         aws_access_key_id: str,
         aws_secret_access_key: str,
         processing_type: IndexS3RequestV2ProcessingType,
-        idempotency_key: typing.Optional[str] = None,
         bucket_region: typing.Optional[str] = OMIT,
         max_files: typing.Optional[int] = OMIT,
         skip_existing: typing.Optional[bool] = OMIT,
@@ -56,7 +62,6 @@ class IndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         bucket_name : str
             Name of the S3 bucket
@@ -69,9 +74,6 @@ class IndexingClient:
 
         processing_type : IndexS3RequestV2ProcessingType
             Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
-
-        idempotency_key : typing.Optional[str]
-            UUID for request deduplication
 
         bucket_region : typing.Optional[str]
             AWS region where the bucket is located
@@ -98,16 +100,17 @@ class IndexingClient:
         from runcaptain import Captain
 
         client = Captain(
-            authorization="YOUR_AUTHORIZATION",
             organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
         )
         client.indexing.index_s3bucket_v2(
             collection_name="my_documents",
-            bucket_name="my-s3-bucket",
+            bucket_name="my-documents-bucket",
             aws_access_key_id="AKIAIOSFODNN7EXAMPLE",
-            aws_secret_access_key="your_secret_key",
+            aws_secret_access_key="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
             bucket_region="us-east-1",
             processing_type="advanced",
+            skip_existing=True,
         )
         """
         _response = self._raw_client.index_s3bucket_v2(
@@ -116,7 +119,6 @@ class IndexingClient:
             aws_access_key_id=aws_access_key_id,
             aws_secret_access_key=aws_secret_access_key,
             processing_type=processing_type,
-            idempotency_key=idempotency_key,
             bucket_region=bucket_region,
             max_files=max_files,
             skip_existing=skip_existing,
@@ -144,7 +146,6 @@ class IndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         bucket_name : str
             Name of the S3 bucket
@@ -180,15 +181,15 @@ class IndexingClient:
         from runcaptain import Captain
 
         client = Captain(
-            authorization="YOUR_AUTHORIZATION",
             organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
         )
         client.indexing.index_s3file_v2(
             collection_name="my_documents",
-            bucket_name="my-s3-bucket",
-            file_uri="s3://my-s3-bucket/contracts/acme_contract.pdf",
+            bucket_name="my-documents-bucket",
+            file_uri="s3://my-documents-bucket/reports/quarterly-report-q4.pdf",
             aws_access_key_id="AKIAIOSFODNN7EXAMPLE",
-            aws_secret_access_key="your_secret_key",
+            aws_secret_access_key="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
             bucket_region="us-east-1",
             processing_type="advanced",
         )
@@ -224,7 +225,6 @@ class IndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         bucket_name : str
             Name of the GCS bucket
@@ -257,13 +257,13 @@ class IndexingClient:
         from runcaptain import Captain
 
         client = Captain(
-            authorization="YOUR_AUTHORIZATION",
             organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
         )
         client.indexing.index_gcs_bucket_v2(
             collection_name="my_documents",
-            bucket_name="my-gcs-bucket",
-            service_account_json='{"type":"service_account","project_id":"my-project",...}',
+            bucket_name="my-gcs-documents",
+            service_account_json='{"type": "service_account", "project_id": "my-project", ...}',
             processing_type="advanced",
         )
         """
@@ -296,7 +296,6 @@ class IndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         bucket_name : str
             Name of the GCS bucket
@@ -326,14 +325,14 @@ class IndexingClient:
         from runcaptain import Captain
 
         client = Captain(
-            authorization="YOUR_AUTHORIZATION",
             organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
         )
         client.indexing.index_gcs_file_v2(
-            collection_name="collection_name",
-            bucket_name="my-company-docs",
-            file_uri="gs://my-company-docs/contracts/acme_contract.pdf",
-            service_account_json='{"type":"service_account","project_id":"my-project",...}',
+            collection_name="my_documents",
+            bucket_name="my-gcs-documents",
+            file_uri="gs://my-gcs-documents/reports/annual-review.pdf",
+            service_account_json='{"type": "service_account", "project_id": "my-project", ...}',
             processing_type="advanced",
         )
         """
@@ -357,7 +356,6 @@ class IndexingClient:
         aws_access_key_id: str,
         aws_secret_access_key: str,
         processing_type: IndexS3DirectoryRequestV2ProcessingType,
-        idempotency_key: typing.Optional[str] = None,
         bucket_region: typing.Optional[str] = OMIT,
         max_files: typing.Optional[int] = OMIT,
         skip_existing: typing.Optional[bool] = OMIT,
@@ -370,7 +368,6 @@ class IndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         bucket_name : str
             Name of the S3 bucket
@@ -386,9 +383,6 @@ class IndexingClient:
 
         processing_type : IndexS3DirectoryRequestV2ProcessingType
             Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
-
-        idempotency_key : typing.Optional[str]
-            UUID for request deduplication
 
         bucket_region : typing.Optional[str]
             AWS region where the bucket is located
@@ -415,15 +409,15 @@ class IndexingClient:
         from runcaptain import Captain
 
         client = Captain(
-            authorization="YOUR_AUTHORIZATION",
             organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
         )
         client.indexing.index_s3directory_v2(
             collection_name="my_documents",
-            bucket_name="my-s3-bucket",
-            directory_path="reports/2024/january",
+            bucket_name="my-documents-bucket",
+            directory_path="reports/2025/",
             aws_access_key_id="AKIAIOSFODNN7EXAMPLE",
-            aws_secret_access_key="your_secret_key",
+            aws_secret_access_key="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
             bucket_region="us-east-1",
             processing_type="advanced",
         )
@@ -435,7 +429,6 @@ class IndexingClient:
             aws_access_key_id=aws_access_key_id,
             aws_secret_access_key=aws_secret_access_key,
             processing_type=processing_type,
-            idempotency_key=idempotency_key,
             bucket_region=bucket_region,
             max_files=max_files,
             skip_existing=skip_existing,
@@ -452,7 +445,6 @@ class IndexingClient:
         directory_path: str,
         service_account_json: str,
         processing_type: IndexGcsDirectoryRequestV2ProcessingType,
-        idempotency_key: typing.Optional[str] = None,
         max_files: typing.Optional[int] = OMIT,
         skip_existing: typing.Optional[bool] = OMIT,
         custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
@@ -464,7 +456,6 @@ class IndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         bucket_name : str
             Name of the GCS bucket
@@ -477,9 +468,6 @@ class IndexingClient:
 
         processing_type : IndexGcsDirectoryRequestV2ProcessingType
             Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
-
-        idempotency_key : typing.Optional[str]
-            UUID for request deduplication
 
         max_files : typing.Optional[int]
             Maximum number of files to index (optional)
@@ -503,14 +491,14 @@ class IndexingClient:
         from runcaptain import Captain
 
         client = Captain(
-            authorization="YOUR_AUTHORIZATION",
             organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
         )
         client.indexing.index_gcs_directory_v2(
             collection_name="my_documents",
-            bucket_name="my-gcs-bucket",
-            directory_path="reports/2024/january",
-            service_account_json='{"type":"service_account","project_id":"my-project",...}',
+            bucket_name="my-gcs-documents",
+            directory_path="reports/2025/",
+            service_account_json='{"type": "service_account", "project_id": "my-project", ...}',
             processing_type="advanced",
         )
         """
@@ -520,7 +508,6 @@ class IndexingClient:
             directory_path=directory_path,
             service_account_json=service_account_json,
             processing_type=processing_type,
-            idempotency_key=idempotency_key,
             max_files=max_files,
             skip_existing=skip_existing,
             custom_metadata=custom_metadata,
@@ -536,7 +523,6 @@ class IndexingClient:
         account_name: str,
         account_key: str,
         processing_type: IndexAzureRequestV2ProcessingType,
-        idempotency_key: typing.Optional[str] = None,
         max_files: typing.Optional[int] = OMIT,
         skip_existing: typing.Optional[bool] = OMIT,
         custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
@@ -548,7 +534,6 @@ class IndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         container_name : str
             Name of the Azure Blob Storage container
@@ -561,9 +546,6 @@ class IndexingClient:
 
         processing_type : IndexAzureRequestV2ProcessingType
             Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
-
-        idempotency_key : typing.Optional[str]
-            UUID for request deduplication
 
         max_files : typing.Optional[int]
             Maximum number of files to index (optional)
@@ -587,14 +569,14 @@ class IndexingClient:
         from runcaptain import Captain
 
         client = Captain(
-            authorization="YOUR_AUTHORIZATION",
             organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
         )
         client.indexing.index_azure_container_v2(
             collection_name="my_documents",
-            container_name="my-container",
+            container_name="my-azure-documents",
             account_name="mystorageaccount",
-            account_key="your_account_key",
+            account_key="base64encodedaccountkey==",
             processing_type="advanced",
         )
         """
@@ -604,7 +586,6 @@ class IndexingClient:
             account_name=account_name,
             account_key=account_key,
             processing_type=processing_type,
-            idempotency_key=idempotency_key,
             max_files=max_files,
             skip_existing=skip_existing,
             custom_metadata=custom_metadata,
@@ -630,7 +611,6 @@ class IndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         container_name : str
             Name of the Azure Blob Storage container
@@ -663,15 +643,15 @@ class IndexingClient:
         from runcaptain import Captain
 
         client = Captain(
-            authorization="YOUR_AUTHORIZATION",
             organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
         )
         client.indexing.index_azure_file_v2(
             collection_name="my_documents",
-            container_name="my-container",
-            file_uri="https://mystorageaccount.blob.core.windows.net/my-container/contracts/acme_contract.pdf",
+            container_name="my-azure-documents",
+            file_uri="https://mystorageaccount.blob.core.windows.net/my-azure-documents/reports/annual-review.pdf",
             account_name="mystorageaccount",
-            account_key="your_account_key",
+            account_key="base64encodedaccountkey==",
             processing_type="advanced",
         )
         """
@@ -696,7 +676,6 @@ class IndexingClient:
         account_name: str,
         account_key: str,
         processing_type: IndexAzureDirectoryRequestV2ProcessingType,
-        idempotency_key: typing.Optional[str] = None,
         max_files: typing.Optional[int] = OMIT,
         skip_existing: typing.Optional[bool] = OMIT,
         custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
@@ -708,7 +687,6 @@ class IndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         container_name : str
             Name of the Azure Blob Storage container
@@ -724,9 +702,6 @@ class IndexingClient:
 
         processing_type : IndexAzureDirectoryRequestV2ProcessingType
             Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
-
-        idempotency_key : typing.Optional[str]
-            UUID for request deduplication
 
         max_files : typing.Optional[int]
             Maximum number of files to index (optional)
@@ -750,15 +725,15 @@ class IndexingClient:
         from runcaptain import Captain
 
         client = Captain(
-            authorization="YOUR_AUTHORIZATION",
             organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
         )
         client.indexing.index_azure_directory_v2(
             collection_name="my_documents",
-            container_name="my-container",
-            directory_path="reports/2024/january",
+            container_name="my-azure-documents",
+            directory_path="reports/2025/",
             account_name="mystorageaccount",
-            account_key="your_account_key",
+            account_key="base64encodedaccountkey==",
             processing_type="advanced",
         )
         """
@@ -769,9 +744,346 @@ class IndexingClient:
             account_name=account_name,
             account_key=account_key,
             processing_type=processing_type,
-            idempotency_key=idempotency_key,
             max_files=max_files,
             skip_existing=skip_existing,
+            custom_metadata=custom_metadata,
+            request_options=request_options,
+        )
+        return _response.data
+
+    def index_r2bucket_v2(
+        self,
+        collection_name: str,
+        *,
+        bucket_name: str,
+        account_id: str,
+        access_key_id: str,
+        secret_access_key: str,
+        processing_type: IndexR2RequestV2ProcessingType,
+        jurisdiction: typing.Optional[IndexR2RequestV2Jurisdiction] = OMIT,
+        max_files: typing.Optional[int] = OMIT,
+        skip_existing: typing.Optional[bool] = OMIT,
+        custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> IndexJobResponseV2:
+        """
+        Index all files from a Cloudflare R2 bucket into a collection. R2 is S3-compatible — provide your R2 API token's Access Key ID and Secret Access Key. Returns a job_id for tracking progress via GET /v2/jobs/{job_id}.
+
+        Parameters
+        ----------
+        collection_name : str
+
+        bucket_name : str
+            Name of the R2 bucket
+
+        account_id : str
+            Cloudflare account ID (found in your R2 dashboard URL)
+
+        access_key_id : str
+            R2 S3 API token Access Key ID
+
+        secret_access_key : str
+            R2 S3 API token Secret Access Key
+
+        processing_type : IndexR2RequestV2ProcessingType
+            Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
+
+        jurisdiction : typing.Optional[IndexR2RequestV2Jurisdiction]
+            R2 jurisdiction. 'default' for global, 'eu' for EU-only storage, 'fedramp' for FedRAMP-compliant storage.
+
+        max_files : typing.Optional[int]
+            Maximum number of files to index (optional)
+
+        skip_existing : typing.Optional[bool]
+            Skip files that are already indexed in the collection. When true, only new files will be indexed. Set to false to re-index all files.
+
+        custom_metadata : typing.Optional[typing.Dict[str, typing.Any]]
+            Custom metadata to attach to all indexed chunks. Keys must be strings. Values: str, int, float, bool, or array of strings.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        IndexJobResponseV2
+            Indexing Job Started
+
+        Examples
+        --------
+        from runcaptain import Captain
+
+        client = Captain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+        client.indexing.index_r2bucket_v2(
+            collection_name="my_documents",
+            bucket_name="my-r2-bucket",
+            account_id="your_cloudflare_account_id",
+            access_key_id="your_r2_access_key_id",
+            secret_access_key="your_r2_secret_access_key",
+            processing_type="advanced",
+        )
+        """
+        _response = self._raw_client.index_r2bucket_v2(
+            collection_name,
+            bucket_name=bucket_name,
+            account_id=account_id,
+            access_key_id=access_key_id,
+            secret_access_key=secret_access_key,
+            processing_type=processing_type,
+            jurisdiction=jurisdiction,
+            max_files=max_files,
+            skip_existing=skip_existing,
+            custom_metadata=custom_metadata,
+            request_options=request_options,
+        )
+        return _response.data
+
+    def index_r2file_v2(
+        self,
+        collection_name: str,
+        *,
+        bucket_name: str,
+        file_uri: str,
+        account_id: str,
+        access_key_id: str,
+        secret_access_key: str,
+        processing_type: IndexR2FileRequestV2ProcessingType,
+        jurisdiction: typing.Optional[IndexR2FileRequestV2Jurisdiction] = OMIT,
+        custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> IndexJobResponseV2:
+        """
+        Index a single file from a Cloudflare R2 bucket into a collection. Returns a job_id for tracking progress.
+
+        Parameters
+        ----------
+        collection_name : str
+
+        bucket_name : str
+            Name of the R2 bucket
+
+        file_uri : str
+            R2 URI format: r2://bucket-name/path/to/file.pdf
+
+        account_id : str
+            Cloudflare account ID (found in your R2 dashboard URL)
+
+        access_key_id : str
+            R2 S3 API token Access Key ID
+
+        secret_access_key : str
+            R2 S3 API token Secret Access Key
+
+        processing_type : IndexR2FileRequestV2ProcessingType
+            Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
+
+        jurisdiction : typing.Optional[IndexR2FileRequestV2Jurisdiction]
+            R2 jurisdiction. 'default' for global, 'eu' for EU-only storage, 'fedramp' for FedRAMP-compliant storage.
+
+        custom_metadata : typing.Optional[typing.Dict[str, typing.Any]]
+            Custom metadata to attach to all chunks from this file. Keys must be strings. Values: str, int, float, bool, or array of strings.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        IndexJobResponseV2
+            Indexing Job Started
+
+        Examples
+        --------
+        from runcaptain import Captain
+
+        client = Captain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+        client.indexing.index_r2file_v2(
+            collection_name="my_documents",
+            bucket_name="my-r2-bucket",
+            file_uri="r2://my-r2-bucket/reports/annual-review.pdf",
+            account_id="your_cloudflare_account_id",
+            access_key_id="your_r2_access_key_id",
+            secret_access_key="your_r2_secret_access_key",
+            processing_type="advanced",
+        )
+        """
+        _response = self._raw_client.index_r2file_v2(
+            collection_name,
+            bucket_name=bucket_name,
+            file_uri=file_uri,
+            account_id=account_id,
+            access_key_id=access_key_id,
+            secret_access_key=secret_access_key,
+            processing_type=processing_type,
+            jurisdiction=jurisdiction,
+            custom_metadata=custom_metadata,
+            request_options=request_options,
+        )
+        return _response.data
+
+    def index_r2directory_v2(
+        self,
+        collection_name: str,
+        *,
+        bucket_name: str,
+        directory_path: str,
+        account_id: str,
+        access_key_id: str,
+        secret_access_key: str,
+        processing_type: IndexR2DirectoryRequestV2ProcessingType,
+        jurisdiction: typing.Optional[IndexR2DirectoryRequestV2Jurisdiction] = OMIT,
+        max_files: typing.Optional[int] = OMIT,
+        skip_existing: typing.Optional[bool] = OMIT,
+        custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> IndexJobResponseV2:
+        """
+        Index all files from a specific directory (prefix) in a Cloudflare R2 bucket into a collection. Uses prefix-based filtering to index only objects within the specified path. Returns a job_id for tracking progress via GET /v2/jobs/{job_id}.
+
+        Parameters
+        ----------
+        collection_name : str
+
+        bucket_name : str
+            Name of the R2 bucket
+
+        directory_path : str
+            Path to the directory (prefix) within the bucket. Accepts either a relative path (e.g., 'reports/2024/january') or a full R2 URI (e.g., 'r2://my-bucket/reports/2024/january'). All objects within this prefix will be indexed.
+
+        account_id : str
+            Cloudflare account ID (found in your R2 dashboard URL)
+
+        access_key_id : str
+            R2 S3 API token Access Key ID
+
+        secret_access_key : str
+            R2 S3 API token Secret Access Key
+
+        processing_type : IndexR2DirectoryRequestV2ProcessingType
+            Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
+
+        jurisdiction : typing.Optional[IndexR2DirectoryRequestV2Jurisdiction]
+            R2 jurisdiction. 'default' for global, 'eu' for EU-only storage, 'fedramp' for FedRAMP-compliant storage.
+
+        max_files : typing.Optional[int]
+            Maximum number of files to index (optional)
+
+        skip_existing : typing.Optional[bool]
+            Skip files that are already indexed in the collection. When true, only new files will be indexed. Set to false to re-index all files.
+
+        custom_metadata : typing.Optional[typing.Dict[str, typing.Any]]
+            Custom metadata to attach to all indexed chunks. Keys must be strings. Values: str, int, float, bool, or array of strings.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        IndexJobResponseV2
+            Indexing Job Started
+
+        Examples
+        --------
+        from runcaptain import Captain
+
+        client = Captain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+        client.indexing.index_r2directory_v2(
+            collection_name="my_documents",
+            bucket_name="my-r2-bucket",
+            directory_path="reports/2025/",
+            account_id="your_cloudflare_account_id",
+            access_key_id="your_r2_access_key_id",
+            secret_access_key="your_r2_secret_access_key",
+            processing_type="advanced",
+        )
+        """
+        _response = self._raw_client.index_r2directory_v2(
+            collection_name,
+            bucket_name=bucket_name,
+            directory_path=directory_path,
+            account_id=account_id,
+            access_key_id=access_key_id,
+            secret_access_key=secret_access_key,
+            processing_type=processing_type,
+            jurisdiction=jurisdiction,
+            max_files=max_files,
+            skip_existing=skip_existing,
+            custom_metadata=custom_metadata,
+            request_options=request_options,
+        )
+        return _response.data
+
+    def index_url_v2(
+        self,
+        collection_name: str,
+        *,
+        processing_type: IndexUrlRequestV2ProcessingType,
+        url: typing.Optional[str] = OMIT,
+        urls: typing.Optional[typing.Sequence[str]] = OMIT,
+        custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> IndexJobResponseV2:
+        """
+        Index documents from public URLs into a collection. No cloud storage credentials required.
+
+        You can provide either:
+        - `url` — a single URL string for one document
+        - `urls` — an array of URL strings for multiple documents
+
+        Supported file types include PDF, TXT, DOCX, CSV, XLSX, and more. Documents are downloaded and processed through the same pipeline as cloud storage indexing.
+
+        Returns a job_id for tracking progress via GET /v2/jobs/{job_id}.
+
+        Parameters
+        ----------
+        collection_name : str
+
+        processing_type : IndexUrlRequestV2ProcessingType
+            Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
+
+        url : typing.Optional[str]
+            A single public URL to a hosted document (PDF, TXT, DOCX, etc.). Provide either 'url' or 'urls', not both.
+
+        urls : typing.Optional[typing.Sequence[str]]
+            An array of public URLs to hosted documents. Provide either 'url' or 'urls', not both.
+
+        custom_metadata : typing.Optional[typing.Dict[str, typing.Any]]
+            Custom metadata to attach to all indexed chunks. Keys must be strings. Values: str, int, float, bool, or array of strings.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        IndexJobResponseV2
+            Indexing job started
+
+        Examples
+        --------
+        from runcaptain import Captain
+
+        client = Captain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+        client.indexing.index_url_v2(
+            collection_name="my_documents",
+            url="https://example.com/documents/report.pdf",
+            processing_type="advanced",
+        )
+        """
+        _response = self._raw_client.index_url_v2(
+            collection_name,
+            processing_type=processing_type,
+            url=url,
+            urls=urls,
             custom_metadata=custom_metadata,
             request_options=request_options,
         )
@@ -801,7 +1113,6 @@ class AsyncIndexingClient:
         aws_access_key_id: str,
         aws_secret_access_key: str,
         processing_type: IndexS3RequestV2ProcessingType,
-        idempotency_key: typing.Optional[str] = None,
         bucket_region: typing.Optional[str] = OMIT,
         max_files: typing.Optional[int] = OMIT,
         skip_existing: typing.Optional[bool] = OMIT,
@@ -814,7 +1125,6 @@ class AsyncIndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         bucket_name : str
             Name of the S3 bucket
@@ -827,9 +1137,6 @@ class AsyncIndexingClient:
 
         processing_type : IndexS3RequestV2ProcessingType
             Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
-
-        idempotency_key : typing.Optional[str]
-            UUID for request deduplication
 
         bucket_region : typing.Optional[str]
             AWS region where the bucket is located
@@ -858,19 +1165,20 @@ class AsyncIndexingClient:
         from runcaptain import AsyncCaptain
 
         client = AsyncCaptain(
-            authorization="YOUR_AUTHORIZATION",
             organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
         )
 
 
         async def main() -> None:
             await client.indexing.index_s3bucket_v2(
                 collection_name="my_documents",
-                bucket_name="my-s3-bucket",
+                bucket_name="my-documents-bucket",
                 aws_access_key_id="AKIAIOSFODNN7EXAMPLE",
-                aws_secret_access_key="your_secret_key",
+                aws_secret_access_key="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
                 bucket_region="us-east-1",
                 processing_type="advanced",
+                skip_existing=True,
             )
 
 
@@ -882,7 +1190,6 @@ class AsyncIndexingClient:
             aws_access_key_id=aws_access_key_id,
             aws_secret_access_key=aws_secret_access_key,
             processing_type=processing_type,
-            idempotency_key=idempotency_key,
             bucket_region=bucket_region,
             max_files=max_files,
             skip_existing=skip_existing,
@@ -910,7 +1217,6 @@ class AsyncIndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         bucket_name : str
             Name of the S3 bucket
@@ -948,18 +1254,18 @@ class AsyncIndexingClient:
         from runcaptain import AsyncCaptain
 
         client = AsyncCaptain(
-            authorization="YOUR_AUTHORIZATION",
             organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
         )
 
 
         async def main() -> None:
             await client.indexing.index_s3file_v2(
                 collection_name="my_documents",
-                bucket_name="my-s3-bucket",
-                file_uri="s3://my-s3-bucket/contracts/acme_contract.pdf",
+                bucket_name="my-documents-bucket",
+                file_uri="s3://my-documents-bucket/reports/quarterly-report-q4.pdf",
                 aws_access_key_id="AKIAIOSFODNN7EXAMPLE",
-                aws_secret_access_key="your_secret_key",
+                aws_secret_access_key="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
                 bucket_region="us-east-1",
                 processing_type="advanced",
             )
@@ -998,7 +1304,6 @@ class AsyncIndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         bucket_name : str
             Name of the GCS bucket
@@ -1033,16 +1338,16 @@ class AsyncIndexingClient:
         from runcaptain import AsyncCaptain
 
         client = AsyncCaptain(
-            authorization="YOUR_AUTHORIZATION",
             organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
         )
 
 
         async def main() -> None:
             await client.indexing.index_gcs_bucket_v2(
                 collection_name="my_documents",
-                bucket_name="my-gcs-bucket",
-                service_account_json='{"type":"service_account","project_id":"my-project",...}',
+                bucket_name="my-gcs-documents",
+                service_account_json='{"type": "service_account", "project_id": "my-project", ...}',
                 processing_type="advanced",
             )
 
@@ -1078,7 +1383,6 @@ class AsyncIndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         bucket_name : str
             Name of the GCS bucket
@@ -1110,17 +1414,17 @@ class AsyncIndexingClient:
         from runcaptain import AsyncCaptain
 
         client = AsyncCaptain(
-            authorization="YOUR_AUTHORIZATION",
             organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
         )
 
 
         async def main() -> None:
             await client.indexing.index_gcs_file_v2(
-                collection_name="collection_name",
-                bucket_name="my-company-docs",
-                file_uri="gs://my-company-docs/contracts/acme_contract.pdf",
-                service_account_json='{"type":"service_account","project_id":"my-project",...}',
+                collection_name="my_documents",
+                bucket_name="my-gcs-documents",
+                file_uri="gs://my-gcs-documents/reports/annual-review.pdf",
+                service_account_json='{"type": "service_account", "project_id": "my-project", ...}',
                 processing_type="advanced",
             )
 
@@ -1147,7 +1451,6 @@ class AsyncIndexingClient:
         aws_access_key_id: str,
         aws_secret_access_key: str,
         processing_type: IndexS3DirectoryRequestV2ProcessingType,
-        idempotency_key: typing.Optional[str] = None,
         bucket_region: typing.Optional[str] = OMIT,
         max_files: typing.Optional[int] = OMIT,
         skip_existing: typing.Optional[bool] = OMIT,
@@ -1160,7 +1463,6 @@ class AsyncIndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         bucket_name : str
             Name of the S3 bucket
@@ -1176,9 +1478,6 @@ class AsyncIndexingClient:
 
         processing_type : IndexS3DirectoryRequestV2ProcessingType
             Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
-
-        idempotency_key : typing.Optional[str]
-            UUID for request deduplication
 
         bucket_region : typing.Optional[str]
             AWS region where the bucket is located
@@ -1207,18 +1506,18 @@ class AsyncIndexingClient:
         from runcaptain import AsyncCaptain
 
         client = AsyncCaptain(
-            authorization="YOUR_AUTHORIZATION",
             organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
         )
 
 
         async def main() -> None:
             await client.indexing.index_s3directory_v2(
                 collection_name="my_documents",
-                bucket_name="my-s3-bucket",
-                directory_path="reports/2024/january",
+                bucket_name="my-documents-bucket",
+                directory_path="reports/2025/",
                 aws_access_key_id="AKIAIOSFODNN7EXAMPLE",
-                aws_secret_access_key="your_secret_key",
+                aws_secret_access_key="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
                 bucket_region="us-east-1",
                 processing_type="advanced",
             )
@@ -1233,7 +1532,6 @@ class AsyncIndexingClient:
             aws_access_key_id=aws_access_key_id,
             aws_secret_access_key=aws_secret_access_key,
             processing_type=processing_type,
-            idempotency_key=idempotency_key,
             bucket_region=bucket_region,
             max_files=max_files,
             skip_existing=skip_existing,
@@ -1250,7 +1548,6 @@ class AsyncIndexingClient:
         directory_path: str,
         service_account_json: str,
         processing_type: IndexGcsDirectoryRequestV2ProcessingType,
-        idempotency_key: typing.Optional[str] = None,
         max_files: typing.Optional[int] = OMIT,
         skip_existing: typing.Optional[bool] = OMIT,
         custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
@@ -1262,7 +1559,6 @@ class AsyncIndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         bucket_name : str
             Name of the GCS bucket
@@ -1275,9 +1571,6 @@ class AsyncIndexingClient:
 
         processing_type : IndexGcsDirectoryRequestV2ProcessingType
             Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
-
-        idempotency_key : typing.Optional[str]
-            UUID for request deduplication
 
         max_files : typing.Optional[int]
             Maximum number of files to index (optional)
@@ -1303,17 +1596,17 @@ class AsyncIndexingClient:
         from runcaptain import AsyncCaptain
 
         client = AsyncCaptain(
-            authorization="YOUR_AUTHORIZATION",
             organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
         )
 
 
         async def main() -> None:
             await client.indexing.index_gcs_directory_v2(
                 collection_name="my_documents",
-                bucket_name="my-gcs-bucket",
-                directory_path="reports/2024/january",
-                service_account_json='{"type":"service_account","project_id":"my-project",...}',
+                bucket_name="my-gcs-documents",
+                directory_path="reports/2025/",
+                service_account_json='{"type": "service_account", "project_id": "my-project", ...}',
                 processing_type="advanced",
             )
 
@@ -1326,7 +1619,6 @@ class AsyncIndexingClient:
             directory_path=directory_path,
             service_account_json=service_account_json,
             processing_type=processing_type,
-            idempotency_key=idempotency_key,
             max_files=max_files,
             skip_existing=skip_existing,
             custom_metadata=custom_metadata,
@@ -1342,7 +1634,6 @@ class AsyncIndexingClient:
         account_name: str,
         account_key: str,
         processing_type: IndexAzureRequestV2ProcessingType,
-        idempotency_key: typing.Optional[str] = None,
         max_files: typing.Optional[int] = OMIT,
         skip_existing: typing.Optional[bool] = OMIT,
         custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
@@ -1354,7 +1645,6 @@ class AsyncIndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         container_name : str
             Name of the Azure Blob Storage container
@@ -1367,9 +1657,6 @@ class AsyncIndexingClient:
 
         processing_type : IndexAzureRequestV2ProcessingType
             Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
-
-        idempotency_key : typing.Optional[str]
-            UUID for request deduplication
 
         max_files : typing.Optional[int]
             Maximum number of files to index (optional)
@@ -1395,17 +1682,17 @@ class AsyncIndexingClient:
         from runcaptain import AsyncCaptain
 
         client = AsyncCaptain(
-            authorization="YOUR_AUTHORIZATION",
             organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
         )
 
 
         async def main() -> None:
             await client.indexing.index_azure_container_v2(
                 collection_name="my_documents",
-                container_name="my-container",
+                container_name="my-azure-documents",
                 account_name="mystorageaccount",
-                account_key="your_account_key",
+                account_key="base64encodedaccountkey==",
                 processing_type="advanced",
             )
 
@@ -1418,7 +1705,6 @@ class AsyncIndexingClient:
             account_name=account_name,
             account_key=account_key,
             processing_type=processing_type,
-            idempotency_key=idempotency_key,
             max_files=max_files,
             skip_existing=skip_existing,
             custom_metadata=custom_metadata,
@@ -1444,7 +1730,6 @@ class AsyncIndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         container_name : str
             Name of the Azure Blob Storage container
@@ -1479,18 +1764,18 @@ class AsyncIndexingClient:
         from runcaptain import AsyncCaptain
 
         client = AsyncCaptain(
-            authorization="YOUR_AUTHORIZATION",
             organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
         )
 
 
         async def main() -> None:
             await client.indexing.index_azure_file_v2(
                 collection_name="my_documents",
-                container_name="my-container",
-                file_uri="https://mystorageaccount.blob.core.windows.net/my-container/contracts/acme_contract.pdf",
+                container_name="my-azure-documents",
+                file_uri="https://mystorageaccount.blob.core.windows.net/my-azure-documents/reports/annual-review.pdf",
                 account_name="mystorageaccount",
-                account_key="your_account_key",
+                account_key="base64encodedaccountkey==",
                 processing_type="advanced",
             )
 
@@ -1518,7 +1803,6 @@ class AsyncIndexingClient:
         account_name: str,
         account_key: str,
         processing_type: IndexAzureDirectoryRequestV2ProcessingType,
-        idempotency_key: typing.Optional[str] = None,
         max_files: typing.Optional[int] = OMIT,
         skip_existing: typing.Optional[bool] = OMIT,
         custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
@@ -1530,7 +1814,6 @@ class AsyncIndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         container_name : str
             Name of the Azure Blob Storage container
@@ -1546,9 +1829,6 @@ class AsyncIndexingClient:
 
         processing_type : IndexAzureDirectoryRequestV2ProcessingType
             Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
-
-        idempotency_key : typing.Optional[str]
-            UUID for request deduplication
 
         max_files : typing.Optional[int]
             Maximum number of files to index (optional)
@@ -1574,18 +1854,18 @@ class AsyncIndexingClient:
         from runcaptain import AsyncCaptain
 
         client = AsyncCaptain(
-            authorization="YOUR_AUTHORIZATION",
             organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
         )
 
 
         async def main() -> None:
             await client.indexing.index_azure_directory_v2(
                 collection_name="my_documents",
-                container_name="my-container",
-                directory_path="reports/2024/january",
+                container_name="my-azure-documents",
+                directory_path="reports/2025/",
                 account_name="mystorageaccount",
-                account_key="your_account_key",
+                account_key="base64encodedaccountkey==",
                 processing_type="advanced",
             )
 
@@ -1599,9 +1879,378 @@ class AsyncIndexingClient:
             account_name=account_name,
             account_key=account_key,
             processing_type=processing_type,
-            idempotency_key=idempotency_key,
             max_files=max_files,
             skip_existing=skip_existing,
+            custom_metadata=custom_metadata,
+            request_options=request_options,
+        )
+        return _response.data
+
+    async def index_r2bucket_v2(
+        self,
+        collection_name: str,
+        *,
+        bucket_name: str,
+        account_id: str,
+        access_key_id: str,
+        secret_access_key: str,
+        processing_type: IndexR2RequestV2ProcessingType,
+        jurisdiction: typing.Optional[IndexR2RequestV2Jurisdiction] = OMIT,
+        max_files: typing.Optional[int] = OMIT,
+        skip_existing: typing.Optional[bool] = OMIT,
+        custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> IndexJobResponseV2:
+        """
+        Index all files from a Cloudflare R2 bucket into a collection. R2 is S3-compatible — provide your R2 API token's Access Key ID and Secret Access Key. Returns a job_id for tracking progress via GET /v2/jobs/{job_id}.
+
+        Parameters
+        ----------
+        collection_name : str
+
+        bucket_name : str
+            Name of the R2 bucket
+
+        account_id : str
+            Cloudflare account ID (found in your R2 dashboard URL)
+
+        access_key_id : str
+            R2 S3 API token Access Key ID
+
+        secret_access_key : str
+            R2 S3 API token Secret Access Key
+
+        processing_type : IndexR2RequestV2ProcessingType
+            Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
+
+        jurisdiction : typing.Optional[IndexR2RequestV2Jurisdiction]
+            R2 jurisdiction. 'default' for global, 'eu' for EU-only storage, 'fedramp' for FedRAMP-compliant storage.
+
+        max_files : typing.Optional[int]
+            Maximum number of files to index (optional)
+
+        skip_existing : typing.Optional[bool]
+            Skip files that are already indexed in the collection. When true, only new files will be indexed. Set to false to re-index all files.
+
+        custom_metadata : typing.Optional[typing.Dict[str, typing.Any]]
+            Custom metadata to attach to all indexed chunks. Keys must be strings. Values: str, int, float, bool, or array of strings.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        IndexJobResponseV2
+            Indexing Job Started
+
+        Examples
+        --------
+        import asyncio
+
+        from runcaptain import AsyncCaptain
+
+        client = AsyncCaptain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.indexing.index_r2bucket_v2(
+                collection_name="my_documents",
+                bucket_name="my-r2-bucket",
+                account_id="your_cloudflare_account_id",
+                access_key_id="your_r2_access_key_id",
+                secret_access_key="your_r2_secret_access_key",
+                processing_type="advanced",
+            )
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.index_r2bucket_v2(
+            collection_name,
+            bucket_name=bucket_name,
+            account_id=account_id,
+            access_key_id=access_key_id,
+            secret_access_key=secret_access_key,
+            processing_type=processing_type,
+            jurisdiction=jurisdiction,
+            max_files=max_files,
+            skip_existing=skip_existing,
+            custom_metadata=custom_metadata,
+            request_options=request_options,
+        )
+        return _response.data
+
+    async def index_r2file_v2(
+        self,
+        collection_name: str,
+        *,
+        bucket_name: str,
+        file_uri: str,
+        account_id: str,
+        access_key_id: str,
+        secret_access_key: str,
+        processing_type: IndexR2FileRequestV2ProcessingType,
+        jurisdiction: typing.Optional[IndexR2FileRequestV2Jurisdiction] = OMIT,
+        custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> IndexJobResponseV2:
+        """
+        Index a single file from a Cloudflare R2 bucket into a collection. Returns a job_id for tracking progress.
+
+        Parameters
+        ----------
+        collection_name : str
+
+        bucket_name : str
+            Name of the R2 bucket
+
+        file_uri : str
+            R2 URI format: r2://bucket-name/path/to/file.pdf
+
+        account_id : str
+            Cloudflare account ID (found in your R2 dashboard URL)
+
+        access_key_id : str
+            R2 S3 API token Access Key ID
+
+        secret_access_key : str
+            R2 S3 API token Secret Access Key
+
+        processing_type : IndexR2FileRequestV2ProcessingType
+            Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
+
+        jurisdiction : typing.Optional[IndexR2FileRequestV2Jurisdiction]
+            R2 jurisdiction. 'default' for global, 'eu' for EU-only storage, 'fedramp' for FedRAMP-compliant storage.
+
+        custom_metadata : typing.Optional[typing.Dict[str, typing.Any]]
+            Custom metadata to attach to all chunks from this file. Keys must be strings. Values: str, int, float, bool, or array of strings.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        IndexJobResponseV2
+            Indexing Job Started
+
+        Examples
+        --------
+        import asyncio
+
+        from runcaptain import AsyncCaptain
+
+        client = AsyncCaptain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.indexing.index_r2file_v2(
+                collection_name="my_documents",
+                bucket_name="my-r2-bucket",
+                file_uri="r2://my-r2-bucket/reports/annual-review.pdf",
+                account_id="your_cloudflare_account_id",
+                access_key_id="your_r2_access_key_id",
+                secret_access_key="your_r2_secret_access_key",
+                processing_type="advanced",
+            )
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.index_r2file_v2(
+            collection_name,
+            bucket_name=bucket_name,
+            file_uri=file_uri,
+            account_id=account_id,
+            access_key_id=access_key_id,
+            secret_access_key=secret_access_key,
+            processing_type=processing_type,
+            jurisdiction=jurisdiction,
+            custom_metadata=custom_metadata,
+            request_options=request_options,
+        )
+        return _response.data
+
+    async def index_r2directory_v2(
+        self,
+        collection_name: str,
+        *,
+        bucket_name: str,
+        directory_path: str,
+        account_id: str,
+        access_key_id: str,
+        secret_access_key: str,
+        processing_type: IndexR2DirectoryRequestV2ProcessingType,
+        jurisdiction: typing.Optional[IndexR2DirectoryRequestV2Jurisdiction] = OMIT,
+        max_files: typing.Optional[int] = OMIT,
+        skip_existing: typing.Optional[bool] = OMIT,
+        custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> IndexJobResponseV2:
+        """
+        Index all files from a specific directory (prefix) in a Cloudflare R2 bucket into a collection. Uses prefix-based filtering to index only objects within the specified path. Returns a job_id for tracking progress via GET /v2/jobs/{job_id}.
+
+        Parameters
+        ----------
+        collection_name : str
+
+        bucket_name : str
+            Name of the R2 bucket
+
+        directory_path : str
+            Path to the directory (prefix) within the bucket. Accepts either a relative path (e.g., 'reports/2024/january') or a full R2 URI (e.g., 'r2://my-bucket/reports/2024/january'). All objects within this prefix will be indexed.
+
+        account_id : str
+            Cloudflare account ID (found in your R2 dashboard URL)
+
+        access_key_id : str
+            R2 S3 API token Access Key ID
+
+        secret_access_key : str
+            R2 S3 API token Secret Access Key
+
+        processing_type : IndexR2DirectoryRequestV2ProcessingType
+            Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
+
+        jurisdiction : typing.Optional[IndexR2DirectoryRequestV2Jurisdiction]
+            R2 jurisdiction. 'default' for global, 'eu' for EU-only storage, 'fedramp' for FedRAMP-compliant storage.
+
+        max_files : typing.Optional[int]
+            Maximum number of files to index (optional)
+
+        skip_existing : typing.Optional[bool]
+            Skip files that are already indexed in the collection. When true, only new files will be indexed. Set to false to re-index all files.
+
+        custom_metadata : typing.Optional[typing.Dict[str, typing.Any]]
+            Custom metadata to attach to all indexed chunks. Keys must be strings. Values: str, int, float, bool, or array of strings.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        IndexJobResponseV2
+            Indexing Job Started
+
+        Examples
+        --------
+        import asyncio
+
+        from runcaptain import AsyncCaptain
+
+        client = AsyncCaptain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.indexing.index_r2directory_v2(
+                collection_name="my_documents",
+                bucket_name="my-r2-bucket",
+                directory_path="reports/2025/",
+                account_id="your_cloudflare_account_id",
+                access_key_id="your_r2_access_key_id",
+                secret_access_key="your_r2_secret_access_key",
+                processing_type="advanced",
+            )
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.index_r2directory_v2(
+            collection_name,
+            bucket_name=bucket_name,
+            directory_path=directory_path,
+            account_id=account_id,
+            access_key_id=access_key_id,
+            secret_access_key=secret_access_key,
+            processing_type=processing_type,
+            jurisdiction=jurisdiction,
+            max_files=max_files,
+            skip_existing=skip_existing,
+            custom_metadata=custom_metadata,
+            request_options=request_options,
+        )
+        return _response.data
+
+    async def index_url_v2(
+        self,
+        collection_name: str,
+        *,
+        processing_type: IndexUrlRequestV2ProcessingType,
+        url: typing.Optional[str] = OMIT,
+        urls: typing.Optional[typing.Sequence[str]] = OMIT,
+        custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> IndexJobResponseV2:
+        """
+        Index documents from public URLs into a collection. No cloud storage credentials required.
+
+        You can provide either:
+        - `url` — a single URL string for one document
+        - `urls` — an array of URL strings for multiple documents
+
+        Supported file types include PDF, TXT, DOCX, CSV, XLSX, and more. Documents are downloaded and processed through the same pipeline as cloud storage indexing.
+
+        Returns a job_id for tracking progress via GET /v2/jobs/{job_id}.
+
+        Parameters
+        ----------
+        collection_name : str
+
+        processing_type : IndexUrlRequestV2ProcessingType
+            Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
+
+        url : typing.Optional[str]
+            A single public URL to a hosted document (PDF, TXT, DOCX, etc.). Provide either 'url' or 'urls', not both.
+
+        urls : typing.Optional[typing.Sequence[str]]
+            An array of public URLs to hosted documents. Provide either 'url' or 'urls', not both.
+
+        custom_metadata : typing.Optional[typing.Dict[str, typing.Any]]
+            Custom metadata to attach to all indexed chunks. Keys must be strings. Values: str, int, float, bool, or array of strings.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        IndexJobResponseV2
+            Indexing job started
+
+        Examples
+        --------
+        import asyncio
+
+        from runcaptain import AsyncCaptain
+
+        client = AsyncCaptain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.indexing.index_url_v2(
+                collection_name="my_documents",
+                url="https://example.com/documents/report.pdf",
+                processing_type="advanced",
+            )
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.index_url_v2(
+            collection_name,
+            processing_type=processing_type,
+            url=url,
+            urls=urls,
             custom_metadata=custom_metadata,
             request_options=request_options,
         )

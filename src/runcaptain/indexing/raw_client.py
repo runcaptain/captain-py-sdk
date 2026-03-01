@@ -16,9 +16,16 @@ from .types.index_azure_request_v2processing_type import IndexAzureRequestV2Proc
 from .types.index_gcs_directory_request_v2processing_type import IndexGcsDirectoryRequestV2ProcessingType
 from .types.index_gcs_file_request_v2processing_type import IndexGcsFileRequestV2ProcessingType
 from .types.index_gcs_request_v2processing_type import IndexGcsRequestV2ProcessingType
+from .types.index_r2directory_request_v2jurisdiction import IndexR2DirectoryRequestV2Jurisdiction
+from .types.index_r2directory_request_v2processing_type import IndexR2DirectoryRequestV2ProcessingType
+from .types.index_r2file_request_v2jurisdiction import IndexR2FileRequestV2Jurisdiction
+from .types.index_r2file_request_v2processing_type import IndexR2FileRequestV2ProcessingType
+from .types.index_r2request_v2jurisdiction import IndexR2RequestV2Jurisdiction
+from .types.index_r2request_v2processing_type import IndexR2RequestV2ProcessingType
 from .types.index_s3directory_request_v2processing_type import IndexS3DirectoryRequestV2ProcessingType
 from .types.index_s3file_request_v2processing_type import IndexS3FileRequestV2ProcessingType
 from .types.index_s3request_v2processing_type import IndexS3RequestV2ProcessingType
+from .types.index_url_request_v2processing_type import IndexUrlRequestV2ProcessingType
 
 # this is used as the default value for optional parameters
 OMIT = typing.cast(typing.Any, ...)
@@ -36,7 +43,6 @@ class RawIndexingClient:
         aws_access_key_id: str,
         aws_secret_access_key: str,
         processing_type: IndexS3RequestV2ProcessingType,
-        idempotency_key: typing.Optional[str] = None,
         bucket_region: typing.Optional[str] = OMIT,
         max_files: typing.Optional[int] = OMIT,
         skip_existing: typing.Optional[bool] = OMIT,
@@ -49,7 +55,6 @@ class RawIndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         bucket_name : str
             Name of the S3 bucket
@@ -62,9 +67,6 @@ class RawIndexingClient:
 
         processing_type : IndexS3RequestV2ProcessingType
             Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
-
-        idempotency_key : typing.Optional[str]
-            UUID for request deduplication
 
         bucket_region : typing.Optional[str]
             AWS region where the bucket is located
@@ -101,7 +103,6 @@ class RawIndexingClient:
             },
             headers={
                 "content-type": "application/json",
-                "Idempotency-Key": str(idempotency_key) if idempotency_key is not None else None,
             },
             request_options=request_options,
             omit=OMIT,
@@ -140,7 +141,6 @@ class RawIndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         bucket_name : str
             Name of the S3 bucket
@@ -222,7 +222,6 @@ class RawIndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         bucket_name : str
             Name of the GCS bucket
@@ -299,7 +298,6 @@ class RawIndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         bucket_name : str
             Name of the GCS bucket
@@ -364,7 +362,6 @@ class RawIndexingClient:
         aws_access_key_id: str,
         aws_secret_access_key: str,
         processing_type: IndexS3DirectoryRequestV2ProcessingType,
-        idempotency_key: typing.Optional[str] = None,
         bucket_region: typing.Optional[str] = OMIT,
         max_files: typing.Optional[int] = OMIT,
         skip_existing: typing.Optional[bool] = OMIT,
@@ -377,7 +374,6 @@ class RawIndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         bucket_name : str
             Name of the S3 bucket
@@ -393,9 +389,6 @@ class RawIndexingClient:
 
         processing_type : IndexS3DirectoryRequestV2ProcessingType
             Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
-
-        idempotency_key : typing.Optional[str]
-            UUID for request deduplication
 
         bucket_region : typing.Optional[str]
             AWS region where the bucket is located
@@ -433,7 +426,6 @@ class RawIndexingClient:
             },
             headers={
                 "content-type": "application/json",
-                "Idempotency-Key": str(idempotency_key) if idempotency_key is not None else None,
             },
             request_options=request_options,
             omit=OMIT,
@@ -461,7 +453,6 @@ class RawIndexingClient:
         directory_path: str,
         service_account_json: str,
         processing_type: IndexGcsDirectoryRequestV2ProcessingType,
-        idempotency_key: typing.Optional[str] = None,
         max_files: typing.Optional[int] = OMIT,
         skip_existing: typing.Optional[bool] = OMIT,
         custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
@@ -473,7 +464,6 @@ class RawIndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         bucket_name : str
             Name of the GCS bucket
@@ -486,9 +476,6 @@ class RawIndexingClient:
 
         processing_type : IndexGcsDirectoryRequestV2ProcessingType
             Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
-
-        idempotency_key : typing.Optional[str]
-            UUID for request deduplication
 
         max_files : typing.Optional[int]
             Maximum number of files to index (optional)
@@ -521,7 +508,6 @@ class RawIndexingClient:
             },
             headers={
                 "content-type": "application/json",
-                "Idempotency-Key": str(idempotency_key) if idempotency_key is not None else None,
             },
             request_options=request_options,
             omit=OMIT,
@@ -549,7 +535,6 @@ class RawIndexingClient:
         account_name: str,
         account_key: str,
         processing_type: IndexAzureRequestV2ProcessingType,
-        idempotency_key: typing.Optional[str] = None,
         max_files: typing.Optional[int] = OMIT,
         skip_existing: typing.Optional[bool] = OMIT,
         custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
@@ -561,7 +546,6 @@ class RawIndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         container_name : str
             Name of the Azure Blob Storage container
@@ -574,9 +558,6 @@ class RawIndexingClient:
 
         processing_type : IndexAzureRequestV2ProcessingType
             Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
-
-        idempotency_key : typing.Optional[str]
-            UUID for request deduplication
 
         max_files : typing.Optional[int]
             Maximum number of files to index (optional)
@@ -609,7 +590,6 @@ class RawIndexingClient:
             },
             headers={
                 "content-type": "application/json",
-                "Idempotency-Key": str(idempotency_key) if idempotency_key is not None else None,
             },
             request_options=request_options,
             omit=OMIT,
@@ -647,7 +627,6 @@ class RawIndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         container_name : str
             Name of the Azure Blob Storage container
@@ -716,7 +695,6 @@ class RawIndexingClient:
         account_name: str,
         account_key: str,
         processing_type: IndexAzureDirectoryRequestV2ProcessingType,
-        idempotency_key: typing.Optional[str] = None,
         max_files: typing.Optional[int] = OMIT,
         skip_existing: typing.Optional[bool] = OMIT,
         custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
@@ -728,7 +706,6 @@ class RawIndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         container_name : str
             Name of the Azure Blob Storage container
@@ -744,9 +721,6 @@ class RawIndexingClient:
 
         processing_type : IndexAzureDirectoryRequestV2ProcessingType
             Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
-
-        idempotency_key : typing.Optional[str]
-            UUID for request deduplication
 
         max_files : typing.Optional[int]
             Maximum number of files to index (optional)
@@ -780,7 +754,357 @@ class RawIndexingClient:
             },
             headers={
                 "content-type": "application/json",
-                "Idempotency-Key": str(idempotency_key) if idempotency_key is not None else None,
+            },
+            request_options=request_options,
+            omit=OMIT,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    IndexJobResponseV2,
+                    parse_obj_as(
+                        type_=IndexJobResponseV2,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return HttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    def index_r2bucket_v2(
+        self,
+        collection_name: str,
+        *,
+        bucket_name: str,
+        account_id: str,
+        access_key_id: str,
+        secret_access_key: str,
+        processing_type: IndexR2RequestV2ProcessingType,
+        jurisdiction: typing.Optional[IndexR2RequestV2Jurisdiction] = OMIT,
+        max_files: typing.Optional[int] = OMIT,
+        skip_existing: typing.Optional[bool] = OMIT,
+        custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> HttpResponse[IndexJobResponseV2]:
+        """
+        Index all files from a Cloudflare R2 bucket into a collection. R2 is S3-compatible — provide your R2 API token's Access Key ID and Secret Access Key. Returns a job_id for tracking progress via GET /v2/jobs/{job_id}.
+
+        Parameters
+        ----------
+        collection_name : str
+
+        bucket_name : str
+            Name of the R2 bucket
+
+        account_id : str
+            Cloudflare account ID (found in your R2 dashboard URL)
+
+        access_key_id : str
+            R2 S3 API token Access Key ID
+
+        secret_access_key : str
+            R2 S3 API token Secret Access Key
+
+        processing_type : IndexR2RequestV2ProcessingType
+            Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
+
+        jurisdiction : typing.Optional[IndexR2RequestV2Jurisdiction]
+            R2 jurisdiction. 'default' for global, 'eu' for EU-only storage, 'fedramp' for FedRAMP-compliant storage.
+
+        max_files : typing.Optional[int]
+            Maximum number of files to index (optional)
+
+        skip_existing : typing.Optional[bool]
+            Skip files that are already indexed in the collection. When true, only new files will be indexed. Set to false to re-index all files.
+
+        custom_metadata : typing.Optional[typing.Dict[str, typing.Any]]
+            Custom metadata to attach to all indexed chunks. Keys must be strings. Values: str, int, float, bool, or array of strings.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        HttpResponse[IndexJobResponseV2]
+            Indexing Job Started
+        """
+        _response = self._client_wrapper.httpx_client.request(
+            f"v2/collections/{jsonable_encoder(collection_name)}/index/r2",
+            method="POST",
+            json={
+                "bucket_name": bucket_name,
+                "account_id": account_id,
+                "access_key_id": access_key_id,
+                "secret_access_key": secret_access_key,
+                "jurisdiction": jurisdiction,
+                "processing_type": processing_type,
+                "max_files": max_files,
+                "skip_existing": skip_existing,
+                "custom_metadata": custom_metadata,
+            },
+            headers={
+                "content-type": "application/json",
+            },
+            request_options=request_options,
+            omit=OMIT,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    IndexJobResponseV2,
+                    parse_obj_as(
+                        type_=IndexJobResponseV2,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return HttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    def index_r2file_v2(
+        self,
+        collection_name: str,
+        *,
+        bucket_name: str,
+        file_uri: str,
+        account_id: str,
+        access_key_id: str,
+        secret_access_key: str,
+        processing_type: IndexR2FileRequestV2ProcessingType,
+        jurisdiction: typing.Optional[IndexR2FileRequestV2Jurisdiction] = OMIT,
+        custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> HttpResponse[IndexJobResponseV2]:
+        """
+        Index a single file from a Cloudflare R2 bucket into a collection. Returns a job_id for tracking progress.
+
+        Parameters
+        ----------
+        collection_name : str
+
+        bucket_name : str
+            Name of the R2 bucket
+
+        file_uri : str
+            R2 URI format: r2://bucket-name/path/to/file.pdf
+
+        account_id : str
+            Cloudflare account ID (found in your R2 dashboard URL)
+
+        access_key_id : str
+            R2 S3 API token Access Key ID
+
+        secret_access_key : str
+            R2 S3 API token Secret Access Key
+
+        processing_type : IndexR2FileRequestV2ProcessingType
+            Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
+
+        jurisdiction : typing.Optional[IndexR2FileRequestV2Jurisdiction]
+            R2 jurisdiction. 'default' for global, 'eu' for EU-only storage, 'fedramp' for FedRAMP-compliant storage.
+
+        custom_metadata : typing.Optional[typing.Dict[str, typing.Any]]
+            Custom metadata to attach to all chunks from this file. Keys must be strings. Values: str, int, float, bool, or array of strings.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        HttpResponse[IndexJobResponseV2]
+            Indexing Job Started
+        """
+        _response = self._client_wrapper.httpx_client.request(
+            f"v2/collections/{jsonable_encoder(collection_name)}/index/r2/file",
+            method="POST",
+            json={
+                "bucket_name": bucket_name,
+                "file_uri": file_uri,
+                "account_id": account_id,
+                "access_key_id": access_key_id,
+                "secret_access_key": secret_access_key,
+                "jurisdiction": jurisdiction,
+                "processing_type": processing_type,
+                "custom_metadata": custom_metadata,
+            },
+            headers={
+                "content-type": "application/json",
+            },
+            request_options=request_options,
+            omit=OMIT,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    IndexJobResponseV2,
+                    parse_obj_as(
+                        type_=IndexJobResponseV2,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return HttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    def index_r2directory_v2(
+        self,
+        collection_name: str,
+        *,
+        bucket_name: str,
+        directory_path: str,
+        account_id: str,
+        access_key_id: str,
+        secret_access_key: str,
+        processing_type: IndexR2DirectoryRequestV2ProcessingType,
+        jurisdiction: typing.Optional[IndexR2DirectoryRequestV2Jurisdiction] = OMIT,
+        max_files: typing.Optional[int] = OMIT,
+        skip_existing: typing.Optional[bool] = OMIT,
+        custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> HttpResponse[IndexJobResponseV2]:
+        """
+        Index all files from a specific directory (prefix) in a Cloudflare R2 bucket into a collection. Uses prefix-based filtering to index only objects within the specified path. Returns a job_id for tracking progress via GET /v2/jobs/{job_id}.
+
+        Parameters
+        ----------
+        collection_name : str
+
+        bucket_name : str
+            Name of the R2 bucket
+
+        directory_path : str
+            Path to the directory (prefix) within the bucket. Accepts either a relative path (e.g., 'reports/2024/january') or a full R2 URI (e.g., 'r2://my-bucket/reports/2024/january'). All objects within this prefix will be indexed.
+
+        account_id : str
+            Cloudflare account ID (found in your R2 dashboard URL)
+
+        access_key_id : str
+            R2 S3 API token Access Key ID
+
+        secret_access_key : str
+            R2 S3 API token Secret Access Key
+
+        processing_type : IndexR2DirectoryRequestV2ProcessingType
+            Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
+
+        jurisdiction : typing.Optional[IndexR2DirectoryRequestV2Jurisdiction]
+            R2 jurisdiction. 'default' for global, 'eu' for EU-only storage, 'fedramp' for FedRAMP-compliant storage.
+
+        max_files : typing.Optional[int]
+            Maximum number of files to index (optional)
+
+        skip_existing : typing.Optional[bool]
+            Skip files that are already indexed in the collection. When true, only new files will be indexed. Set to false to re-index all files.
+
+        custom_metadata : typing.Optional[typing.Dict[str, typing.Any]]
+            Custom metadata to attach to all indexed chunks. Keys must be strings. Values: str, int, float, bool, or array of strings.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        HttpResponse[IndexJobResponseV2]
+            Indexing Job Started
+        """
+        _response = self._client_wrapper.httpx_client.request(
+            f"v2/collections/{jsonable_encoder(collection_name)}/index/r2/directory",
+            method="POST",
+            json={
+                "bucket_name": bucket_name,
+                "directory_path": directory_path,
+                "account_id": account_id,
+                "access_key_id": access_key_id,
+                "secret_access_key": secret_access_key,
+                "jurisdiction": jurisdiction,
+                "processing_type": processing_type,
+                "max_files": max_files,
+                "skip_existing": skip_existing,
+                "custom_metadata": custom_metadata,
+            },
+            headers={
+                "content-type": "application/json",
+            },
+            request_options=request_options,
+            omit=OMIT,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    IndexJobResponseV2,
+                    parse_obj_as(
+                        type_=IndexJobResponseV2,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return HttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    def index_url_v2(
+        self,
+        collection_name: str,
+        *,
+        processing_type: IndexUrlRequestV2ProcessingType,
+        url: typing.Optional[str] = OMIT,
+        urls: typing.Optional[typing.Sequence[str]] = OMIT,
+        custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> HttpResponse[IndexJobResponseV2]:
+        """
+        Index documents from public URLs into a collection. No cloud storage credentials required.
+
+        You can provide either:
+        - `url` — a single URL string for one document
+        - `urls` — an array of URL strings for multiple documents
+
+        Supported file types include PDF, TXT, DOCX, CSV, XLSX, and more. Documents are downloaded and processed through the same pipeline as cloud storage indexing.
+
+        Returns a job_id for tracking progress via GET /v2/jobs/{job_id}.
+
+        Parameters
+        ----------
+        collection_name : str
+
+        processing_type : IndexUrlRequestV2ProcessingType
+            Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
+
+        url : typing.Optional[str]
+            A single public URL to a hosted document (PDF, TXT, DOCX, etc.). Provide either 'url' or 'urls', not both.
+
+        urls : typing.Optional[typing.Sequence[str]]
+            An array of public URLs to hosted documents. Provide either 'url' or 'urls', not both.
+
+        custom_metadata : typing.Optional[typing.Dict[str, typing.Any]]
+            Custom metadata to attach to all indexed chunks. Keys must be strings. Values: str, int, float, bool, or array of strings.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        HttpResponse[IndexJobResponseV2]
+            Indexing job started
+        """
+        _response = self._client_wrapper.httpx_client.request(
+            f"v2/collections/{jsonable_encoder(collection_name)}/index/url",
+            method="POST",
+            json={
+                "url": url,
+                "urls": urls,
+                "processing_type": processing_type,
+                "custom_metadata": custom_metadata,
+            },
+            headers={
+                "content-type": "application/json",
             },
             request_options=request_options,
             omit=OMIT,
@@ -813,7 +1137,6 @@ class AsyncRawIndexingClient:
         aws_access_key_id: str,
         aws_secret_access_key: str,
         processing_type: IndexS3RequestV2ProcessingType,
-        idempotency_key: typing.Optional[str] = None,
         bucket_region: typing.Optional[str] = OMIT,
         max_files: typing.Optional[int] = OMIT,
         skip_existing: typing.Optional[bool] = OMIT,
@@ -826,7 +1149,6 @@ class AsyncRawIndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         bucket_name : str
             Name of the S3 bucket
@@ -839,9 +1161,6 @@ class AsyncRawIndexingClient:
 
         processing_type : IndexS3RequestV2ProcessingType
             Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
-
-        idempotency_key : typing.Optional[str]
-            UUID for request deduplication
 
         bucket_region : typing.Optional[str]
             AWS region where the bucket is located
@@ -878,7 +1197,6 @@ class AsyncRawIndexingClient:
             },
             headers={
                 "content-type": "application/json",
-                "Idempotency-Key": str(idempotency_key) if idempotency_key is not None else None,
             },
             request_options=request_options,
             omit=OMIT,
@@ -917,7 +1235,6 @@ class AsyncRawIndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         bucket_name : str
             Name of the S3 bucket
@@ -999,7 +1316,6 @@ class AsyncRawIndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         bucket_name : str
             Name of the GCS bucket
@@ -1076,7 +1392,6 @@ class AsyncRawIndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         bucket_name : str
             Name of the GCS bucket
@@ -1141,7 +1456,6 @@ class AsyncRawIndexingClient:
         aws_access_key_id: str,
         aws_secret_access_key: str,
         processing_type: IndexS3DirectoryRequestV2ProcessingType,
-        idempotency_key: typing.Optional[str] = None,
         bucket_region: typing.Optional[str] = OMIT,
         max_files: typing.Optional[int] = OMIT,
         skip_existing: typing.Optional[bool] = OMIT,
@@ -1154,7 +1468,6 @@ class AsyncRawIndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         bucket_name : str
             Name of the S3 bucket
@@ -1170,9 +1483,6 @@ class AsyncRawIndexingClient:
 
         processing_type : IndexS3DirectoryRequestV2ProcessingType
             Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
-
-        idempotency_key : typing.Optional[str]
-            UUID for request deduplication
 
         bucket_region : typing.Optional[str]
             AWS region where the bucket is located
@@ -1210,7 +1520,6 @@ class AsyncRawIndexingClient:
             },
             headers={
                 "content-type": "application/json",
-                "Idempotency-Key": str(idempotency_key) if idempotency_key is not None else None,
             },
             request_options=request_options,
             omit=OMIT,
@@ -1238,7 +1547,6 @@ class AsyncRawIndexingClient:
         directory_path: str,
         service_account_json: str,
         processing_type: IndexGcsDirectoryRequestV2ProcessingType,
-        idempotency_key: typing.Optional[str] = None,
         max_files: typing.Optional[int] = OMIT,
         skip_existing: typing.Optional[bool] = OMIT,
         custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
@@ -1250,7 +1558,6 @@ class AsyncRawIndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         bucket_name : str
             Name of the GCS bucket
@@ -1263,9 +1570,6 @@ class AsyncRawIndexingClient:
 
         processing_type : IndexGcsDirectoryRequestV2ProcessingType
             Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
-
-        idempotency_key : typing.Optional[str]
-            UUID for request deduplication
 
         max_files : typing.Optional[int]
             Maximum number of files to index (optional)
@@ -1298,7 +1602,6 @@ class AsyncRawIndexingClient:
             },
             headers={
                 "content-type": "application/json",
-                "Idempotency-Key": str(idempotency_key) if idempotency_key is not None else None,
             },
             request_options=request_options,
             omit=OMIT,
@@ -1326,7 +1629,6 @@ class AsyncRawIndexingClient:
         account_name: str,
         account_key: str,
         processing_type: IndexAzureRequestV2ProcessingType,
-        idempotency_key: typing.Optional[str] = None,
         max_files: typing.Optional[int] = OMIT,
         skip_existing: typing.Optional[bool] = OMIT,
         custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
@@ -1338,7 +1640,6 @@ class AsyncRawIndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         container_name : str
             Name of the Azure Blob Storage container
@@ -1351,9 +1652,6 @@ class AsyncRawIndexingClient:
 
         processing_type : IndexAzureRequestV2ProcessingType
             Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
-
-        idempotency_key : typing.Optional[str]
-            UUID for request deduplication
 
         max_files : typing.Optional[int]
             Maximum number of files to index (optional)
@@ -1386,7 +1684,6 @@ class AsyncRawIndexingClient:
             },
             headers={
                 "content-type": "application/json",
-                "Idempotency-Key": str(idempotency_key) if idempotency_key is not None else None,
             },
             request_options=request_options,
             omit=OMIT,
@@ -1424,7 +1721,6 @@ class AsyncRawIndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         container_name : str
             Name of the Azure Blob Storage container
@@ -1493,7 +1789,6 @@ class AsyncRawIndexingClient:
         account_name: str,
         account_key: str,
         processing_type: IndexAzureDirectoryRequestV2ProcessingType,
-        idempotency_key: typing.Optional[str] = None,
         max_files: typing.Optional[int] = OMIT,
         skip_existing: typing.Optional[bool] = OMIT,
         custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
@@ -1505,7 +1800,6 @@ class AsyncRawIndexingClient:
         Parameters
         ----------
         collection_name : str
-            Name of the collection to index into
 
         container_name : str
             Name of the Azure Blob Storage container
@@ -1521,9 +1815,6 @@ class AsyncRawIndexingClient:
 
         processing_type : IndexAzureDirectoryRequestV2ProcessingType
             Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
-
-        idempotency_key : typing.Optional[str]
-            UUID for request deduplication
 
         max_files : typing.Optional[int]
             Maximum number of files to index (optional)
@@ -1557,7 +1848,357 @@ class AsyncRawIndexingClient:
             },
             headers={
                 "content-type": "application/json",
-                "Idempotency-Key": str(idempotency_key) if idempotency_key is not None else None,
+            },
+            request_options=request_options,
+            omit=OMIT,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    IndexJobResponseV2,
+                    parse_obj_as(
+                        type_=IndexJobResponseV2,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return AsyncHttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    async def index_r2bucket_v2(
+        self,
+        collection_name: str,
+        *,
+        bucket_name: str,
+        account_id: str,
+        access_key_id: str,
+        secret_access_key: str,
+        processing_type: IndexR2RequestV2ProcessingType,
+        jurisdiction: typing.Optional[IndexR2RequestV2Jurisdiction] = OMIT,
+        max_files: typing.Optional[int] = OMIT,
+        skip_existing: typing.Optional[bool] = OMIT,
+        custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> AsyncHttpResponse[IndexJobResponseV2]:
+        """
+        Index all files from a Cloudflare R2 bucket into a collection. R2 is S3-compatible — provide your R2 API token's Access Key ID and Secret Access Key. Returns a job_id for tracking progress via GET /v2/jobs/{job_id}.
+
+        Parameters
+        ----------
+        collection_name : str
+
+        bucket_name : str
+            Name of the R2 bucket
+
+        account_id : str
+            Cloudflare account ID (found in your R2 dashboard URL)
+
+        access_key_id : str
+            R2 S3 API token Access Key ID
+
+        secret_access_key : str
+            R2 S3 API token Secret Access Key
+
+        processing_type : IndexR2RequestV2ProcessingType
+            Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
+
+        jurisdiction : typing.Optional[IndexR2RequestV2Jurisdiction]
+            R2 jurisdiction. 'default' for global, 'eu' for EU-only storage, 'fedramp' for FedRAMP-compliant storage.
+
+        max_files : typing.Optional[int]
+            Maximum number of files to index (optional)
+
+        skip_existing : typing.Optional[bool]
+            Skip files that are already indexed in the collection. When true, only new files will be indexed. Set to false to re-index all files.
+
+        custom_metadata : typing.Optional[typing.Dict[str, typing.Any]]
+            Custom metadata to attach to all indexed chunks. Keys must be strings. Values: str, int, float, bool, or array of strings.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AsyncHttpResponse[IndexJobResponseV2]
+            Indexing Job Started
+        """
+        _response = await self._client_wrapper.httpx_client.request(
+            f"v2/collections/{jsonable_encoder(collection_name)}/index/r2",
+            method="POST",
+            json={
+                "bucket_name": bucket_name,
+                "account_id": account_id,
+                "access_key_id": access_key_id,
+                "secret_access_key": secret_access_key,
+                "jurisdiction": jurisdiction,
+                "processing_type": processing_type,
+                "max_files": max_files,
+                "skip_existing": skip_existing,
+                "custom_metadata": custom_metadata,
+            },
+            headers={
+                "content-type": "application/json",
+            },
+            request_options=request_options,
+            omit=OMIT,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    IndexJobResponseV2,
+                    parse_obj_as(
+                        type_=IndexJobResponseV2,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return AsyncHttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    async def index_r2file_v2(
+        self,
+        collection_name: str,
+        *,
+        bucket_name: str,
+        file_uri: str,
+        account_id: str,
+        access_key_id: str,
+        secret_access_key: str,
+        processing_type: IndexR2FileRequestV2ProcessingType,
+        jurisdiction: typing.Optional[IndexR2FileRequestV2Jurisdiction] = OMIT,
+        custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> AsyncHttpResponse[IndexJobResponseV2]:
+        """
+        Index a single file from a Cloudflare R2 bucket into a collection. Returns a job_id for tracking progress.
+
+        Parameters
+        ----------
+        collection_name : str
+
+        bucket_name : str
+            Name of the R2 bucket
+
+        file_uri : str
+            R2 URI format: r2://bucket-name/path/to/file.pdf
+
+        account_id : str
+            Cloudflare account ID (found in your R2 dashboard URL)
+
+        access_key_id : str
+            R2 S3 API token Access Key ID
+
+        secret_access_key : str
+            R2 S3 API token Secret Access Key
+
+        processing_type : IndexR2FileRequestV2ProcessingType
+            Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
+
+        jurisdiction : typing.Optional[IndexR2FileRequestV2Jurisdiction]
+            R2 jurisdiction. 'default' for global, 'eu' for EU-only storage, 'fedramp' for FedRAMP-compliant storage.
+
+        custom_metadata : typing.Optional[typing.Dict[str, typing.Any]]
+            Custom metadata to attach to all chunks from this file. Keys must be strings. Values: str, int, float, bool, or array of strings.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AsyncHttpResponse[IndexJobResponseV2]
+            Indexing Job Started
+        """
+        _response = await self._client_wrapper.httpx_client.request(
+            f"v2/collections/{jsonable_encoder(collection_name)}/index/r2/file",
+            method="POST",
+            json={
+                "bucket_name": bucket_name,
+                "file_uri": file_uri,
+                "account_id": account_id,
+                "access_key_id": access_key_id,
+                "secret_access_key": secret_access_key,
+                "jurisdiction": jurisdiction,
+                "processing_type": processing_type,
+                "custom_metadata": custom_metadata,
+            },
+            headers={
+                "content-type": "application/json",
+            },
+            request_options=request_options,
+            omit=OMIT,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    IndexJobResponseV2,
+                    parse_obj_as(
+                        type_=IndexJobResponseV2,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return AsyncHttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    async def index_r2directory_v2(
+        self,
+        collection_name: str,
+        *,
+        bucket_name: str,
+        directory_path: str,
+        account_id: str,
+        access_key_id: str,
+        secret_access_key: str,
+        processing_type: IndexR2DirectoryRequestV2ProcessingType,
+        jurisdiction: typing.Optional[IndexR2DirectoryRequestV2Jurisdiction] = OMIT,
+        max_files: typing.Optional[int] = OMIT,
+        skip_existing: typing.Optional[bool] = OMIT,
+        custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> AsyncHttpResponse[IndexJobResponseV2]:
+        """
+        Index all files from a specific directory (prefix) in a Cloudflare R2 bucket into a collection. Uses prefix-based filtering to index only objects within the specified path. Returns a job_id for tracking progress via GET /v2/jobs/{job_id}.
+
+        Parameters
+        ----------
+        collection_name : str
+
+        bucket_name : str
+            Name of the R2 bucket
+
+        directory_path : str
+            Path to the directory (prefix) within the bucket. Accepts either a relative path (e.g., 'reports/2024/january') or a full R2 URI (e.g., 'r2://my-bucket/reports/2024/january'). All objects within this prefix will be indexed.
+
+        account_id : str
+            Cloudflare account ID (found in your R2 dashboard URL)
+
+        access_key_id : str
+            R2 S3 API token Access Key ID
+
+        secret_access_key : str
+            R2 S3 API token Secret Access Key
+
+        processing_type : IndexR2DirectoryRequestV2ProcessingType
+            Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
+
+        jurisdiction : typing.Optional[IndexR2DirectoryRequestV2Jurisdiction]
+            R2 jurisdiction. 'default' for global, 'eu' for EU-only storage, 'fedramp' for FedRAMP-compliant storage.
+
+        max_files : typing.Optional[int]
+            Maximum number of files to index (optional)
+
+        skip_existing : typing.Optional[bool]
+            Skip files that are already indexed in the collection. When true, only new files will be indexed. Set to false to re-index all files.
+
+        custom_metadata : typing.Optional[typing.Dict[str, typing.Any]]
+            Custom metadata to attach to all indexed chunks. Keys must be strings. Values: str, int, float, bool, or array of strings.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AsyncHttpResponse[IndexJobResponseV2]
+            Indexing Job Started
+        """
+        _response = await self._client_wrapper.httpx_client.request(
+            f"v2/collections/{jsonable_encoder(collection_name)}/index/r2/directory",
+            method="POST",
+            json={
+                "bucket_name": bucket_name,
+                "directory_path": directory_path,
+                "account_id": account_id,
+                "access_key_id": access_key_id,
+                "secret_access_key": secret_access_key,
+                "jurisdiction": jurisdiction,
+                "processing_type": processing_type,
+                "max_files": max_files,
+                "skip_existing": skip_existing,
+                "custom_metadata": custom_metadata,
+            },
+            headers={
+                "content-type": "application/json",
+            },
+            request_options=request_options,
+            omit=OMIT,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    IndexJobResponseV2,
+                    parse_obj_as(
+                        type_=IndexJobResponseV2,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return AsyncHttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    async def index_url_v2(
+        self,
+        collection_name: str,
+        *,
+        processing_type: IndexUrlRequestV2ProcessingType,
+        url: typing.Optional[str] = OMIT,
+        urls: typing.Optional[typing.Sequence[str]] = OMIT,
+        custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> AsyncHttpResponse[IndexJobResponseV2]:
+        """
+        Index documents from public URLs into a collection. No cloud storage credentials required.
+
+        You can provide either:
+        - `url` — a single URL string for one document
+        - `urls` — an array of URL strings for multiple documents
+
+        Supported file types include PDF, TXT, DOCX, CSV, XLSX, and more. Documents are downloaded and processed through the same pipeline as cloud storage indexing.
+
+        Returns a job_id for tracking progress via GET /v2/jobs/{job_id}.
+
+        Parameters
+        ----------
+        collection_name : str
+
+        processing_type : IndexUrlRequestV2ProcessingType
+            Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
+
+        url : typing.Optional[str]
+            A single public URL to a hosted document (PDF, TXT, DOCX, etc.). Provide either 'url' or 'urls', not both.
+
+        urls : typing.Optional[typing.Sequence[str]]
+            An array of public URLs to hosted documents. Provide either 'url' or 'urls', not both.
+
+        custom_metadata : typing.Optional[typing.Dict[str, typing.Any]]
+            Custom metadata to attach to all indexed chunks. Keys must be strings. Values: str, int, float, bool, or array of strings.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AsyncHttpResponse[IndexJobResponseV2]
+            Indexing job started
+        """
+        _response = await self._client_wrapper.httpx_client.request(
+            f"v2/collections/{jsonable_encoder(collection_name)}/index/url",
+            method="POST",
+            json={
+                "url": url,
+                "urls": urls,
+                "processing_type": processing_type,
+                "custom_metadata": custom_metadata,
+            },
+            headers={
+                "content-type": "application/json",
             },
             request_options=request_options,
             omit=OMIT,
