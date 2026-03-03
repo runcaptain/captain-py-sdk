@@ -37,7 +37,7 @@ class Captain:
 
 
 
-    organization_id : typing.Optional[str]
+    organization_id : str
     key : typing.Optional[typing.Union[str, typing.Callable[[], str]]]
     headers : typing.Optional[typing.Dict[str, str]]
         Additional headers to send with every request.
@@ -69,7 +69,7 @@ class Captain:
         *,
         base_url: typing.Optional[str] = None,
         environment: CaptainEnvironment = CaptainEnvironment.DEFAULT,
-        organization_id: typing.Optional[str] = os.getenv("CAPTAIN_ORGANIZATION_ID"),
+        organization_id: str,
         key: typing.Optional[typing.Union[str, typing.Callable[[], str]]] = os.getenv("CAPTAIN_API_KEY"),
         headers: typing.Optional[typing.Dict[str, str]] = None,
         timeout: typing.Optional[float] = None,
@@ -80,10 +80,6 @@ class Captain:
         _defaulted_timeout = (
             timeout if timeout is not None else 60 if httpx_client is None else httpx_client.timeout.read
         )
-        if organization_id is None:
-            raise ApiError(
-                body="The client must be instantiated be either passing in organization_id or setting CAPTAIN_ORGANIZATION_ID"
-            )
         if key is None:
             raise ApiError(body="The client must be instantiated be either passing in key or setting CAPTAIN_API_KEY")
         self._client_wrapper = SyncClientWrapper(
@@ -164,7 +160,7 @@ class AsyncCaptain:
 
 
 
-    organization_id : typing.Optional[str]
+    organization_id : str
     key : typing.Optional[typing.Union[str, typing.Callable[[], str]]]
     headers : typing.Optional[typing.Dict[str, str]]
         Additional headers to send with every request.
@@ -196,7 +192,7 @@ class AsyncCaptain:
         *,
         base_url: typing.Optional[str] = None,
         environment: CaptainEnvironment = CaptainEnvironment.DEFAULT,
-        organization_id: typing.Optional[str] = os.getenv("CAPTAIN_ORGANIZATION_ID"),
+        organization_id: str,
         key: typing.Optional[typing.Union[str, typing.Callable[[], str]]] = os.getenv("CAPTAIN_API_KEY"),
         headers: typing.Optional[typing.Dict[str, str]] = None,
         timeout: typing.Optional[float] = None,
@@ -207,10 +203,6 @@ class AsyncCaptain:
         _defaulted_timeout = (
             timeout if timeout is not None else 60 if httpx_client is None else httpx_client.timeout.read
         )
-        if organization_id is None:
-            raise ApiError(
-                body="The client must be instantiated be either passing in organization_id or setting CAPTAIN_ORGANIZATION_ID"
-            )
         if key is None:
             raise ApiError(body="The client must be instantiated be either passing in key or setting CAPTAIN_API_KEY")
         self._client_wrapper = AsyncClientWrapper(

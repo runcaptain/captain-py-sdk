@@ -1037,7 +1037,7 @@ class IndexingClient:
         - `url` — a single URL string for one document
         - `urls` — an array of URL strings for multiple documents
 
-        Supported file types include PDF, TXT, DOCX, CSV, XLSX, and more. Documents are downloaded and processed through the same pipeline as cloud storage indexing.
+        Supported file types: PDF, DOCX, DOC, XLSX, XLS, CSV, TSV, TXT, MD, JSON, YAML, YML, PNG, JPG, JPEG, GIF, BMP, TIFF. Documents are downloaded and processed through the same pipeline as cloud storage indexing.
 
         Returns a job_id for tracking progress via GET /v2/jobs/{job_id}.
 
@@ -1049,7 +1049,7 @@ class IndexingClient:
             Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
 
         url : typing.Optional[str]
-            A single public URL to a hosted document (PDF, TXT, DOCX, etc.). Provide either 'url' or 'urls', not both.
+            A single public URL to a hosted document. Supported types: PDF, DOCX, DOC, XLSX, XLS, CSV, TSV, TXT, MD, JSON, YAML, YML, PNG, JPG, JPEG, GIF, BMP, TIFF. Provide either 'url' or 'urls', not both.
 
         urls : typing.Optional[typing.Sequence[str]]
             An array of public URLs to hosted documents. Provide either 'url' or 'urls', not both.
@@ -2196,7 +2196,7 @@ class AsyncIndexingClient:
         - `url` — a single URL string for one document
         - `urls` — an array of URL strings for multiple documents
 
-        Supported file types include PDF, TXT, DOCX, CSV, XLSX, and more. Documents are downloaded and processed through the same pipeline as cloud storage indexing.
+        Supported file types: PDF, DOCX, DOC, XLSX, XLS, CSV, TSV, TXT, MD, JSON, YAML, YML, PNG, JPG, JPEG, GIF, BMP, TIFF. Documents are downloaded and processed through the same pipeline as cloud storage indexing.
 
         Returns a job_id for tracking progress via GET /v2/jobs/{job_id}.
 
@@ -2208,7 +2208,7 @@ class AsyncIndexingClient:
             Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
 
         url : typing.Optional[str]
-            A single public URL to a hosted document (PDF, TXT, DOCX, etc.). Provide either 'url' or 'urls', not both.
+            A single public URL to a hosted document. Supported types: PDF, DOCX, DOC, XLSX, XLS, CSV, TSV, TXT, MD, JSON, YAML, YML, PNG, JPG, JPEG, GIF, BMP, TIFF. Provide either 'url' or 'urls', not both.
 
         urls : typing.Optional[typing.Sequence[str]]
             An array of public URLs to hosted documents. Provide either 'url' or 'urls', not both.
