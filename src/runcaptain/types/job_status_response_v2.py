@@ -10,8 +10,8 @@ from .files_page import FilesPage
 from .job_billing import JobBilling
 from .job_progress import JobProgress
 from .job_result import JobResult
+from .job_status import JobStatus
 from .job_status_response_v2job_type import JobStatusResponseV2JobType
-from .job_status_response_v2status import JobStatusResponseV2Status
 
 
 class JobStatusResponseV2(UniversalBaseModel):
@@ -34,7 +34,7 @@ class JobStatusResponseV2(UniversalBaseModel):
     Type of indexing job
     """
 
-    status: JobStatusResponseV2Status = pydantic.Field()
+    status: JobStatus = pydantic.Field()
     """
     Current job status
     """
@@ -66,7 +66,7 @@ class JobStatusResponseV2(UniversalBaseModel):
 
     billing: typing.Optional[JobBilling] = pydantic.Field(default=None)
     """
-    Billing details including cost, credits used, and remaining balance. Only present when status is 'completed'.
+    Billing details including cost, credits used, and remaining balance. Present when status is 'completed' or 'completed_with_failures'.
     """
 
     error_code: typing.Optional[str] = pydantic.Field(default=None)

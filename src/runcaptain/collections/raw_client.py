@@ -176,7 +176,7 @@ class RawCollectionsClient:
         """
         Move a collection from one environment to another (e.g., development to production) without reindexing.
 
-        All files, indexed data, and vector embeddings are preserved. The collection's internal ID stays the same — only the environment label changes.
+        All files, indexed data, and vector embeddings are preserved. The collection's internal ID stays the same â€” only the environment label changes.
 
         ## Use Cases
         - Promote a development collection to production after testing
@@ -553,7 +553,7 @@ class AsyncRawCollectionsClient:
         """
         Move a collection from one environment to another (e.g., development to production) without reindexing.
 
-        All files, indexed data, and vector embeddings are preserved. The collection's internal ID stays the same — only the environment label changes.
+        All files, indexed data, and vector embeddings are preserved. The collection's internal ID stays the same â€” only the environment label changes.
 
         ## Use Cases
         - Promote a development collection to production after testing

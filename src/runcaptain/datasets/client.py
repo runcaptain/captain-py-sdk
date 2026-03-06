@@ -25,7 +25,12 @@ class DatasetsClient:
         return self._raw_client
 
     def search_dataset(
-        self, dataset: typing.Optional[str], *, request_options: typing.Optional[RequestOptions] = None
+        self,
+        dataset: typing.Optional[str],
+        *,
+        q: str,
+        limit: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
     ) -> DatasetSearchResponse:
         """
         Search for articles within a news dataset.
@@ -39,6 +44,12 @@ class DatasetsClient:
         ----------
         dataset : typing.Optional[str]
             The dataset to search. Contact your Account Executive for available datasets.
+
+        q : str
+            Search query
+
+        limit : typing.Optional[int]
+            Maximum number of results to return (default: 10, max: 100)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -58,9 +69,10 @@ class DatasetsClient:
         )
         client.datasets.search_dataset(
             dataset="dataset_name",
+            q="climate change policy",
         )
         """
-        _response = self._raw_client.search_dataset(dataset, request_options=request_options)
+        _response = self._raw_client.search_dataset(dataset, q=q, limit=limit, request_options=request_options)
         return _response.data
 
     def get_dataset_article(
@@ -125,7 +137,12 @@ class AsyncDatasetsClient:
         return self._raw_client
 
     async def search_dataset(
-        self, dataset: typing.Optional[str], *, request_options: typing.Optional[RequestOptions] = None
+        self,
+        dataset: typing.Optional[str],
+        *,
+        q: str,
+        limit: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
     ) -> DatasetSearchResponse:
         """
         Search for articles within a news dataset.
@@ -139,6 +156,12 @@ class AsyncDatasetsClient:
         ----------
         dataset : typing.Optional[str]
             The dataset to search. Contact your Account Executive for available datasets.
+
+        q : str
+            Search query
+
+        limit : typing.Optional[int]
+            Maximum number of results to return (default: 10, max: 100)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -163,12 +186,13 @@ class AsyncDatasetsClient:
         async def main() -> None:
             await client.datasets.search_dataset(
                 dataset="dataset_name",
+                q="climate change policy",
             )
 
 
         asyncio.run(main())
         """
-        _response = await self._raw_client.search_dataset(dataset, request_options=request_options)
+        _response = await self._raw_client.search_dataset(dataset, q=q, limit=limit, request_options=request_options)
         return _response.data
 
     async def get_dataset_article(

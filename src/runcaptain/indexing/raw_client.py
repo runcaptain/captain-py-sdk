@@ -789,7 +789,7 @@ class RawIndexingClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[IndexJobResponseV2]:
         """
-        Index all files from a Cloudflare R2 bucket into a collection. R2 is S3-compatible — provide your R2 API token's Access Key ID and Secret Access Key. Returns a job_id for tracking progress via GET /v2/jobs/{job_id}.
+        Index all files from a Cloudflare R2 bucket into a collection. R2 is S3-compatible â€” provide your R2 API token's Access Key ID and Secret Access Key. Returns a job_id for tracking progress via GET /v2/jobs/{job_id}.
 
         Parameters
         ----------
@@ -1063,8 +1063,8 @@ class RawIndexingClient:
         Index documents from public URLs into a collection. No cloud storage credentials required.
 
         You can provide either:
-        - `url` — a single URL string for one document
-        - `urls` — an array of URL strings for multiple documents
+        - `url` â€” a single URL string for one document
+        - `urls` â€” an array of URL strings for multiple documents
 
         Supported file types: PDF, DOCX, DOC, XLSX, XLS, CSV, TSV, TXT, MD, JSON, YAML, YML, PNG, JPG, JPEG, GIF, BMP, TIFF. Documents are downloaded and processed through the same pipeline as cloud storage indexing.
 
@@ -1883,7 +1883,7 @@ class AsyncRawIndexingClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[IndexJobResponseV2]:
         """
-        Index all files from a Cloudflare R2 bucket into a collection. R2 is S3-compatible — provide your R2 API token's Access Key ID and Secret Access Key. Returns a job_id for tracking progress via GET /v2/jobs/{job_id}.
+        Index all files from a Cloudflare R2 bucket into a collection. R2 is S3-compatible â€” provide your R2 API token's Access Key ID and Secret Access Key. Returns a job_id for tracking progress via GET /v2/jobs/{job_id}.
 
         Parameters
         ----------
@@ -2157,8 +2157,8 @@ class AsyncRawIndexingClient:
         Index documents from public URLs into a collection. No cloud storage credentials required.
 
         You can provide either:
-        - `url` — a single URL string for one document
-        - `urls` — an array of URL strings for multiple documents
+        - `url` â€” a single URL string for one document
+        - `urls` â€” an array of URL strings for multiple documents
 
         Supported file types: PDF, DOCX, DOC, XLSX, XLS, CSV, TSV, TXT, MD, JSON, YAML, YML, PNG, JPG, JPEG, GIF, BMP, TIFF. Documents are downloaded and processed through the same pipeline as cloud storage indexing.
 
