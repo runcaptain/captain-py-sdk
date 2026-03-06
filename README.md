@@ -12,6 +12,7 @@ The Runcaptain Python library provides convenient access to the Runcaptain APIs 
 - [Usage](#usage)
 - [Async Client](#async-client)
 - [Exception Handling](#exception-handling)
+- [Streaming](#streaming)
 - [Advanced](#advanced)
   - [Access Raw Response Data](#access-raw-response-data)
   - [Retries](#retries)
@@ -40,14 +41,12 @@ client = Captain(
     organization_id="YOUR_ORGANIZATION_ID",
     key="YOUR_KEY",
 )
-client.query.collection_v2(
-    collection_name="my_documents",
-    query="What are the key terms in the contract?",
-    inference=True,
-    stream=True,
-    rerank=True,
-    top_k=10,
+response = client.query.collection_v2stream(
+    collection_name="collection_name",
+    query="query",
 )
+for chunk in response.data:
+    yield chunk
 ```
 
 ## Async Client
@@ -66,14 +65,12 @@ client = AsyncCaptain(
 
 
 async def main() -> None:
-    await client.query.collection_v2(
-        collection_name="my_documents",
-        query="What are the key terms in the contract?",
-        inference=True,
-        stream=True,
-        rerank=True,
-        top_k=10,
+    response = await client.query.collection_v2stream(
+        collection_name="collection_name",
+        query="query",
     )
+    async for chunk in response.data:
+        yield chunk
 
 
 asyncio.run(main())
@@ -88,10 +85,29 @@ will be thrown.
 from runcaptain.core.api_error import ApiError
 
 try:
-    client.query.collection_v2(...)
+    client.query.collection_v2stream(...)
 except ApiError as e:
     print(e.status_code)
     print(e.body)
+```
+
+## Streaming
+
+The SDK supports streaming responses, as well, the response will be a generator that you can loop over.
+
+```python
+from runcaptain import Captain
+
+client = Captain(
+    organization_id="YOUR_ORGANIZATION_ID",
+    key="YOUR_KEY",
+)
+response = client.query.collection_v2stream(
+    collection_name="collection_name",
+    query="query",
+)
+for chunk in response.data:
+    yield chunk
 ```
 
 ## Advanced
@@ -107,10 +123,12 @@ from runcaptain import Captain
 client = Captain(
     ...,
 )
-response = client.query.with_raw_response.collection_v2(...)
-print(response.headers)  # access the response headers
-print(response.status_code)  # access the response status code
-print(response.data)  # access the underlying object
+with client.query.with_raw_response.collection_v2stream(...) as response:
+    print(
+        response.headers
+    )  # access the response headersprint(response.status_code)  # access the response status code
+    for chunk in response.data:
+        print(chunk)  # access the underlying object(s)
 ```
 
 ### Retries
@@ -128,7 +146,7 @@ A request is deemed retryable when any of the following HTTP status codes is ret
 Use the `max_retries` request option to configure this behavior.
 
 ```python
-client.query.collection_v2(..., request_options={
+client.query.collection_v2stream(..., request_options={
     "max_retries": 1
 })
 ```
@@ -148,7 +166,7 @@ client = Captain(
 
 
 # Override timeout for a specific method
-client.query.collection_v2(..., request_options={
+client.query.collection_v2stream(..., request_options={
     "timeout_in_seconds": 1
 })
 ```

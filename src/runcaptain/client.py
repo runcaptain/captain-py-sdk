@@ -13,10 +13,21 @@ from .environment import CaptainEnvironment
 
 if typing.TYPE_CHECKING:
     from .collections.client import AsyncCollectionsClient, CollectionsClient
+    from .companies.client import AsyncCompaniesClient, CompaniesClient
+    from .credit_analysis.client import AsyncCreditAnalysisClient, CreditAnalysisClient
     from .datasets.client import AsyncDatasetsClient, DatasetsClient
+    from .deals.client import AsyncDealsClient, DealsClient
+    from .fundamentals.client import AsyncFundamentalsClient, FundamentalsClient
+    from .funds.client import AsyncFundsClient, FundsClient
+    from .general.client import AsyncGeneralClient, GeneralClient
     from .indexing.client import AsyncIndexingClient, IndexingClient
+    from .investors.client import AsyncInvestorsClient, InvestorsClient
     from .jobs.client import AsyncJobsClient, JobsClient
+    from .limited_partners.client import AsyncLimitedPartnersClient, LimitedPartnersClient
+    from .patents.client import AsyncPatentsClient, PatentsClient
+    from .people.client import AsyncPeopleClient, PeopleClient
     from .query.client import AsyncQueryClient, QueryClient
+    from .service_providers.client import AsyncServiceProvidersClient, ServiceProvidersClient
 
 
 class Captain:
@@ -100,6 +111,17 @@ class Captain:
         self._indexing: typing.Optional[IndexingClient] = None
         self._jobs: typing.Optional[JobsClient] = None
         self._datasets: typing.Optional[DatasetsClient] = None
+        self._general: typing.Optional[GeneralClient] = None
+        self._companies: typing.Optional[CompaniesClient] = None
+        self._people: typing.Optional[PeopleClient] = None
+        self._deals: typing.Optional[DealsClient] = None
+        self._investors: typing.Optional[InvestorsClient] = None
+        self._funds: typing.Optional[FundsClient] = None
+        self._limited_partners: typing.Optional[LimitedPartnersClient] = None
+        self._service_providers: typing.Optional[ServiceProvidersClient] = None
+        self._patents: typing.Optional[PatentsClient] = None
+        self._credit_analysis: typing.Optional[CreditAnalysisClient] = None
+        self._fundamentals: typing.Optional[FundamentalsClient] = None
 
     @property
     def collections(self):
@@ -140,6 +162,94 @@ class Captain:
 
             self._datasets = DatasetsClient(client_wrapper=self._client_wrapper)
         return self._datasets
+
+    @property
+    def general(self):
+        if self._general is None:
+            from .general.client import GeneralClient  # noqa: E402
+
+            self._general = GeneralClient(client_wrapper=self._client_wrapper)
+        return self._general
+
+    @property
+    def companies(self):
+        if self._companies is None:
+            from .companies.client import CompaniesClient  # noqa: E402
+
+            self._companies = CompaniesClient(client_wrapper=self._client_wrapper)
+        return self._companies
+
+    @property
+    def people(self):
+        if self._people is None:
+            from .people.client import PeopleClient  # noqa: E402
+
+            self._people = PeopleClient(client_wrapper=self._client_wrapper)
+        return self._people
+
+    @property
+    def deals(self):
+        if self._deals is None:
+            from .deals.client import DealsClient  # noqa: E402
+
+            self._deals = DealsClient(client_wrapper=self._client_wrapper)
+        return self._deals
+
+    @property
+    def investors(self):
+        if self._investors is None:
+            from .investors.client import InvestorsClient  # noqa: E402
+
+            self._investors = InvestorsClient(client_wrapper=self._client_wrapper)
+        return self._investors
+
+    @property
+    def funds(self):
+        if self._funds is None:
+            from .funds.client import FundsClient  # noqa: E402
+
+            self._funds = FundsClient(client_wrapper=self._client_wrapper)
+        return self._funds
+
+    @property
+    def limited_partners(self):
+        if self._limited_partners is None:
+            from .limited_partners.client import LimitedPartnersClient  # noqa: E402
+
+            self._limited_partners = LimitedPartnersClient(client_wrapper=self._client_wrapper)
+        return self._limited_partners
+
+    @property
+    def service_providers(self):
+        if self._service_providers is None:
+            from .service_providers.client import ServiceProvidersClient  # noqa: E402
+
+            self._service_providers = ServiceProvidersClient(client_wrapper=self._client_wrapper)
+        return self._service_providers
+
+    @property
+    def patents(self):
+        if self._patents is None:
+            from .patents.client import PatentsClient  # noqa: E402
+
+            self._patents = PatentsClient(client_wrapper=self._client_wrapper)
+        return self._patents
+
+    @property
+    def credit_analysis(self):
+        if self._credit_analysis is None:
+            from .credit_analysis.client import CreditAnalysisClient  # noqa: E402
+
+            self._credit_analysis = CreditAnalysisClient(client_wrapper=self._client_wrapper)
+        return self._credit_analysis
+
+    @property
+    def fundamentals(self):
+        if self._fundamentals is None:
+            from .fundamentals.client import FundamentalsClient  # noqa: E402
+
+            self._fundamentals = FundamentalsClient(client_wrapper=self._client_wrapper)
+        return self._fundamentals
 
 
 class AsyncCaptain:
@@ -223,6 +333,17 @@ class AsyncCaptain:
         self._indexing: typing.Optional[AsyncIndexingClient] = None
         self._jobs: typing.Optional[AsyncJobsClient] = None
         self._datasets: typing.Optional[AsyncDatasetsClient] = None
+        self._general: typing.Optional[AsyncGeneralClient] = None
+        self._companies: typing.Optional[AsyncCompaniesClient] = None
+        self._people: typing.Optional[AsyncPeopleClient] = None
+        self._deals: typing.Optional[AsyncDealsClient] = None
+        self._investors: typing.Optional[AsyncInvestorsClient] = None
+        self._funds: typing.Optional[AsyncFundsClient] = None
+        self._limited_partners: typing.Optional[AsyncLimitedPartnersClient] = None
+        self._service_providers: typing.Optional[AsyncServiceProvidersClient] = None
+        self._patents: typing.Optional[AsyncPatentsClient] = None
+        self._credit_analysis: typing.Optional[AsyncCreditAnalysisClient] = None
+        self._fundamentals: typing.Optional[AsyncFundamentalsClient] = None
 
     @property
     def collections(self):
@@ -263,6 +384,94 @@ class AsyncCaptain:
 
             self._datasets = AsyncDatasetsClient(client_wrapper=self._client_wrapper)
         return self._datasets
+
+    @property
+    def general(self):
+        if self._general is None:
+            from .general.client import AsyncGeneralClient  # noqa: E402
+
+            self._general = AsyncGeneralClient(client_wrapper=self._client_wrapper)
+        return self._general
+
+    @property
+    def companies(self):
+        if self._companies is None:
+            from .companies.client import AsyncCompaniesClient  # noqa: E402
+
+            self._companies = AsyncCompaniesClient(client_wrapper=self._client_wrapper)
+        return self._companies
+
+    @property
+    def people(self):
+        if self._people is None:
+            from .people.client import AsyncPeopleClient  # noqa: E402
+
+            self._people = AsyncPeopleClient(client_wrapper=self._client_wrapper)
+        return self._people
+
+    @property
+    def deals(self):
+        if self._deals is None:
+            from .deals.client import AsyncDealsClient  # noqa: E402
+
+            self._deals = AsyncDealsClient(client_wrapper=self._client_wrapper)
+        return self._deals
+
+    @property
+    def investors(self):
+        if self._investors is None:
+            from .investors.client import AsyncInvestorsClient  # noqa: E402
+
+            self._investors = AsyncInvestorsClient(client_wrapper=self._client_wrapper)
+        return self._investors
+
+    @property
+    def funds(self):
+        if self._funds is None:
+            from .funds.client import AsyncFundsClient  # noqa: E402
+
+            self._funds = AsyncFundsClient(client_wrapper=self._client_wrapper)
+        return self._funds
+
+    @property
+    def limited_partners(self):
+        if self._limited_partners is None:
+            from .limited_partners.client import AsyncLimitedPartnersClient  # noqa: E402
+
+            self._limited_partners = AsyncLimitedPartnersClient(client_wrapper=self._client_wrapper)
+        return self._limited_partners
+
+    @property
+    def service_providers(self):
+        if self._service_providers is None:
+            from .service_providers.client import AsyncServiceProvidersClient  # noqa: E402
+
+            self._service_providers = AsyncServiceProvidersClient(client_wrapper=self._client_wrapper)
+        return self._service_providers
+
+    @property
+    def patents(self):
+        if self._patents is None:
+            from .patents.client import AsyncPatentsClient  # noqa: E402
+
+            self._patents = AsyncPatentsClient(client_wrapper=self._client_wrapper)
+        return self._patents
+
+    @property
+    def credit_analysis(self):
+        if self._credit_analysis is None:
+            from .credit_analysis.client import AsyncCreditAnalysisClient  # noqa: E402
+
+            self._credit_analysis = AsyncCreditAnalysisClient(client_wrapper=self._client_wrapper)
+        return self._credit_analysis
+
+    @property
+    def fundamentals(self):
+        if self._fundamentals is None:
+            from .fundamentals.client import AsyncFundamentalsClient  # noqa: E402
+
+            self._fundamentals = AsyncFundamentalsClient(client_wrapper=self._client_wrapper)
+        return self._fundamentals
 
 
 def _get_base_url(*, base_url: typing.Optional[str] = None, environment: CaptainEnvironment) -> str:

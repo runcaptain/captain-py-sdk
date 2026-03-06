@@ -31,9 +31,9 @@ if typing.TYPE_CHECKING:
     from .job_progress import JobProgress
     from .job_progress_current_stage import JobProgressCurrentStage
     from .job_result import JobResult
+    from .job_status import JobStatus
     from .job_status_response_v2 import JobStatusResponseV2
     from .job_status_response_v2job_type import JobStatusResponseV2JobType
-    from .job_status_response_v2status import JobStatusResponseV2Status
     from .query_response_v2 import QueryResponseV2
     from .query_stream_complete_event import QueryStreamCompleteEvent
     from .query_stream_error_event import QueryStreamErrorEvent
@@ -80,9 +80,9 @@ _dynamic_imports: typing.Dict[str, str] = {
     "JobProgress": ".job_progress",
     "JobProgressCurrentStage": ".job_progress_current_stage",
     "JobResult": ".job_result",
+    "JobStatus": ".job_status",
     "JobStatusResponseV2": ".job_status_response_v2",
     "JobStatusResponseV2JobType": ".job_status_response_v2job_type",
-    "JobStatusResponseV2Status": ".job_status_response_v2status",
     "QueryResponseV2": ".query_response_v2",
     "QueryStreamCompleteEvent": ".query_stream_complete_event",
     "QueryStreamErrorEvent": ".query_stream_error_event",
@@ -151,9 +151,9 @@ __all__ = [
     "JobProgress",
     "JobProgressCurrentStage",
     "JobResult",
+    "JobStatus",
     "JobStatusResponseV2",
     "JobStatusResponseV2JobType",
-    "JobStatusResponseV2Status",
     "QueryResponseV2",
     "QueryStreamCompleteEvent",
     "QueryStreamErrorEvent",

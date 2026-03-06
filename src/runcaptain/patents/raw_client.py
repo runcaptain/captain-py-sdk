@@ -9,58 +9,38 @@ from ..core.http_response import AsyncHttpResponse, HttpResponse
 from ..core.jsonable_encoder import jsonable_encoder
 from ..core.pydantic_utilities import parse_obj_as
 from ..core.request_options import RequestOptions
-from ..errors.bad_request_error import BadRequestError
-from ..errors.forbidden_error import ForbiddenError
-from ..errors.service_unavailable_error import ServiceUnavailableError
+from ..errors.not_found_error import NotFoundError
+from ..errors.not_implemented_error import NotImplementedError
 from ..errors.unauthorized_error import UnauthorizedError
-from ..types.dataset_article_response import DatasetArticleResponse
-from ..types.dataset_search_response import DatasetSearchResponse
 
 
-class RawDatasetsClient:
+class RawPatentsClient:
     def __init__(self, *, client_wrapper: SyncClientWrapper):
         self._client_wrapper = client_wrapper
 
-    def search_dataset(
-        self,
-        dataset: typing.Optional[str],
-        *,
-        q: str,
-        limit: typing.Optional[int] = None,
-        request_options: typing.Optional[RequestOptions] = None,
-    ) -> HttpResponse[DatasetSearchResponse]:
+    def search(
+        self, *, limit: typing.Optional[int] = None, request_options: typing.Optional[RequestOptions] = None
+    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
         """
-        Search for articles within a news dataset.
-
-        Contact your Account Executive for available datasets.
-
-        ## Response
-        Returns a list of search results with title, URL, snippet, and date.
+        Search for patents by title, inventor, assignee, or classification. Returns matching patents with patent numbers, titles, filing dates, and status.
 
         Parameters
         ----------
-        dataset : typing.Optional[str]
-            The dataset to search. Contact your Account Executive for available datasets.
-
-        q : str
-            Search query
-
         limit : typing.Optional[int]
-            Maximum number of results to return (default: 10, max: 100)
+            Maximum results
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[DatasetSearchResponse]
-            Search completed successfully
+        HttpResponse[typing.Dict[str, typing.Any]]
+            Successful response
         """
         _response = self._client_wrapper.httpx_client.request(
-            f"v2/datasets/{jsonable_encoder(dataset)}/search",
+            "v2/datasets/odyssey/patents/search",
             method="GET",
             params={
-                "q": q,
                 "limit": limit,
             },
             request_options=request_options,
@@ -68,48 +48,15 @@ class RawDatasetsClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    DatasetSearchResponse,
+                    typing.Dict[str, typing.Any],
                     parse_obj_as(
-                        type_=DatasetSearchResponse,  # type: ignore
+                        type_=typing.Dict[str, typing.Any],  # type: ignore
                         object_=_response.json(),
                     ),
                 )
                 return HttpResponse(response=_response, data=_data)
-            if _response.status_code == 400:
-                raise BadRequestError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
             if _response.status_code == 401:
                 raise UnauthorizedError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            if _response.status_code == 403:
-                raise ForbiddenError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            if _response.status_code == 503:
-                raise ServiceUnavailableError(
                     headers=dict(_response.headers),
                     body=typing.cast(
                         typing.Any,
@@ -124,61 +71,39 @@ class RawDatasetsClient:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
-    def get_dataset_article(
-        self, dataset: typing.Optional[str], url: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[DatasetArticleResponse]:
+    def get_by_id(
+        self, id: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
         """
-        Get a full article from a supported news dataset.
-
-        Contact your Account Executive for available datasets.
-
-        ## URL Path
-        The article URL is appended directly to the endpoint path. The URL must match the domain of the specified dataset.
-
-        ## Response
-        Returns the full article content in markdown format, along with metadata like title, author, date, and character count.
+        Get detailed patent information including abstract, claims, inventors, citations, and prosecution history. Returns comprehensive patent profile.
 
         Parameters
         ----------
-        dataset : typing.Optional[str]
-            The dataset to get articles from. Contact your Account Executive for available datasets.
-
-        url : str
+        id : str
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[DatasetArticleResponse]
-            Article retrieved successfully
+        HttpResponse[typing.Dict[str, typing.Any]]
+            Successful response
         """
         _response = self._client_wrapper.httpx_client.request(
-            f"v2/datasets/{jsonable_encoder(dataset)}/{jsonable_encoder(url)}",
+            f"v2/datasets/odyssey/patents/{jsonable_encoder(id)}",
             method="GET",
             request_options=request_options,
         )
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    DatasetArticleResponse,
+                    typing.Dict[str, typing.Any],
                     parse_obj_as(
-                        type_=DatasetArticleResponse,  # type: ignore
+                        type_=typing.Dict[str, typing.Any],  # type: ignore
                         object_=_response.json(),
                     ),
                 )
                 return HttpResponse(response=_response, data=_data)
-            if _response.status_code == 400:
-                raise BadRequestError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
             if _response.status_code == 401:
                 raise UnauthorizedError(
                     headers=dict(_response.headers),
@@ -190,8 +115,8 @@ class RawDatasetsClient:
                         ),
                     ),
                 )
-            if _response.status_code == 403:
-                raise ForbiddenError(
+            if _response.status_code == 404:
+                raise NotFoundError(
                     headers=dict(_response.headers),
                     body=typing.cast(
                         typing.Any,
@@ -201,8 +126,68 @@ class RawDatasetsClient:
                         ),
                     ),
                 )
-            if _response.status_code == 503:
-                raise ServiceUnavailableError(
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    def get_file(
+        self, entity_id: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+        """
+        Download patent file wrapper or PDF document. Returns patent documentation and prosecution history files.
+
+        Parameters
+        ----------
+        entity_id : str
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        HttpResponse[typing.Dict[str, typing.Any]]
+            Successful response
+        """
+        _response = self._client_wrapper.httpx_client.request(
+            f"v2/datasets/odyssey/patents/{jsonable_encoder(entity_id)}/file",
+            method="GET",
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    typing.Dict[str, typing.Any],
+                    parse_obj_as(
+                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return HttpResponse(response=_response, data=_data)
+            if _response.status_code == 401:
+                raise UnauthorizedError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Any,
+                        parse_obj_as(
+                            type_=typing.Any,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 404:
+                raise NotFoundError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Any,
+                        parse_obj_as(
+                            type_=typing.Any,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 501:
+                raise NotImplementedError(
                     headers=dict(_response.headers),
                     body=typing.cast(
                         typing.Any,
@@ -218,50 +203,33 @@ class RawDatasetsClient:
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
 
-class AsyncRawDatasetsClient:
+class AsyncRawPatentsClient:
     def __init__(self, *, client_wrapper: AsyncClientWrapper):
         self._client_wrapper = client_wrapper
 
-    async def search_dataset(
-        self,
-        dataset: typing.Optional[str],
-        *,
-        q: str,
-        limit: typing.Optional[int] = None,
-        request_options: typing.Optional[RequestOptions] = None,
-    ) -> AsyncHttpResponse[DatasetSearchResponse]:
+    async def search(
+        self, *, limit: typing.Optional[int] = None, request_options: typing.Optional[RequestOptions] = None
+    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
         """
-        Search for articles within a news dataset.
-
-        Contact your Account Executive for available datasets.
-
-        ## Response
-        Returns a list of search results with title, URL, snippet, and date.
+        Search for patents by title, inventor, assignee, or classification. Returns matching patents with patent numbers, titles, filing dates, and status.
 
         Parameters
         ----------
-        dataset : typing.Optional[str]
-            The dataset to search. Contact your Account Executive for available datasets.
-
-        q : str
-            Search query
-
         limit : typing.Optional[int]
-            Maximum number of results to return (default: 10, max: 100)
+            Maximum results
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        AsyncHttpResponse[DatasetSearchResponse]
-            Search completed successfully
+        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+            Successful response
         """
         _response = await self._client_wrapper.httpx_client.request(
-            f"v2/datasets/{jsonable_encoder(dataset)}/search",
+            "v2/datasets/odyssey/patents/search",
             method="GET",
             params={
-                "q": q,
                 "limit": limit,
             },
             request_options=request_options,
@@ -269,48 +237,15 @@ class AsyncRawDatasetsClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    DatasetSearchResponse,
+                    typing.Dict[str, typing.Any],
                     parse_obj_as(
-                        type_=DatasetSearchResponse,  # type: ignore
+                        type_=typing.Dict[str, typing.Any],  # type: ignore
                         object_=_response.json(),
                     ),
                 )
                 return AsyncHttpResponse(response=_response, data=_data)
-            if _response.status_code == 400:
-                raise BadRequestError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
             if _response.status_code == 401:
                 raise UnauthorizedError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            if _response.status_code == 403:
-                raise ForbiddenError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            if _response.status_code == 503:
-                raise ServiceUnavailableError(
                     headers=dict(_response.headers),
                     body=typing.cast(
                         typing.Any,
@@ -325,61 +260,39 @@ class AsyncRawDatasetsClient:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
-    async def get_dataset_article(
-        self, dataset: typing.Optional[str], url: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[DatasetArticleResponse]:
+    async def get_by_id(
+        self, id: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
         """
-        Get a full article from a supported news dataset.
-
-        Contact your Account Executive for available datasets.
-
-        ## URL Path
-        The article URL is appended directly to the endpoint path. The URL must match the domain of the specified dataset.
-
-        ## Response
-        Returns the full article content in markdown format, along with metadata like title, author, date, and character count.
+        Get detailed patent information including abstract, claims, inventors, citations, and prosecution history. Returns comprehensive patent profile.
 
         Parameters
         ----------
-        dataset : typing.Optional[str]
-            The dataset to get articles from. Contact your Account Executive for available datasets.
-
-        url : str
+        id : str
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        AsyncHttpResponse[DatasetArticleResponse]
-            Article retrieved successfully
+        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+            Successful response
         """
         _response = await self._client_wrapper.httpx_client.request(
-            f"v2/datasets/{jsonable_encoder(dataset)}/{jsonable_encoder(url)}",
+            f"v2/datasets/odyssey/patents/{jsonable_encoder(id)}",
             method="GET",
             request_options=request_options,
         )
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    DatasetArticleResponse,
+                    typing.Dict[str, typing.Any],
                     parse_obj_as(
-                        type_=DatasetArticleResponse,  # type: ignore
+                        type_=typing.Dict[str, typing.Any],  # type: ignore
                         object_=_response.json(),
                     ),
                 )
                 return AsyncHttpResponse(response=_response, data=_data)
-            if _response.status_code == 400:
-                raise BadRequestError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
             if _response.status_code == 401:
                 raise UnauthorizedError(
                     headers=dict(_response.headers),
@@ -391,8 +304,8 @@ class AsyncRawDatasetsClient:
                         ),
                     ),
                 )
-            if _response.status_code == 403:
-                raise ForbiddenError(
+            if _response.status_code == 404:
+                raise NotFoundError(
                     headers=dict(_response.headers),
                     body=typing.cast(
                         typing.Any,
@@ -402,8 +315,68 @@ class AsyncRawDatasetsClient:
                         ),
                     ),
                 )
-            if _response.status_code == 503:
-                raise ServiceUnavailableError(
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    async def get_file(
+        self, entity_id: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+        """
+        Download patent file wrapper or PDF document. Returns patent documentation and prosecution history files.
+
+        Parameters
+        ----------
+        entity_id : str
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+            Successful response
+        """
+        _response = await self._client_wrapper.httpx_client.request(
+            f"v2/datasets/odyssey/patents/{jsonable_encoder(entity_id)}/file",
+            method="GET",
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    typing.Dict[str, typing.Any],
+                    parse_obj_as(
+                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return AsyncHttpResponse(response=_response, data=_data)
+            if _response.status_code == 401:
+                raise UnauthorizedError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Any,
+                        parse_obj_as(
+                            type_=typing.Any,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 404:
+                raise NotFoundError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Any,
+                        parse_obj_as(
+                            type_=typing.Any,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 501:
+                raise NotImplementedError(
                     headers=dict(_response.headers),
                     body=typing.cast(
                         typing.Any,

@@ -10,6 +10,7 @@ if typing.TYPE_CHECKING:
     from .conflict_error import ConflictError
     from .forbidden_error import ForbiddenError
     from .not_found_error import NotFoundError
+    from .not_implemented_error import NotImplementedError
     from .service_unavailable_error import ServiceUnavailableError
     from .unauthorized_error import UnauthorizedError
 _dynamic_imports: typing.Dict[str, str] = {
@@ -17,6 +18,7 @@ _dynamic_imports: typing.Dict[str, str] = {
     "ConflictError": ".conflict_error",
     "ForbiddenError": ".forbidden_error",
     "NotFoundError": ".not_found_error",
+    "NotImplementedError": ".not_implemented_error",
     "ServiceUnavailableError": ".service_unavailable_error",
     "UnauthorizedError": ".unauthorized_error",
 }
@@ -48,6 +50,7 @@ __all__ = [
     "ConflictError",
     "ForbiddenError",
     "NotFoundError",
+    "NotImplementedError",
     "ServiceUnavailableError",
     "UnauthorizedError",
 ]
