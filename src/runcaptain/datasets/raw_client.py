@@ -15,6 +15,10 @@ from ..errors.service_unavailable_error import ServiceUnavailableError
 from ..errors.unauthorized_error import UnauthorizedError
 from ..types.dataset_article_response import DatasetArticleResponse
 from ..types.dataset_search_response import DatasetSearchResponse
+from .types.batch_search_datasets_response import BatchSearchDatasetsResponse
+
+# this is used as the default value for optional parameters
+OMIT = typing.cast(typing.Any, ...)
 
 
 class RawDatasetsClient:
@@ -99,6 +103,114 @@ class RawDatasetsClient:
                 )
             if _response.status_code == 403:
                 raise ForbiddenError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Any,
+                        parse_obj_as(
+                            type_=typing.Any,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 503:
+                raise ServiceUnavailableError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Any,
+                        parse_obj_as(
+                            type_=typing.Any,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    def batch_search_datasets(
+        self,
+        *,
+        q: str,
+        datasets: typing.Optional[typing.Sequence[str]] = OMIT,
+        limit: typing.Optional[int] = OMIT,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> HttpResponse[BatchSearchDatasetsResponse]:
+        """
+        Search for articles across multiple news datasets in a single request.
+
+        Searches the same query across all specified datasets simultaneously. If no datasets are specified, searches all available datasets.
+
+        ## Supported Datasets
+        - `nytimes` - New York Times
+        - `washpost` - Washington Post
+        - `sfstandard` - SF Standard
+        - `sacbee` - Sacramento Bee
+        - `sfchronicle` - San Francisco Chronicle
+        - `newyorker` - The New Yorker
+        - `theatlantic` - The Atlantic
+        - `sjmercury` - San Jose Mercury News
+        - `latimes` - Los Angeles Times
+
+        ## Response
+        Returns results grouped by dataset source, with title, URL, snippet, and date for each article.
+
+        Parameters
+        ----------
+        q : str
+            Search query
+
+        datasets : typing.Optional[typing.Sequence[str]]
+            List of dataset names to search. Defaults to all datasets if not provided.
+
+        limit : typing.Optional[int]
+            Maximum number of results to return (default: 10, max: 100)
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        HttpResponse[BatchSearchDatasetsResponse]
+            Batch search completed successfully
+        """
+        _response = self._client_wrapper.httpx_client.request(
+            "v2/datasets/batch-search",
+            method="POST",
+            json={
+                "q": q,
+                "datasets": datasets,
+                "limit": limit,
+            },
+            headers={
+                "content-type": "application/json",
+            },
+            request_options=request_options,
+            omit=OMIT,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    BatchSearchDatasetsResponse,
+                    parse_obj_as(
+                        type_=BatchSearchDatasetsResponse,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return HttpResponse(response=_response, data=_data)
+            if _response.status_code == 400:
+                raise BadRequestError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Any,
+                        parse_obj_as(
+                            type_=typing.Any,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 401:
+                raise UnauthorizedError(
                     headers=dict(_response.headers),
                     body=typing.cast(
                         typing.Any,
@@ -300,6 +412,114 @@ class AsyncRawDatasetsClient:
                 )
             if _response.status_code == 403:
                 raise ForbiddenError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Any,
+                        parse_obj_as(
+                            type_=typing.Any,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 503:
+                raise ServiceUnavailableError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Any,
+                        parse_obj_as(
+                            type_=typing.Any,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    async def batch_search_datasets(
+        self,
+        *,
+        q: str,
+        datasets: typing.Optional[typing.Sequence[str]] = OMIT,
+        limit: typing.Optional[int] = OMIT,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> AsyncHttpResponse[BatchSearchDatasetsResponse]:
+        """
+        Search for articles across multiple news datasets in a single request.
+
+        Searches the same query across all specified datasets simultaneously. If no datasets are specified, searches all available datasets.
+
+        ## Supported Datasets
+        - `nytimes` - New York Times
+        - `washpost` - Washington Post
+        - `sfstandard` - SF Standard
+        - `sacbee` - Sacramento Bee
+        - `sfchronicle` - San Francisco Chronicle
+        - `newyorker` - The New Yorker
+        - `theatlantic` - The Atlantic
+        - `sjmercury` - San Jose Mercury News
+        - `latimes` - Los Angeles Times
+
+        ## Response
+        Returns results grouped by dataset source, with title, URL, snippet, and date for each article.
+
+        Parameters
+        ----------
+        q : str
+            Search query
+
+        datasets : typing.Optional[typing.Sequence[str]]
+            List of dataset names to search. Defaults to all datasets if not provided.
+
+        limit : typing.Optional[int]
+            Maximum number of results to return (default: 10, max: 100)
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AsyncHttpResponse[BatchSearchDatasetsResponse]
+            Batch search completed successfully
+        """
+        _response = await self._client_wrapper.httpx_client.request(
+            "v2/datasets/batch-search",
+            method="POST",
+            json={
+                "q": q,
+                "datasets": datasets,
+                "limit": limit,
+            },
+            headers={
+                "content-type": "application/json",
+            },
+            request_options=request_options,
+            omit=OMIT,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    BatchSearchDatasetsResponse,
+                    parse_obj_as(
+                        type_=BatchSearchDatasetsResponse,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return AsyncHttpResponse(response=_response, data=_data)
+            if _response.status_code == 400:
+                raise BadRequestError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Any,
+                        parse_obj_as(
+                            type_=typing.Any,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 401:
+                raise UnauthorizedError(
                     headers=dict(_response.headers),
                     body=typing.cast(
                         typing.Any,

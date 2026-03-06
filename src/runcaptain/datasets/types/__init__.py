@@ -6,8 +6,8 @@ import typing
 from importlib import import_module
 
 if typing.TYPE_CHECKING:
-    from .types import BatchSearchDatasetsResponse
-_dynamic_imports: typing.Dict[str, str] = {"BatchSearchDatasetsResponse": ".types"}
+    from .batch_search_datasets_response import BatchSearchDatasetsResponse
+_dynamic_imports: typing.Dict[str, str] = {"BatchSearchDatasetsResponse": ".batch_search_datasets_response"}
 
 
 def __getattr__(attr_name: str) -> typing.Any:

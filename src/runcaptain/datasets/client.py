@@ -7,6 +7,10 @@ from ..core.request_options import RequestOptions
 from ..types.dataset_article_response import DatasetArticleResponse
 from ..types.dataset_search_response import DatasetSearchResponse
 from .raw_client import AsyncRawDatasetsClient, RawDatasetsClient
+from .types.batch_search_datasets_response import BatchSearchDatasetsResponse
+
+# this is used as the default value for optional parameters
+OMIT = typing.cast(typing.Any, ...)
 
 
 class DatasetsClient:
@@ -73,6 +77,71 @@ class DatasetsClient:
         )
         """
         _response = self._raw_client.search_dataset(dataset, q=q, limit=limit, request_options=request_options)
+        return _response.data
+
+    def batch_search_datasets(
+        self,
+        *,
+        q: str,
+        datasets: typing.Optional[typing.Sequence[str]] = OMIT,
+        limit: typing.Optional[int] = OMIT,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> BatchSearchDatasetsResponse:
+        """
+        Search for articles across multiple news datasets in a single request.
+
+        Searches the same query across all specified datasets simultaneously. If no datasets are specified, searches all available datasets.
+
+        ## Supported Datasets
+        - `nytimes` - New York Times
+        - `washpost` - Washington Post
+        - `sfstandard` - SF Standard
+        - `sacbee` - Sacramento Bee
+        - `sfchronicle` - San Francisco Chronicle
+        - `newyorker` - The New Yorker
+        - `theatlantic` - The Atlantic
+        - `sjmercury` - San Jose Mercury News
+        - `latimes` - Los Angeles Times
+
+        ## Response
+        Returns results grouped by dataset source, with title, URL, snippet, and date for each article.
+
+        Parameters
+        ----------
+        q : str
+            Search query
+
+        datasets : typing.Optional[typing.Sequence[str]]
+            List of dataset names to search. Defaults to all datasets if not provided.
+
+        limit : typing.Optional[int]
+            Maximum number of results to return (default: 10, max: 100)
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        BatchSearchDatasetsResponse
+            Batch search completed successfully
+
+        Examples
+        --------
+        from runcaptain import Captain
+
+        client = Captain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+        client.datasets.batch_search_datasets(
+            q="artificial intelligence regulation",
+            datasets=["nytimes", "washpost", "theatlantic"],
+            limit=10,
+        )
+        """
+        _response = self._raw_client.batch_search_datasets(
+            q=q, datasets=datasets, limit=limit, request_options=request_options
+        )
         return _response.data
 
     def get_dataset_article(
@@ -193,6 +262,79 @@ class AsyncDatasetsClient:
         asyncio.run(main())
         """
         _response = await self._raw_client.search_dataset(dataset, q=q, limit=limit, request_options=request_options)
+        return _response.data
+
+    async def batch_search_datasets(
+        self,
+        *,
+        q: str,
+        datasets: typing.Optional[typing.Sequence[str]] = OMIT,
+        limit: typing.Optional[int] = OMIT,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> BatchSearchDatasetsResponse:
+        """
+        Search for articles across multiple news datasets in a single request.
+
+        Searches the same query across all specified datasets simultaneously. If no datasets are specified, searches all available datasets.
+
+        ## Supported Datasets
+        - `nytimes` - New York Times
+        - `washpost` - Washington Post
+        - `sfstandard` - SF Standard
+        - `sacbee` - Sacramento Bee
+        - `sfchronicle` - San Francisco Chronicle
+        - `newyorker` - The New Yorker
+        - `theatlantic` - The Atlantic
+        - `sjmercury` - San Jose Mercury News
+        - `latimes` - Los Angeles Times
+
+        ## Response
+        Returns results grouped by dataset source, with title, URL, snippet, and date for each article.
+
+        Parameters
+        ----------
+        q : str
+            Search query
+
+        datasets : typing.Optional[typing.Sequence[str]]
+            List of dataset names to search. Defaults to all datasets if not provided.
+
+        limit : typing.Optional[int]
+            Maximum number of results to return (default: 10, max: 100)
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        BatchSearchDatasetsResponse
+            Batch search completed successfully
+
+        Examples
+        --------
+        import asyncio
+
+        from runcaptain import AsyncCaptain
+
+        client = AsyncCaptain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.datasets.batch_search_datasets(
+                q="artificial intelligence regulation",
+                datasets=["nytimes", "washpost", "theatlantic"],
+                limit=10,
+            )
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.batch_search_datasets(
+            q=q, datasets=datasets, limit=limit, request_options=request_options
+        )
         return _response.data
 
     async def get_dataset_article(
