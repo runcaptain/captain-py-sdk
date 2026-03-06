@@ -83,6 +83,7 @@ if typing.TYPE_CHECKING:
     )
     from .client import AsyncCaptain, Captain
     from .collections import ChangeEnvironmentRequestV2NewEnvironment
+    from .datasets import BatchSearchDatasetsResponse
     from .environment import CaptainEnvironment
     from .indexing import (
         IndexAzureDirectoryRequestV2ProcessingType,
@@ -106,6 +107,7 @@ if typing.TYPE_CHECKING:
 _dynamic_imports: typing.Dict[str, str] = {
     "AsyncCaptain": ".client",
     "BadRequestError": ".errors",
+    "BatchSearchDatasetsResponse": ".datasets",
     "BillingCost": ".types",
     "BillingCredits": ".types",
     "BillingRate": ".types",
@@ -221,6 +223,7 @@ def __dir__():
 __all__ = [
     "AsyncCaptain",
     "BadRequestError",
+    "BatchSearchDatasetsResponse",
     "BillingCost",
     "BillingCredits",
     "BillingRate",

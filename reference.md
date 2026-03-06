@@ -2874,6 +2874,111 @@ client.datasets.search_dataset(
 </dl>
 </details>
 
+<details><summary><code>client.datasets.<a href="src/runcaptain/datasets/client.py">batch_search_datasets</a>(...) -&gt; AsyncHttpResponse[BatchSearchDatasetsResponse]</code></summary>
+<dl>
+<dd>
+
+#### 📝 Description
+
+<dl>
+<dd>
+
+<dl>
+<dd>
+
+Search for articles across multiple news datasets in a single request.
+
+Searches the same query across all specified datasets simultaneously. If no datasets are specified, searches all available datasets.
+
+## Supported Datasets
+- `nytimes` - New York Times
+- `washpost` - Washington Post
+- `sfstandard` - SF Standard
+- `sacbee` - Sacramento Bee
+- `sfchronicle` - San Francisco Chronicle
+- `newyorker` - The New Yorker
+- `theatlantic` - The Atlantic
+- `sjmercury` - San Jose Mercury News
+- `latimes` - Los Angeles Times
+
+## Response
+Returns results grouped by dataset source, with title, URL, snippet, and date for each article.
+</dd>
+</dl>
+</dd>
+</dl>
+
+#### 🔌 Usage
+
+<dl>
+<dd>
+
+<dl>
+<dd>
+
+```python
+from runcaptain import Captain
+
+client = Captain(
+    organization_id="YOUR_ORGANIZATION_ID",
+    key="YOUR_KEY",
+)
+client.datasets.batch_search_datasets(
+    q="artificial intelligence regulation",
+    datasets=["nytimes", "washpost", "theatlantic"],
+    limit=10,
+)
+
+```
+</dd>
+</dl>
+</dd>
+</dl>
+
+#### ⚙️ Parameters
+
+<dl>
+<dd>
+
+<dl>
+<dd>
+
+**q:** `str` — Search query
+    
+</dd>
+</dl>
+
+<dl>
+<dd>
+
+**datasets:** `typing.Optional[typing.Sequence[str]]` — List of dataset names to search. Defaults to all datasets if not provided.
+    
+</dd>
+</dl>
+
+<dl>
+<dd>
+
+**limit:** `typing.Optional[int]` — Maximum number of results to return (default: 10, max: 100)
+    
+</dd>
+</dl>
+
+<dl>
+<dd>
+
+**request_options:** `typing.Optional[RequestOptions]` — Request-specific configuration.
+    
+</dd>
+</dl>
+</dd>
+</dl>
+
+
+</dd>
+</dl>
+</details>
+
 <details><summary><code>client.datasets.<a href="src/runcaptain/datasets/client.py">get_dataset_article</a>(...) -&gt; AsyncHttpResponse[DatasetArticleResponse]</code></summary>
 <dl>
 <dd>
