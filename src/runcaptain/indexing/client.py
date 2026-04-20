@@ -2,13 +2,16 @@
 
 import typing
 
+from .. import core
 from ..core.client_wrapper import AsyncClientWrapper, SyncClientWrapper
 from ..core.request_options import RequestOptions
 from ..types.index_job_response_v2 import IndexJobResponseV2
+from ..types.validate_parsing_script_response_v2 import ValidateParsingScriptResponseV2
 from .raw_client import AsyncRawIndexingClient, RawIndexingClient
 from .types.index_azure_directory_request_v2processing_type import IndexAzureDirectoryRequestV2ProcessingType
 from .types.index_azure_file_request_v2processing_type import IndexAzureFileRequestV2ProcessingType
 from .types.index_azure_request_v2processing_type import IndexAzureRequestV2ProcessingType
+from .types.index_file_v2request_processing_type import IndexFileV2RequestProcessingType
 from .types.index_gcs_directory_request_v2processing_type import IndexGcsDirectoryRequestV2ProcessingType
 from .types.index_gcs_file_request_v2processing_type import IndexGcsFileRequestV2ProcessingType
 from .types.index_gcs_request_v2processing_type import IndexGcsRequestV2ProcessingType
@@ -50,10 +53,12 @@ class IndexingClient:
         aws_access_key_id: str,
         aws_secret_access_key: str,
         processing_type: IndexS3RequestV2ProcessingType,
+        idempotency_key: typing.Optional[str] = None,
         bucket_region: typing.Optional[str] = OMIT,
         max_files: typing.Optional[int] = OMIT,
         skip_existing: typing.Optional[bool] = OMIT,
         custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
+        parsing_script: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> IndexJobResponseV2:
         """
@@ -62,6 +67,7 @@ class IndexingClient:
         Parameters
         ----------
         collection_name : str
+            Name of the collection to index into
 
         bucket_name : str
             Name of the S3 bucket
@@ -75,6 +81,9 @@ class IndexingClient:
         processing_type : IndexS3RequestV2ProcessingType
             Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
 
+        idempotency_key : typing.Optional[str]
+            UUID for request deduplication
+
         bucket_region : typing.Optional[str]
             AWS region where the bucket is located
 
@@ -86,6 +95,9 @@ class IndexingClient:
 
         custom_metadata : typing.Optional[typing.Dict[str, typing.Any]]
             Custom metadata to attach to all indexed chunks. Keys must be strings. Values: str, int, float, bool, or array of strings.
+
+        parsing_script : typing.Optional[str]
+            Relative path to a JavaScript parsing script for JSON files (e.g. 'research/paper-parser'). When provided, .json files are processed through a sandboxed V8 isolate that executes the script to extract text and metadata. Without this parameter, .json files are indexed as raw text. Scripts are org-scoped and managed in the Parser Studio.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -119,10 +131,12 @@ class IndexingClient:
             aws_access_key_id=aws_access_key_id,
             aws_secret_access_key=aws_secret_access_key,
             processing_type=processing_type,
+            idempotency_key=idempotency_key,
             bucket_region=bucket_region,
             max_files=max_files,
             skip_existing=skip_existing,
             custom_metadata=custom_metadata,
+            parsing_script=parsing_script,
             request_options=request_options,
         )
         return _response.data
@@ -138,6 +152,7 @@ class IndexingClient:
         processing_type: IndexS3FileRequestV2ProcessingType,
         bucket_region: typing.Optional[str] = OMIT,
         custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
+        parsing_script: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> IndexJobResponseV2:
         """
@@ -146,6 +161,7 @@ class IndexingClient:
         Parameters
         ----------
         collection_name : str
+            Name of the collection to index into
 
         bucket_name : str
             Name of the S3 bucket
@@ -167,6 +183,9 @@ class IndexingClient:
 
         custom_metadata : typing.Optional[typing.Dict[str, typing.Any]]
             Custom metadata to attach to all chunks from this file. Keys must be strings. Values: str, int, float, bool, or array of strings.
+
+        parsing_script : typing.Optional[str]
+            Relative path to a JavaScript parsing script for JSON files (e.g. 'research/paper-parser'). When provided, .json files are processed through a sandboxed V8 isolate that executes the script to extract text and metadata. Without this parameter, .json files are indexed as raw text. Scripts are org-scoped and managed in the Parser Studio.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -203,6 +222,7 @@ class IndexingClient:
             processing_type=processing_type,
             bucket_region=bucket_region,
             custom_metadata=custom_metadata,
+            parsing_script=parsing_script,
             request_options=request_options,
         )
         return _response.data
@@ -217,6 +237,7 @@ class IndexingClient:
         max_files: typing.Optional[int] = OMIT,
         skip_existing: typing.Optional[bool] = OMIT,
         custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
+        parsing_script: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> IndexJobResponseV2:
         """
@@ -225,6 +246,7 @@ class IndexingClient:
         Parameters
         ----------
         collection_name : str
+            Name of the collection to index into
 
         bucket_name : str
             Name of the GCS bucket
@@ -243,6 +265,9 @@ class IndexingClient:
 
         custom_metadata : typing.Optional[typing.Dict[str, typing.Any]]
             Custom metadata to attach to all indexed chunks. Keys must be strings. Values: str, int, float, bool, or array of strings.
+
+        parsing_script : typing.Optional[str]
+            Relative path to a JavaScript parsing script for JSON files (e.g. 'research/paper-parser'). When provided, .json files are processed through a sandboxed V8 isolate that executes the script to extract text and metadata. Without this parameter, .json files are indexed as raw text. Scripts are org-scoped and managed in the Parser Studio.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -275,6 +300,7 @@ class IndexingClient:
             max_files=max_files,
             skip_existing=skip_existing,
             custom_metadata=custom_metadata,
+            parsing_script=parsing_script,
             request_options=request_options,
         )
         return _response.data
@@ -288,6 +314,7 @@ class IndexingClient:
         service_account_json: str,
         processing_type: IndexGcsFileRequestV2ProcessingType,
         custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
+        parsing_script: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> IndexJobResponseV2:
         """
@@ -296,6 +323,7 @@ class IndexingClient:
         Parameters
         ----------
         collection_name : str
+            Name of the collection to index into
 
         bucket_name : str
             Name of the GCS bucket
@@ -311,6 +339,9 @@ class IndexingClient:
 
         custom_metadata : typing.Optional[typing.Dict[str, typing.Any]]
             Custom metadata to attach to all chunks from this file. Keys must be strings. Values: str, int, float, bool, or array of strings.
+
+        parsing_script : typing.Optional[str]
+            Relative path to a JavaScript parsing script for JSON files (e.g. 'research/paper-parser'). When provided, .json files are processed through a sandboxed V8 isolate that executes the script to extract text and metadata. Without this parameter, .json files are indexed as raw text. Scripts are org-scoped and managed in the Parser Studio.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -343,6 +374,7 @@ class IndexingClient:
             service_account_json=service_account_json,
             processing_type=processing_type,
             custom_metadata=custom_metadata,
+            parsing_script=parsing_script,
             request_options=request_options,
         )
         return _response.data
@@ -356,10 +388,12 @@ class IndexingClient:
         aws_access_key_id: str,
         aws_secret_access_key: str,
         processing_type: IndexS3DirectoryRequestV2ProcessingType,
+        idempotency_key: typing.Optional[str] = None,
         bucket_region: typing.Optional[str] = OMIT,
         max_files: typing.Optional[int] = OMIT,
         skip_existing: typing.Optional[bool] = OMIT,
         custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
+        parsing_script: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> IndexJobResponseV2:
         """
@@ -368,6 +402,7 @@ class IndexingClient:
         Parameters
         ----------
         collection_name : str
+            Name of the collection to index into
 
         bucket_name : str
             Name of the S3 bucket
@@ -384,6 +419,9 @@ class IndexingClient:
         processing_type : IndexS3DirectoryRequestV2ProcessingType
             Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
 
+        idempotency_key : typing.Optional[str]
+            UUID for request deduplication
+
         bucket_region : typing.Optional[str]
             AWS region where the bucket is located
 
@@ -395,6 +433,9 @@ class IndexingClient:
 
         custom_metadata : typing.Optional[typing.Dict[str, typing.Any]]
             Custom metadata to attach to all indexed chunks. Keys must be strings. Values: str, int, float, bool, or array of strings.
+
+        parsing_script : typing.Optional[str]
+            Relative path to a JavaScript parsing script for JSON files (e.g. 'research/paper-parser'). When provided, .json files are processed through a sandboxed V8 isolate that executes the script to extract text and metadata. Without this parameter, .json files are indexed as raw text. Scripts are org-scoped and managed in the Parser Studio.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -429,10 +470,12 @@ class IndexingClient:
             aws_access_key_id=aws_access_key_id,
             aws_secret_access_key=aws_secret_access_key,
             processing_type=processing_type,
+            idempotency_key=idempotency_key,
             bucket_region=bucket_region,
             max_files=max_files,
             skip_existing=skip_existing,
             custom_metadata=custom_metadata,
+            parsing_script=parsing_script,
             request_options=request_options,
         )
         return _response.data
@@ -445,9 +488,11 @@ class IndexingClient:
         directory_path: str,
         service_account_json: str,
         processing_type: IndexGcsDirectoryRequestV2ProcessingType,
+        idempotency_key: typing.Optional[str] = None,
         max_files: typing.Optional[int] = OMIT,
         skip_existing: typing.Optional[bool] = OMIT,
         custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
+        parsing_script: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> IndexJobResponseV2:
         """
@@ -456,6 +501,7 @@ class IndexingClient:
         Parameters
         ----------
         collection_name : str
+            Name of the collection to index into
 
         bucket_name : str
             Name of the GCS bucket
@@ -469,6 +515,9 @@ class IndexingClient:
         processing_type : IndexGcsDirectoryRequestV2ProcessingType
             Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
 
+        idempotency_key : typing.Optional[str]
+            UUID for request deduplication
+
         max_files : typing.Optional[int]
             Maximum number of files to index (optional)
 
@@ -477,6 +526,9 @@ class IndexingClient:
 
         custom_metadata : typing.Optional[typing.Dict[str, typing.Any]]
             Custom metadata to attach to all indexed chunks. Keys must be strings. Values: str, int, float, bool, or array of strings.
+
+        parsing_script : typing.Optional[str]
+            Relative path to a JavaScript parsing script for JSON files (e.g. 'research/paper-parser'). When provided, .json files are processed through a sandboxed V8 isolate that executes the script to extract text and metadata. Without this parameter, .json files are indexed as raw text. Scripts are org-scoped and managed in the Parser Studio.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -508,9 +560,11 @@ class IndexingClient:
             directory_path=directory_path,
             service_account_json=service_account_json,
             processing_type=processing_type,
+            idempotency_key=idempotency_key,
             max_files=max_files,
             skip_existing=skip_existing,
             custom_metadata=custom_metadata,
+            parsing_script=parsing_script,
             request_options=request_options,
         )
         return _response.data
@@ -523,9 +577,11 @@ class IndexingClient:
         account_name: str,
         account_key: str,
         processing_type: IndexAzureRequestV2ProcessingType,
+        idempotency_key: typing.Optional[str] = None,
         max_files: typing.Optional[int] = OMIT,
         skip_existing: typing.Optional[bool] = OMIT,
         custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
+        parsing_script: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> IndexJobResponseV2:
         """
@@ -534,6 +590,7 @@ class IndexingClient:
         Parameters
         ----------
         collection_name : str
+            Name of the collection to index into
 
         container_name : str
             Name of the Azure Blob Storage container
@@ -547,6 +604,9 @@ class IndexingClient:
         processing_type : IndexAzureRequestV2ProcessingType
             Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
 
+        idempotency_key : typing.Optional[str]
+            UUID for request deduplication
+
         max_files : typing.Optional[int]
             Maximum number of files to index (optional)
 
@@ -555,6 +615,9 @@ class IndexingClient:
 
         custom_metadata : typing.Optional[typing.Dict[str, typing.Any]]
             Custom metadata to attach to all indexed chunks. Keys must be strings. Values: str, int, float, bool, or array of strings.
+
+        parsing_script : typing.Optional[str]
+            Relative path to a JavaScript parsing script for JSON files (e.g. 'research/paper-parser'). When provided, .json files are processed through a sandboxed V8 isolate that executes the script to extract text and metadata. Without this parameter, .json files are indexed as raw text. Scripts are org-scoped and managed in the Parser Studio.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -586,9 +649,11 @@ class IndexingClient:
             account_name=account_name,
             account_key=account_key,
             processing_type=processing_type,
+            idempotency_key=idempotency_key,
             max_files=max_files,
             skip_existing=skip_existing,
             custom_metadata=custom_metadata,
+            parsing_script=parsing_script,
             request_options=request_options,
         )
         return _response.data
@@ -603,6 +668,7 @@ class IndexingClient:
         account_key: str,
         processing_type: IndexAzureFileRequestV2ProcessingType,
         custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
+        parsing_script: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> IndexJobResponseV2:
         """
@@ -611,6 +677,7 @@ class IndexingClient:
         Parameters
         ----------
         collection_name : str
+            Name of the collection to index into
 
         container_name : str
             Name of the Azure Blob Storage container
@@ -629,6 +696,9 @@ class IndexingClient:
 
         custom_metadata : typing.Optional[typing.Dict[str, typing.Any]]
             Custom metadata to attach to all chunks from this file. Keys must be strings. Values: str, int, float, bool, or array of strings.
+
+        parsing_script : typing.Optional[str]
+            Relative path to a JavaScript parsing script for JSON files (e.g. 'research/paper-parser'). When provided, .json files are processed through a sandboxed V8 isolate that executes the script to extract text and metadata. Without this parameter, .json files are indexed as raw text. Scripts are org-scoped and managed in the Parser Studio.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -663,6 +733,7 @@ class IndexingClient:
             account_key=account_key,
             processing_type=processing_type,
             custom_metadata=custom_metadata,
+            parsing_script=parsing_script,
             request_options=request_options,
         )
         return _response.data
@@ -676,9 +747,11 @@ class IndexingClient:
         account_name: str,
         account_key: str,
         processing_type: IndexAzureDirectoryRequestV2ProcessingType,
+        idempotency_key: typing.Optional[str] = None,
         max_files: typing.Optional[int] = OMIT,
         skip_existing: typing.Optional[bool] = OMIT,
         custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
+        parsing_script: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> IndexJobResponseV2:
         """
@@ -687,6 +760,7 @@ class IndexingClient:
         Parameters
         ----------
         collection_name : str
+            Name of the collection to index into
 
         container_name : str
             Name of the Azure Blob Storage container
@@ -703,6 +777,9 @@ class IndexingClient:
         processing_type : IndexAzureDirectoryRequestV2ProcessingType
             Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
 
+        idempotency_key : typing.Optional[str]
+            UUID for request deduplication
+
         max_files : typing.Optional[int]
             Maximum number of files to index (optional)
 
@@ -711,6 +788,9 @@ class IndexingClient:
 
         custom_metadata : typing.Optional[typing.Dict[str, typing.Any]]
             Custom metadata to attach to all indexed chunks. Keys must be strings. Values: str, int, float, bool, or array of strings.
+
+        parsing_script : typing.Optional[str]
+            Relative path to a JavaScript parsing script for JSON files (e.g. 'research/paper-parser'). When provided, .json files are processed through a sandboxed V8 isolate that executes the script to extract text and metadata. Without this parameter, .json files are indexed as raw text. Scripts are org-scoped and managed in the Parser Studio.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -744,9 +824,11 @@ class IndexingClient:
             account_name=account_name,
             account_key=account_key,
             processing_type=processing_type,
+            idempotency_key=idempotency_key,
             max_files=max_files,
             skip_existing=skip_existing,
             custom_metadata=custom_metadata,
+            parsing_script=parsing_script,
             request_options=request_options,
         )
         return _response.data
@@ -760,18 +842,21 @@ class IndexingClient:
         access_key_id: str,
         secret_access_key: str,
         processing_type: IndexR2RequestV2ProcessingType,
+        idempotency_key: typing.Optional[str] = None,
         jurisdiction: typing.Optional[IndexR2RequestV2Jurisdiction] = OMIT,
         max_files: typing.Optional[int] = OMIT,
         skip_existing: typing.Optional[bool] = OMIT,
         custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
+        parsing_script: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> IndexJobResponseV2:
         """
-        Index all files from a Cloudflare R2 bucket into a collection. R2 is S3-compatible â€” provide your R2 API token's Access Key ID and Secret Access Key. Returns a job_id for tracking progress via GET /v2/jobs/{job_id}.
+        Index all files from a Cloudflare R2 bucket into a collection. R2 is S3-compatible  -  provide your R2 API token's Access Key ID and Secret Access Key. Returns a job_id for tracking progress via GET /v2/jobs/{job_id}.
 
         Parameters
         ----------
         collection_name : str
+            Name of the collection to index into
 
         bucket_name : str
             Name of the R2 bucket
@@ -788,6 +873,9 @@ class IndexingClient:
         processing_type : IndexR2RequestV2ProcessingType
             Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
 
+        idempotency_key : typing.Optional[str]
+            UUID for request deduplication
+
         jurisdiction : typing.Optional[IndexR2RequestV2Jurisdiction]
             R2 jurisdiction. 'default' for global, 'eu' for EU-only storage, 'fedramp' for FedRAMP-compliant storage.
 
@@ -799,6 +887,9 @@ class IndexingClient:
 
         custom_metadata : typing.Optional[typing.Dict[str, typing.Any]]
             Custom metadata to attach to all indexed chunks. Keys must be strings. Values: str, int, float, bool, or array of strings.
+
+        parsing_script : typing.Optional[str]
+            Relative path to a JavaScript parsing script for JSON files (e.g. 'research/paper-parser'). When provided, .json files are processed through a sandboxed V8 isolate that executes the script to extract text and metadata. Without this parameter, .json files are indexed as raw text. Scripts are org-scoped and managed in the Parser Studio.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -832,10 +923,12 @@ class IndexingClient:
             access_key_id=access_key_id,
             secret_access_key=secret_access_key,
             processing_type=processing_type,
+            idempotency_key=idempotency_key,
             jurisdiction=jurisdiction,
             max_files=max_files,
             skip_existing=skip_existing,
             custom_metadata=custom_metadata,
+            parsing_script=parsing_script,
             request_options=request_options,
         )
         return _response.data
@@ -852,6 +945,7 @@ class IndexingClient:
         processing_type: IndexR2FileRequestV2ProcessingType,
         jurisdiction: typing.Optional[IndexR2FileRequestV2Jurisdiction] = OMIT,
         custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
+        parsing_script: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> IndexJobResponseV2:
         """
@@ -860,6 +954,7 @@ class IndexingClient:
         Parameters
         ----------
         collection_name : str
+            Name of the collection to index into
 
         bucket_name : str
             Name of the R2 bucket
@@ -884,6 +979,9 @@ class IndexingClient:
 
         custom_metadata : typing.Optional[typing.Dict[str, typing.Any]]
             Custom metadata to attach to all chunks from this file. Keys must be strings. Values: str, int, float, bool, or array of strings.
+
+        parsing_script : typing.Optional[str]
+            Relative path to a JavaScript parsing script for JSON files (e.g. 'research/paper-parser'). When provided, .json files are processed through a sandboxed V8 isolate that executes the script to extract text and metadata. Without this parameter, .json files are indexed as raw text. Scripts are org-scoped and managed in the Parser Studio.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -921,6 +1019,7 @@ class IndexingClient:
             processing_type=processing_type,
             jurisdiction=jurisdiction,
             custom_metadata=custom_metadata,
+            parsing_script=parsing_script,
             request_options=request_options,
         )
         return _response.data
@@ -935,10 +1034,12 @@ class IndexingClient:
         access_key_id: str,
         secret_access_key: str,
         processing_type: IndexR2DirectoryRequestV2ProcessingType,
+        idempotency_key: typing.Optional[str] = None,
         jurisdiction: typing.Optional[IndexR2DirectoryRequestV2Jurisdiction] = OMIT,
         max_files: typing.Optional[int] = OMIT,
         skip_existing: typing.Optional[bool] = OMIT,
         custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
+        parsing_script: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> IndexJobResponseV2:
         """
@@ -947,6 +1048,7 @@ class IndexingClient:
         Parameters
         ----------
         collection_name : str
+            Name of the collection to index into
 
         bucket_name : str
             Name of the R2 bucket
@@ -966,6 +1068,9 @@ class IndexingClient:
         processing_type : IndexR2DirectoryRequestV2ProcessingType
             Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
 
+        idempotency_key : typing.Optional[str]
+            UUID for request deduplication
+
         jurisdiction : typing.Optional[IndexR2DirectoryRequestV2Jurisdiction]
             R2 jurisdiction. 'default' for global, 'eu' for EU-only storage, 'fedramp' for FedRAMP-compliant storage.
 
@@ -977,6 +1082,9 @@ class IndexingClient:
 
         custom_metadata : typing.Optional[typing.Dict[str, typing.Any]]
             Custom metadata to attach to all indexed chunks. Keys must be strings. Values: str, int, float, bool, or array of strings.
+
+        parsing_script : typing.Optional[str]
+            Relative path to a JavaScript parsing script for JSON files (e.g. 'research/paper-parser'). When provided, .json files are processed through a sandboxed V8 isolate that executes the script to extract text and metadata. Without this parameter, .json files are indexed as raw text. Scripts are org-scoped and managed in the Parser Studio.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -1012,10 +1120,12 @@ class IndexingClient:
             access_key_id=access_key_id,
             secret_access_key=secret_access_key,
             processing_type=processing_type,
+            idempotency_key=idempotency_key,
             jurisdiction=jurisdiction,
             max_files=max_files,
             skip_existing=skip_existing,
             custom_metadata=custom_metadata,
+            parsing_script=parsing_script,
             request_options=request_options,
         )
         return _response.data
@@ -1025,37 +1135,62 @@ class IndexingClient:
         collection_name: str,
         *,
         processing_type: IndexUrlRequestV2ProcessingType,
+        idempotency_key: typing.Optional[str] = None,
         url: typing.Optional[str] = OMIT,
         urls: typing.Optional[typing.Sequence[str]] = OMIT,
         custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
+        parsing_script: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> IndexJobResponseV2:
         """
-        Index documents from public URLs into a collection. No cloud storage credentials required.
+        Index documents or web pages from public URLs into a collection. No cloud storage credentials required.
 
         You can provide either:
-        - `url` â€” a single URL string for one document
-        - `urls` â€” an array of URL strings for multiple documents
+        - `url`  -  a single URL string
+        - `urls`  -  an array of URL strings
 
-        Supported file types: PDF, DOCX, DOC, XLSX, XLS, CSV, TSV, TXT, MD, JSON, YAML, YML, PNG, JPG, JPEG, GIF, BMP, TIFF. Documents are downloaded and processed through the same pipeline as cloud storage indexing.
+        ## Smart Content Detection
+
+        The endpoint automatically detects whether a URL points to a hosted file or a web page:
+
+        - **Hosted files** (PDF, DOCX, XLSX, CSV, TXT, images, etc.) are downloaded and processed directly through the indexing pipeline.
+        - **Web pages** (HTML) are automatically scraped  -  text content is extracted as markdown and page images are downloaded and indexed. Bot-protected pages are handled via web unlocker technology.
+
+        ## Supported Content
+
+        - **Documents**: PDF, DOCX, DOC, XLSX, XLS, CSV, TSV, TXT, MD, JSON, YAML, YML
+        - **Images**: PNG, JPG, JPEG, GIF, BMP, TIFF
+        - **Web pages**: Any public URL serving HTML  -  text and images are extracted automatically
+
+        ## Processing Modes for Web Pages
+
+        - **advanced**: Extracts text content as markdown AND downloads and indexes all page images
+        - **basic**: Extracts text content only  -  faster and lower cost
 
         Returns a job_id for tracking progress via GET /v2/jobs/{job_id}.
 
         Parameters
         ----------
         collection_name : str
+            Name of the collection to index into
 
         processing_type : IndexUrlRequestV2ProcessingType
-            Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
+            Processing mode. For hosted documents: 'advanced' enables AI-enhanced extraction for complex layouts, tables, figures, and charts; 'basic' provides standard document processing. For web pages: 'advanced' extracts both text content and page images; 'basic' extracts text content only (faster, lower cost).
+
+        idempotency_key : typing.Optional[str]
+            UUID for request deduplication
 
         url : typing.Optional[str]
-            A single public URL to a hosted document. Supported types: PDF, DOCX, DOC, XLSX, XLS, CSV, TSV, TXT, MD, JSON, YAML, YML, PNG, JPG, JPEG, GIF, BMP, TIFF. Provide either 'url' or 'urls', not both.
+            A single public URL to a document or web page. Hosted files (PDF, DOCX, etc.) are indexed directly. Web pages (HTML) are automatically scraped  -  text and images are extracted. Provide either 'url' or 'urls', not both.
 
         urls : typing.Optional[typing.Sequence[str]]
-            An array of public URLs to hosted documents. Provide either 'url' or 'urls', not both.
+            An array of public URLs to documents or web pages. Each URL is auto-detected  -  hosted files are indexed directly, web pages are scraped. Provide either 'url' or 'urls', not both.
 
         custom_metadata : typing.Optional[typing.Dict[str, typing.Any]]
             Custom metadata to attach to all indexed chunks. Keys must be strings. Values: str, int, float, bool, or array of strings.
+
+        parsing_script : typing.Optional[str]
+            Relative path to a JavaScript parsing script for JSON files (e.g. 'research/paper-parser'). When provided, .json files are processed through a sandboxed V8 isolate that executes the script to extract text and metadata. Without this parameter, .json files are indexed as raw text. Scripts are org-scoped and managed in the Parser Studio.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -1082,11 +1217,277 @@ class IndexingClient:
         _response = self._raw_client.index_url_v2(
             collection_name,
             processing_type=processing_type,
+            idempotency_key=idempotency_key,
             url=url,
             urls=urls,
             custom_metadata=custom_metadata,
+            parsing_script=parsing_script,
             request_options=request_options,
         )
+        return _response.data
+
+    def index_youtube_v2(
+        self,
+        collection_name: str,
+        *,
+        idempotency_key: typing.Optional[str] = None,
+        url: typing.Optional[str] = OMIT,
+        urls: typing.Optional[typing.Sequence[str]] = OMIT,
+        languages: typing.Optional[typing.Sequence[str]] = OMIT,
+        custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> IndexJobResponseV2:
+        """
+        Index YouTube video transcripts into a collection.
+
+        Fetches transcripts from YouTube videos using auto-generated or manual captions, formats them with inline timestamps, and indexes the text for semantic search.
+
+        You can provide either:
+        - `url`  -  a single YouTube video URL
+        - `urls`  -  an array of YouTube video URLs (max 20)
+
+        Transcripts are always processed as basic text (no OCR needed). Each transcript is formatted with `[HH:MM:SS]` timestamp markers so search results can reference specific moments in the video.
+
+        ## Supported URL Formats
+        - `youtube.com/watch?v=VIDEO_ID`
+        - `youtu.be/VIDEO_ID`
+        - `youtube.com/shorts/VIDEO_ID`
+
+        ## Auto-Injected Metadata
+        The following metadata is automatically added to indexed chunks:
+        - `youtube_video_id`  -  the video ID
+        - `youtube_url`  -  the original video URL
+        - `youtube_language`  -  transcript language
+        - `youtube_duration_seconds`  -  total video duration
+
+        Returns a job_id for tracking progress via GET /v2/jobs/{job_id}.
+
+        Parameters
+        ----------
+        collection_name : str
+            Name of the collection to index into
+
+        idempotency_key : typing.Optional[str]
+            UUID for request deduplication
+
+        url : typing.Optional[str]
+            A single YouTube video URL. Supported formats: youtube.com/watch?v=, youtu.be/, youtube.com/shorts/. Provide either 'url' or 'urls', not both.
+
+        urls : typing.Optional[typing.Sequence[str]]
+            An array of YouTube video URLs to index (max 20). Provide either 'url' or 'urls', not both.
+
+        languages : typing.Optional[typing.Sequence[str]]
+            Preferred transcript languages in priority order (ISO 639-1 codes). Defaults to English. Only specify if you need a non-English transcript (e.g., ['fr', 'de']). Falls back to auto-generated captions if manual transcript unavailable.
+
+        custom_metadata : typing.Optional[typing.Dict[str, typing.Any]]
+            Custom metadata to attach to all indexed chunks. Keys must be strings. Values: str, int, float, bool, or array of strings.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        IndexJobResponseV2
+            Indexing job started
+
+        Examples
+        --------
+        from runcaptain import Captain
+
+        client = Captain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+        client.indexing.index_youtube_v2(
+            collection_name="my_collection",
+            url="https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+        )
+        """
+        _response = self._raw_client.index_youtube_v2(
+            collection_name,
+            idempotency_key=idempotency_key,
+            url=url,
+            urls=urls,
+            languages=languages,
+            custom_metadata=custom_metadata,
+            request_options=request_options,
+        )
+        return _response.data
+
+    def index_text_v2(
+        self,
+        collection_name: str,
+        *,
+        content: str,
+        idempotency_key: typing.Optional[str] = None,
+        filename: typing.Optional[str] = OMIT,
+        custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> IndexJobResponseV2:
+        """
+        Index plain text content into a collection.
+
+        Accepts raw text content in the request body, saves it as a document, and indexes it for semantic search. No file upload or cloud storage needed.
+
+        Text is always processed as basic (no OCR). Ideal for indexing scraped content, notes, articles, or any plain text data.
+
+        Returns a job_id for tracking progress via GET /v2/jobs/{job_id}.
+
+        Parameters
+        ----------
+        collection_name : str
+            Name of the collection to index into
+
+        content : str
+            The text content to index.
+
+        idempotency_key : typing.Optional[str]
+            UUID for request deduplication
+
+        filename : typing.Optional[str]
+            Optional filename for the text document. Defaults to 'snippet-{N}.txt' where N auto-increments.
+
+        custom_metadata : typing.Optional[typing.Dict[str, typing.Any]]
+            Custom metadata to attach to all indexed chunks. Keys must be strings. Values: str, int, float, bool, or array of strings.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        IndexJobResponseV2
+            Indexing job started
+
+        Examples
+        --------
+        from runcaptain import Captain
+
+        client = Captain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+        client.indexing.index_text_v2(
+            collection_name="my_collection",
+            content="Machine learning is a subset of artificial intelligence that enables systems to learn and improve from experience...",
+            filename="ml_notes.txt",
+        )
+        """
+        _response = self._raw_client.index_text_v2(
+            collection_name,
+            content=content,
+            idempotency_key=idempotency_key,
+            filename=filename,
+            custom_metadata=custom_metadata,
+            request_options=request_options,
+        )
+        return _response.data
+
+    def index_file_v2(
+        self,
+        collection_name: str,
+        *,
+        files: typing.List[core.File],
+        idempotency_key: typing.Optional[str] = None,
+        processing_type: typing.Optional[IndexFileV2RequestProcessingType] = OMIT,
+        custom_metadata: typing.Optional[str] = OMIT,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> IndexJobResponseV2:
+        """
+        Upload and index files directly into a collection via multipart form-data.
+
+        Upload one or more files (max 20) in a single request. Supports PDF, DOCX, XLSX, CSV, TXT, images, and other document types. Files are processed through the same pipeline as cloud storage indexing.
+
+        ## Supported File Types
+        PDF, DOCX, DOC, XLSX, XLS, CSV, TSV, TXT, MD, JSON, YAML, YML, PNG, JPG, JPEG, GIF, BMP, TIFF
+
+        ## Size Limits
+        - Maximum 100MB per file
+        - Maximum 20 files per request
+
+        ## Processing Modes
+        - **advanced**: AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images (2.5 credits/page)
+        - **basic**: Standard document processing optimized for general indexing (1 credit/page)
+
+        Returns a job_id for tracking progress via GET /v2/jobs/{job_id}.
+
+        Parameters
+        ----------
+        collection_name : str
+            Name of the collection to index into
+
+        files : typing.List[core.File]
+            See core.File for more documentation
+
+        idempotency_key : typing.Optional[str]
+            UUID for request deduplication
+
+        processing_type : typing.Optional[IndexFileV2RequestProcessingType]
+            Document processing type: 'advanced' for AI-enhanced extraction, 'basic' for standard processing
+
+        custom_metadata : typing.Optional[str]
+            JSON string of custom metadata to attach to all indexed chunks
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        IndexJobResponseV2
+            Indexing job started
+
+        Examples
+        --------
+        from runcaptain import Captain
+
+        client = Captain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+        client.indexing.index_file_v2(
+            collection_name="my_collection",
+            processing_type="advanced",
+        )
+        """
+        _response = self._raw_client.index_file_v2(
+            collection_name,
+            files=files,
+            idempotency_key=idempotency_key,
+            processing_type=processing_type,
+            custom_metadata=custom_metadata,
+            request_options=request_options,
+        )
+        return _response.data
+
+    def validate_parsing_script_v2(
+        self, *, file: core.File, request_options: typing.Optional[RequestOptions] = None
+    ) -> ValidateParsingScriptResponseV2:
+        """
+        Validates a JavaScript parsing script without running it against real data. Upload your .js file as multipart/form-data under the file field. Checks that the script parses cleanly and exports a default function. Use this before uploading a script to catch syntax errors and structural problems. The return-type contract (must return a string) is enforced at indexing time by json_handler against your real JSON.
+
+        Parameters
+        ----------
+        file : core.File
+            See core.File for more documentation
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        ValidateParsingScriptResponseV2
+            Validation result. Returned for both valid AND invalid scripts.
+
+        Examples
+        --------
+        from runcaptain import Captain
+
+        client = Captain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+        client.indexing.validate_parsing_script_v2()
+        """
+        _response = self._raw_client.validate_parsing_script_v2(file=file, request_options=request_options)
         return _response.data
 
 
@@ -1113,10 +1514,12 @@ class AsyncIndexingClient:
         aws_access_key_id: str,
         aws_secret_access_key: str,
         processing_type: IndexS3RequestV2ProcessingType,
+        idempotency_key: typing.Optional[str] = None,
         bucket_region: typing.Optional[str] = OMIT,
         max_files: typing.Optional[int] = OMIT,
         skip_existing: typing.Optional[bool] = OMIT,
         custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
+        parsing_script: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> IndexJobResponseV2:
         """
@@ -1125,6 +1528,7 @@ class AsyncIndexingClient:
         Parameters
         ----------
         collection_name : str
+            Name of the collection to index into
 
         bucket_name : str
             Name of the S3 bucket
@@ -1138,6 +1542,9 @@ class AsyncIndexingClient:
         processing_type : IndexS3RequestV2ProcessingType
             Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
 
+        idempotency_key : typing.Optional[str]
+            UUID for request deduplication
+
         bucket_region : typing.Optional[str]
             AWS region where the bucket is located
 
@@ -1149,6 +1556,9 @@ class AsyncIndexingClient:
 
         custom_metadata : typing.Optional[typing.Dict[str, typing.Any]]
             Custom metadata to attach to all indexed chunks. Keys must be strings. Values: str, int, float, bool, or array of strings.
+
+        parsing_script : typing.Optional[str]
+            Relative path to a JavaScript parsing script for JSON files (e.g. 'research/paper-parser'). When provided, .json files are processed through a sandboxed V8 isolate that executes the script to extract text and metadata. Without this parameter, .json files are indexed as raw text. Scripts are org-scoped and managed in the Parser Studio.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -1190,10 +1600,12 @@ class AsyncIndexingClient:
             aws_access_key_id=aws_access_key_id,
             aws_secret_access_key=aws_secret_access_key,
             processing_type=processing_type,
+            idempotency_key=idempotency_key,
             bucket_region=bucket_region,
             max_files=max_files,
             skip_existing=skip_existing,
             custom_metadata=custom_metadata,
+            parsing_script=parsing_script,
             request_options=request_options,
         )
         return _response.data
@@ -1209,6 +1621,7 @@ class AsyncIndexingClient:
         processing_type: IndexS3FileRequestV2ProcessingType,
         bucket_region: typing.Optional[str] = OMIT,
         custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
+        parsing_script: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> IndexJobResponseV2:
         """
@@ -1217,6 +1630,7 @@ class AsyncIndexingClient:
         Parameters
         ----------
         collection_name : str
+            Name of the collection to index into
 
         bucket_name : str
             Name of the S3 bucket
@@ -1238,6 +1652,9 @@ class AsyncIndexingClient:
 
         custom_metadata : typing.Optional[typing.Dict[str, typing.Any]]
             Custom metadata to attach to all chunks from this file. Keys must be strings. Values: str, int, float, bool, or array of strings.
+
+        parsing_script : typing.Optional[str]
+            Relative path to a JavaScript parsing script for JSON files (e.g. 'research/paper-parser'). When provided, .json files are processed through a sandboxed V8 isolate that executes the script to extract text and metadata. Without this parameter, .json files are indexed as raw text. Scripts are org-scoped and managed in the Parser Studio.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -1282,6 +1699,7 @@ class AsyncIndexingClient:
             processing_type=processing_type,
             bucket_region=bucket_region,
             custom_metadata=custom_metadata,
+            parsing_script=parsing_script,
             request_options=request_options,
         )
         return _response.data
@@ -1296,6 +1714,7 @@ class AsyncIndexingClient:
         max_files: typing.Optional[int] = OMIT,
         skip_existing: typing.Optional[bool] = OMIT,
         custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
+        parsing_script: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> IndexJobResponseV2:
         """
@@ -1304,6 +1723,7 @@ class AsyncIndexingClient:
         Parameters
         ----------
         collection_name : str
+            Name of the collection to index into
 
         bucket_name : str
             Name of the GCS bucket
@@ -1322,6 +1742,9 @@ class AsyncIndexingClient:
 
         custom_metadata : typing.Optional[typing.Dict[str, typing.Any]]
             Custom metadata to attach to all indexed chunks. Keys must be strings. Values: str, int, float, bool, or array of strings.
+
+        parsing_script : typing.Optional[str]
+            Relative path to a JavaScript parsing script for JSON files (e.g. 'research/paper-parser'). When provided, .json files are processed through a sandboxed V8 isolate that executes the script to extract text and metadata. Without this parameter, .json files are indexed as raw text. Scripts are org-scoped and managed in the Parser Studio.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -1362,6 +1785,7 @@ class AsyncIndexingClient:
             max_files=max_files,
             skip_existing=skip_existing,
             custom_metadata=custom_metadata,
+            parsing_script=parsing_script,
             request_options=request_options,
         )
         return _response.data
@@ -1375,6 +1799,7 @@ class AsyncIndexingClient:
         service_account_json: str,
         processing_type: IndexGcsFileRequestV2ProcessingType,
         custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
+        parsing_script: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> IndexJobResponseV2:
         """
@@ -1383,6 +1808,7 @@ class AsyncIndexingClient:
         Parameters
         ----------
         collection_name : str
+            Name of the collection to index into
 
         bucket_name : str
             Name of the GCS bucket
@@ -1398,6 +1824,9 @@ class AsyncIndexingClient:
 
         custom_metadata : typing.Optional[typing.Dict[str, typing.Any]]
             Custom metadata to attach to all chunks from this file. Keys must be strings. Values: str, int, float, bool, or array of strings.
+
+        parsing_script : typing.Optional[str]
+            Relative path to a JavaScript parsing script for JSON files (e.g. 'research/paper-parser'). When provided, .json files are processed through a sandboxed V8 isolate that executes the script to extract text and metadata. Without this parameter, .json files are indexed as raw text. Scripts are org-scoped and managed in the Parser Studio.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -1438,6 +1867,7 @@ class AsyncIndexingClient:
             service_account_json=service_account_json,
             processing_type=processing_type,
             custom_metadata=custom_metadata,
+            parsing_script=parsing_script,
             request_options=request_options,
         )
         return _response.data
@@ -1451,10 +1881,12 @@ class AsyncIndexingClient:
         aws_access_key_id: str,
         aws_secret_access_key: str,
         processing_type: IndexS3DirectoryRequestV2ProcessingType,
+        idempotency_key: typing.Optional[str] = None,
         bucket_region: typing.Optional[str] = OMIT,
         max_files: typing.Optional[int] = OMIT,
         skip_existing: typing.Optional[bool] = OMIT,
         custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
+        parsing_script: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> IndexJobResponseV2:
         """
@@ -1463,6 +1895,7 @@ class AsyncIndexingClient:
         Parameters
         ----------
         collection_name : str
+            Name of the collection to index into
 
         bucket_name : str
             Name of the S3 bucket
@@ -1479,6 +1912,9 @@ class AsyncIndexingClient:
         processing_type : IndexS3DirectoryRequestV2ProcessingType
             Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
 
+        idempotency_key : typing.Optional[str]
+            UUID for request deduplication
+
         bucket_region : typing.Optional[str]
             AWS region where the bucket is located
 
@@ -1490,6 +1926,9 @@ class AsyncIndexingClient:
 
         custom_metadata : typing.Optional[typing.Dict[str, typing.Any]]
             Custom metadata to attach to all indexed chunks. Keys must be strings. Values: str, int, float, bool, or array of strings.
+
+        parsing_script : typing.Optional[str]
+            Relative path to a JavaScript parsing script for JSON files (e.g. 'research/paper-parser'). When provided, .json files are processed through a sandboxed V8 isolate that executes the script to extract text and metadata. Without this parameter, .json files are indexed as raw text. Scripts are org-scoped and managed in the Parser Studio.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -1532,10 +1971,12 @@ class AsyncIndexingClient:
             aws_access_key_id=aws_access_key_id,
             aws_secret_access_key=aws_secret_access_key,
             processing_type=processing_type,
+            idempotency_key=idempotency_key,
             bucket_region=bucket_region,
             max_files=max_files,
             skip_existing=skip_existing,
             custom_metadata=custom_metadata,
+            parsing_script=parsing_script,
             request_options=request_options,
         )
         return _response.data
@@ -1548,9 +1989,11 @@ class AsyncIndexingClient:
         directory_path: str,
         service_account_json: str,
         processing_type: IndexGcsDirectoryRequestV2ProcessingType,
+        idempotency_key: typing.Optional[str] = None,
         max_files: typing.Optional[int] = OMIT,
         skip_existing: typing.Optional[bool] = OMIT,
         custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
+        parsing_script: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> IndexJobResponseV2:
         """
@@ -1559,6 +2002,7 @@ class AsyncIndexingClient:
         Parameters
         ----------
         collection_name : str
+            Name of the collection to index into
 
         bucket_name : str
             Name of the GCS bucket
@@ -1572,6 +2016,9 @@ class AsyncIndexingClient:
         processing_type : IndexGcsDirectoryRequestV2ProcessingType
             Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
 
+        idempotency_key : typing.Optional[str]
+            UUID for request deduplication
+
         max_files : typing.Optional[int]
             Maximum number of files to index (optional)
 
@@ -1580,6 +2027,9 @@ class AsyncIndexingClient:
 
         custom_metadata : typing.Optional[typing.Dict[str, typing.Any]]
             Custom metadata to attach to all indexed chunks. Keys must be strings. Values: str, int, float, bool, or array of strings.
+
+        parsing_script : typing.Optional[str]
+            Relative path to a JavaScript parsing script for JSON files (e.g. 'research/paper-parser'). When provided, .json files are processed through a sandboxed V8 isolate that executes the script to extract text and metadata. Without this parameter, .json files are indexed as raw text. Scripts are org-scoped and managed in the Parser Studio.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -1619,9 +2069,11 @@ class AsyncIndexingClient:
             directory_path=directory_path,
             service_account_json=service_account_json,
             processing_type=processing_type,
+            idempotency_key=idempotency_key,
             max_files=max_files,
             skip_existing=skip_existing,
             custom_metadata=custom_metadata,
+            parsing_script=parsing_script,
             request_options=request_options,
         )
         return _response.data
@@ -1634,9 +2086,11 @@ class AsyncIndexingClient:
         account_name: str,
         account_key: str,
         processing_type: IndexAzureRequestV2ProcessingType,
+        idempotency_key: typing.Optional[str] = None,
         max_files: typing.Optional[int] = OMIT,
         skip_existing: typing.Optional[bool] = OMIT,
         custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
+        parsing_script: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> IndexJobResponseV2:
         """
@@ -1645,6 +2099,7 @@ class AsyncIndexingClient:
         Parameters
         ----------
         collection_name : str
+            Name of the collection to index into
 
         container_name : str
             Name of the Azure Blob Storage container
@@ -1658,6 +2113,9 @@ class AsyncIndexingClient:
         processing_type : IndexAzureRequestV2ProcessingType
             Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
 
+        idempotency_key : typing.Optional[str]
+            UUID for request deduplication
+
         max_files : typing.Optional[int]
             Maximum number of files to index (optional)
 
@@ -1666,6 +2124,9 @@ class AsyncIndexingClient:
 
         custom_metadata : typing.Optional[typing.Dict[str, typing.Any]]
             Custom metadata to attach to all indexed chunks. Keys must be strings. Values: str, int, float, bool, or array of strings.
+
+        parsing_script : typing.Optional[str]
+            Relative path to a JavaScript parsing script for JSON files (e.g. 'research/paper-parser'). When provided, .json files are processed through a sandboxed V8 isolate that executes the script to extract text and metadata. Without this parameter, .json files are indexed as raw text. Scripts are org-scoped and managed in the Parser Studio.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -1705,9 +2166,11 @@ class AsyncIndexingClient:
             account_name=account_name,
             account_key=account_key,
             processing_type=processing_type,
+            idempotency_key=idempotency_key,
             max_files=max_files,
             skip_existing=skip_existing,
             custom_metadata=custom_metadata,
+            parsing_script=parsing_script,
             request_options=request_options,
         )
         return _response.data
@@ -1722,6 +2185,7 @@ class AsyncIndexingClient:
         account_key: str,
         processing_type: IndexAzureFileRequestV2ProcessingType,
         custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
+        parsing_script: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> IndexJobResponseV2:
         """
@@ -1730,6 +2194,7 @@ class AsyncIndexingClient:
         Parameters
         ----------
         collection_name : str
+            Name of the collection to index into
 
         container_name : str
             Name of the Azure Blob Storage container
@@ -1748,6 +2213,9 @@ class AsyncIndexingClient:
 
         custom_metadata : typing.Optional[typing.Dict[str, typing.Any]]
             Custom metadata to attach to all chunks from this file. Keys must be strings. Values: str, int, float, bool, or array of strings.
+
+        parsing_script : typing.Optional[str]
+            Relative path to a JavaScript parsing script for JSON files (e.g. 'research/paper-parser'). When provided, .json files are processed through a sandboxed V8 isolate that executes the script to extract text and metadata. Without this parameter, .json files are indexed as raw text. Scripts are org-scoped and managed in the Parser Studio.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -1790,6 +2258,7 @@ class AsyncIndexingClient:
             account_key=account_key,
             processing_type=processing_type,
             custom_metadata=custom_metadata,
+            parsing_script=parsing_script,
             request_options=request_options,
         )
         return _response.data
@@ -1803,9 +2272,11 @@ class AsyncIndexingClient:
         account_name: str,
         account_key: str,
         processing_type: IndexAzureDirectoryRequestV2ProcessingType,
+        idempotency_key: typing.Optional[str] = None,
         max_files: typing.Optional[int] = OMIT,
         skip_existing: typing.Optional[bool] = OMIT,
         custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
+        parsing_script: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> IndexJobResponseV2:
         """
@@ -1814,6 +2285,7 @@ class AsyncIndexingClient:
         Parameters
         ----------
         collection_name : str
+            Name of the collection to index into
 
         container_name : str
             Name of the Azure Blob Storage container
@@ -1830,6 +2302,9 @@ class AsyncIndexingClient:
         processing_type : IndexAzureDirectoryRequestV2ProcessingType
             Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
 
+        idempotency_key : typing.Optional[str]
+            UUID for request deduplication
+
         max_files : typing.Optional[int]
             Maximum number of files to index (optional)
 
@@ -1838,6 +2313,9 @@ class AsyncIndexingClient:
 
         custom_metadata : typing.Optional[typing.Dict[str, typing.Any]]
             Custom metadata to attach to all indexed chunks. Keys must be strings. Values: str, int, float, bool, or array of strings.
+
+        parsing_script : typing.Optional[str]
+            Relative path to a JavaScript parsing script for JSON files (e.g. 'research/paper-parser'). When provided, .json files are processed through a sandboxed V8 isolate that executes the script to extract text and metadata. Without this parameter, .json files are indexed as raw text. Scripts are org-scoped and managed in the Parser Studio.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -1879,9 +2357,11 @@ class AsyncIndexingClient:
             account_name=account_name,
             account_key=account_key,
             processing_type=processing_type,
+            idempotency_key=idempotency_key,
             max_files=max_files,
             skip_existing=skip_existing,
             custom_metadata=custom_metadata,
+            parsing_script=parsing_script,
             request_options=request_options,
         )
         return _response.data
@@ -1895,18 +2375,21 @@ class AsyncIndexingClient:
         access_key_id: str,
         secret_access_key: str,
         processing_type: IndexR2RequestV2ProcessingType,
+        idempotency_key: typing.Optional[str] = None,
         jurisdiction: typing.Optional[IndexR2RequestV2Jurisdiction] = OMIT,
         max_files: typing.Optional[int] = OMIT,
         skip_existing: typing.Optional[bool] = OMIT,
         custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
+        parsing_script: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> IndexJobResponseV2:
         """
-        Index all files from a Cloudflare R2 bucket into a collection. R2 is S3-compatible â€” provide your R2 API token's Access Key ID and Secret Access Key. Returns a job_id for tracking progress via GET /v2/jobs/{job_id}.
+        Index all files from a Cloudflare R2 bucket into a collection. R2 is S3-compatible  -  provide your R2 API token's Access Key ID and Secret Access Key. Returns a job_id for tracking progress via GET /v2/jobs/{job_id}.
 
         Parameters
         ----------
         collection_name : str
+            Name of the collection to index into
 
         bucket_name : str
             Name of the R2 bucket
@@ -1923,6 +2406,9 @@ class AsyncIndexingClient:
         processing_type : IndexR2RequestV2ProcessingType
             Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
 
+        idempotency_key : typing.Optional[str]
+            UUID for request deduplication
+
         jurisdiction : typing.Optional[IndexR2RequestV2Jurisdiction]
             R2 jurisdiction. 'default' for global, 'eu' for EU-only storage, 'fedramp' for FedRAMP-compliant storage.
 
@@ -1934,6 +2420,9 @@ class AsyncIndexingClient:
 
         custom_metadata : typing.Optional[typing.Dict[str, typing.Any]]
             Custom metadata to attach to all indexed chunks. Keys must be strings. Values: str, int, float, bool, or array of strings.
+
+        parsing_script : typing.Optional[str]
+            Relative path to a JavaScript parsing script for JSON files (e.g. 'research/paper-parser'). When provided, .json files are processed through a sandboxed V8 isolate that executes the script to extract text and metadata. Without this parameter, .json files are indexed as raw text. Scripts are org-scoped and managed in the Parser Studio.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -1975,10 +2464,12 @@ class AsyncIndexingClient:
             access_key_id=access_key_id,
             secret_access_key=secret_access_key,
             processing_type=processing_type,
+            idempotency_key=idempotency_key,
             jurisdiction=jurisdiction,
             max_files=max_files,
             skip_existing=skip_existing,
             custom_metadata=custom_metadata,
+            parsing_script=parsing_script,
             request_options=request_options,
         )
         return _response.data
@@ -1995,6 +2486,7 @@ class AsyncIndexingClient:
         processing_type: IndexR2FileRequestV2ProcessingType,
         jurisdiction: typing.Optional[IndexR2FileRequestV2Jurisdiction] = OMIT,
         custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
+        parsing_script: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> IndexJobResponseV2:
         """
@@ -2003,6 +2495,7 @@ class AsyncIndexingClient:
         Parameters
         ----------
         collection_name : str
+            Name of the collection to index into
 
         bucket_name : str
             Name of the R2 bucket
@@ -2027,6 +2520,9 @@ class AsyncIndexingClient:
 
         custom_metadata : typing.Optional[typing.Dict[str, typing.Any]]
             Custom metadata to attach to all chunks from this file. Keys must be strings. Values: str, int, float, bool, or array of strings.
+
+        parsing_script : typing.Optional[str]
+            Relative path to a JavaScript parsing script for JSON files (e.g. 'research/paper-parser'). When provided, .json files are processed through a sandboxed V8 isolate that executes the script to extract text and metadata. Without this parameter, .json files are indexed as raw text. Scripts are org-scoped and managed in the Parser Studio.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -2072,6 +2568,7 @@ class AsyncIndexingClient:
             processing_type=processing_type,
             jurisdiction=jurisdiction,
             custom_metadata=custom_metadata,
+            parsing_script=parsing_script,
             request_options=request_options,
         )
         return _response.data
@@ -2086,10 +2583,12 @@ class AsyncIndexingClient:
         access_key_id: str,
         secret_access_key: str,
         processing_type: IndexR2DirectoryRequestV2ProcessingType,
+        idempotency_key: typing.Optional[str] = None,
         jurisdiction: typing.Optional[IndexR2DirectoryRequestV2Jurisdiction] = OMIT,
         max_files: typing.Optional[int] = OMIT,
         skip_existing: typing.Optional[bool] = OMIT,
         custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
+        parsing_script: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> IndexJobResponseV2:
         """
@@ -2098,6 +2597,7 @@ class AsyncIndexingClient:
         Parameters
         ----------
         collection_name : str
+            Name of the collection to index into
 
         bucket_name : str
             Name of the R2 bucket
@@ -2117,6 +2617,9 @@ class AsyncIndexingClient:
         processing_type : IndexR2DirectoryRequestV2ProcessingType
             Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
 
+        idempotency_key : typing.Optional[str]
+            UUID for request deduplication
+
         jurisdiction : typing.Optional[IndexR2DirectoryRequestV2Jurisdiction]
             R2 jurisdiction. 'default' for global, 'eu' for EU-only storage, 'fedramp' for FedRAMP-compliant storage.
 
@@ -2128,6 +2631,9 @@ class AsyncIndexingClient:
 
         custom_metadata : typing.Optional[typing.Dict[str, typing.Any]]
             Custom metadata to attach to all indexed chunks. Keys must be strings. Values: str, int, float, bool, or array of strings.
+
+        parsing_script : typing.Optional[str]
+            Relative path to a JavaScript parsing script for JSON files (e.g. 'research/paper-parser'). When provided, .json files are processed through a sandboxed V8 isolate that executes the script to extract text and metadata. Without this parameter, .json files are indexed as raw text. Scripts are org-scoped and managed in the Parser Studio.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -2171,10 +2677,12 @@ class AsyncIndexingClient:
             access_key_id=access_key_id,
             secret_access_key=secret_access_key,
             processing_type=processing_type,
+            idempotency_key=idempotency_key,
             jurisdiction=jurisdiction,
             max_files=max_files,
             skip_existing=skip_existing,
             custom_metadata=custom_metadata,
+            parsing_script=parsing_script,
             request_options=request_options,
         )
         return _response.data
@@ -2184,37 +2692,62 @@ class AsyncIndexingClient:
         collection_name: str,
         *,
         processing_type: IndexUrlRequestV2ProcessingType,
+        idempotency_key: typing.Optional[str] = None,
         url: typing.Optional[str] = OMIT,
         urls: typing.Optional[typing.Sequence[str]] = OMIT,
         custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
+        parsing_script: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> IndexJobResponseV2:
         """
-        Index documents from public URLs into a collection. No cloud storage credentials required.
+        Index documents or web pages from public URLs into a collection. No cloud storage credentials required.
 
         You can provide either:
-        - `url` â€” a single URL string for one document
-        - `urls` â€” an array of URL strings for multiple documents
+        - `url`  -  a single URL string
+        - `urls`  -  an array of URL strings
 
-        Supported file types: PDF, DOCX, DOC, XLSX, XLS, CSV, TSV, TXT, MD, JSON, YAML, YML, PNG, JPG, JPEG, GIF, BMP, TIFF. Documents are downloaded and processed through the same pipeline as cloud storage indexing.
+        ## Smart Content Detection
+
+        The endpoint automatically detects whether a URL points to a hosted file or a web page:
+
+        - **Hosted files** (PDF, DOCX, XLSX, CSV, TXT, images, etc.) are downloaded and processed directly through the indexing pipeline.
+        - **Web pages** (HTML) are automatically scraped  -  text content is extracted as markdown and page images are downloaded and indexed. Bot-protected pages are handled via web unlocker technology.
+
+        ## Supported Content
+
+        - **Documents**: PDF, DOCX, DOC, XLSX, XLS, CSV, TSV, TXT, MD, JSON, YAML, YML
+        - **Images**: PNG, JPG, JPEG, GIF, BMP, TIFF
+        - **Web pages**: Any public URL serving HTML  -  text and images are extracted automatically
+
+        ## Processing Modes for Web Pages
+
+        - **advanced**: Extracts text content as markdown AND downloads and indexes all page images
+        - **basic**: Extracts text content only  -  faster and lower cost
 
         Returns a job_id for tracking progress via GET /v2/jobs/{job_id}.
 
         Parameters
         ----------
         collection_name : str
+            Name of the collection to index into
 
         processing_type : IndexUrlRequestV2ProcessingType
-            Document processing type. 'advanced' uses agentic OCR with AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images. 'basic' provides reliable OCR optimized for general document indexing and high-volume processing.
+            Processing mode. For hosted documents: 'advanced' enables AI-enhanced extraction for complex layouts, tables, figures, and charts; 'basic' provides standard document processing. For web pages: 'advanced' extracts both text content and page images; 'basic' extracts text content only (faster, lower cost).
+
+        idempotency_key : typing.Optional[str]
+            UUID for request deduplication
 
         url : typing.Optional[str]
-            A single public URL to a hosted document. Supported types: PDF, DOCX, DOC, XLSX, XLS, CSV, TSV, TXT, MD, JSON, YAML, YML, PNG, JPG, JPEG, GIF, BMP, TIFF. Provide either 'url' or 'urls', not both.
+            A single public URL to a document or web page. Hosted files (PDF, DOCX, etc.) are indexed directly. Web pages (HTML) are automatically scraped  -  text and images are extracted. Provide either 'url' or 'urls', not both.
 
         urls : typing.Optional[typing.Sequence[str]]
-            An array of public URLs to hosted documents. Provide either 'url' or 'urls', not both.
+            An array of public URLs to documents or web pages. Each URL is auto-detected  -  hosted files are indexed directly, web pages are scraped. Provide either 'url' or 'urls', not both.
 
         custom_metadata : typing.Optional[typing.Dict[str, typing.Any]]
             Custom metadata to attach to all indexed chunks. Keys must be strings. Values: str, int, float, bool, or array of strings.
+
+        parsing_script : typing.Optional[str]
+            Relative path to a JavaScript parsing script for JSON files (e.g. 'research/paper-parser'). When provided, .json files are processed through a sandboxed V8 isolate that executes the script to extract text and metadata. Without this parameter, .json files are indexed as raw text. Scripts are org-scoped and managed in the Parser Studio.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -2249,9 +2782,307 @@ class AsyncIndexingClient:
         _response = await self._raw_client.index_url_v2(
             collection_name,
             processing_type=processing_type,
+            idempotency_key=idempotency_key,
             url=url,
             urls=urls,
             custom_metadata=custom_metadata,
+            parsing_script=parsing_script,
             request_options=request_options,
         )
+        return _response.data
+
+    async def index_youtube_v2(
+        self,
+        collection_name: str,
+        *,
+        idempotency_key: typing.Optional[str] = None,
+        url: typing.Optional[str] = OMIT,
+        urls: typing.Optional[typing.Sequence[str]] = OMIT,
+        languages: typing.Optional[typing.Sequence[str]] = OMIT,
+        custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> IndexJobResponseV2:
+        """
+        Index YouTube video transcripts into a collection.
+
+        Fetches transcripts from YouTube videos using auto-generated or manual captions, formats them with inline timestamps, and indexes the text for semantic search.
+
+        You can provide either:
+        - `url`  -  a single YouTube video URL
+        - `urls`  -  an array of YouTube video URLs (max 20)
+
+        Transcripts are always processed as basic text (no OCR needed). Each transcript is formatted with `[HH:MM:SS]` timestamp markers so search results can reference specific moments in the video.
+
+        ## Supported URL Formats
+        - `youtube.com/watch?v=VIDEO_ID`
+        - `youtu.be/VIDEO_ID`
+        - `youtube.com/shorts/VIDEO_ID`
+
+        ## Auto-Injected Metadata
+        The following metadata is automatically added to indexed chunks:
+        - `youtube_video_id`  -  the video ID
+        - `youtube_url`  -  the original video URL
+        - `youtube_language`  -  transcript language
+        - `youtube_duration_seconds`  -  total video duration
+
+        Returns a job_id for tracking progress via GET /v2/jobs/{job_id}.
+
+        Parameters
+        ----------
+        collection_name : str
+            Name of the collection to index into
+
+        idempotency_key : typing.Optional[str]
+            UUID for request deduplication
+
+        url : typing.Optional[str]
+            A single YouTube video URL. Supported formats: youtube.com/watch?v=, youtu.be/, youtube.com/shorts/. Provide either 'url' or 'urls', not both.
+
+        urls : typing.Optional[typing.Sequence[str]]
+            An array of YouTube video URLs to index (max 20). Provide either 'url' or 'urls', not both.
+
+        languages : typing.Optional[typing.Sequence[str]]
+            Preferred transcript languages in priority order (ISO 639-1 codes). Defaults to English. Only specify if you need a non-English transcript (e.g., ['fr', 'de']). Falls back to auto-generated captions if manual transcript unavailable.
+
+        custom_metadata : typing.Optional[typing.Dict[str, typing.Any]]
+            Custom metadata to attach to all indexed chunks. Keys must be strings. Values: str, int, float, bool, or array of strings.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        IndexJobResponseV2
+            Indexing job started
+
+        Examples
+        --------
+        import asyncio
+
+        from runcaptain import AsyncCaptain
+
+        client = AsyncCaptain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.indexing.index_youtube_v2(
+                collection_name="my_collection",
+                url="https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+            )
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.index_youtube_v2(
+            collection_name,
+            idempotency_key=idempotency_key,
+            url=url,
+            urls=urls,
+            languages=languages,
+            custom_metadata=custom_metadata,
+            request_options=request_options,
+        )
+        return _response.data
+
+    async def index_text_v2(
+        self,
+        collection_name: str,
+        *,
+        content: str,
+        idempotency_key: typing.Optional[str] = None,
+        filename: typing.Optional[str] = OMIT,
+        custom_metadata: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> IndexJobResponseV2:
+        """
+        Index plain text content into a collection.
+
+        Accepts raw text content in the request body, saves it as a document, and indexes it for semantic search. No file upload or cloud storage needed.
+
+        Text is always processed as basic (no OCR). Ideal for indexing scraped content, notes, articles, or any plain text data.
+
+        Returns a job_id for tracking progress via GET /v2/jobs/{job_id}.
+
+        Parameters
+        ----------
+        collection_name : str
+            Name of the collection to index into
+
+        content : str
+            The text content to index.
+
+        idempotency_key : typing.Optional[str]
+            UUID for request deduplication
+
+        filename : typing.Optional[str]
+            Optional filename for the text document. Defaults to 'snippet-{N}.txt' where N auto-increments.
+
+        custom_metadata : typing.Optional[typing.Dict[str, typing.Any]]
+            Custom metadata to attach to all indexed chunks. Keys must be strings. Values: str, int, float, bool, or array of strings.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        IndexJobResponseV2
+            Indexing job started
+
+        Examples
+        --------
+        import asyncio
+
+        from runcaptain import AsyncCaptain
+
+        client = AsyncCaptain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.indexing.index_text_v2(
+                collection_name="my_collection",
+                content="Machine learning is a subset of artificial intelligence that enables systems to learn and improve from experience...",
+                filename="ml_notes.txt",
+            )
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.index_text_v2(
+            collection_name,
+            content=content,
+            idempotency_key=idempotency_key,
+            filename=filename,
+            custom_metadata=custom_metadata,
+            request_options=request_options,
+        )
+        return _response.data
+
+    async def index_file_v2(
+        self,
+        collection_name: str,
+        *,
+        files: typing.List[core.File],
+        idempotency_key: typing.Optional[str] = None,
+        processing_type: typing.Optional[IndexFileV2RequestProcessingType] = OMIT,
+        custom_metadata: typing.Optional[str] = OMIT,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> IndexJobResponseV2:
+        """
+        Upload and index files directly into a collection via multipart form-data.
+
+        Upload one or more files (max 20) in a single request. Supports PDF, DOCX, XLSX, CSV, TXT, images, and other document types. Files are processed through the same pipeline as cloud storage indexing.
+
+        ## Supported File Types
+        PDF, DOCX, DOC, XLSX, XLS, CSV, TSV, TXT, MD, JSON, YAML, YML, PNG, JPG, JPEG, GIF, BMP, TIFF
+
+        ## Size Limits
+        - Maximum 100MB per file
+        - Maximum 20 files per request
+
+        ## Processing Modes
+        - **advanced**: AI-enhanced extraction for complex layouts, tables, figures, charts, and documents containing images (2.5 credits/page)
+        - **basic**: Standard document processing optimized for general indexing (1 credit/page)
+
+        Returns a job_id for tracking progress via GET /v2/jobs/{job_id}.
+
+        Parameters
+        ----------
+        collection_name : str
+            Name of the collection to index into
+
+        files : typing.List[core.File]
+            See core.File for more documentation
+
+        idempotency_key : typing.Optional[str]
+            UUID for request deduplication
+
+        processing_type : typing.Optional[IndexFileV2RequestProcessingType]
+            Document processing type: 'advanced' for AI-enhanced extraction, 'basic' for standard processing
+
+        custom_metadata : typing.Optional[str]
+            JSON string of custom metadata to attach to all indexed chunks
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        IndexJobResponseV2
+            Indexing job started
+
+        Examples
+        --------
+        import asyncio
+
+        from runcaptain import AsyncCaptain
+
+        client = AsyncCaptain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.indexing.index_file_v2(
+                collection_name="my_collection",
+                processing_type="advanced",
+            )
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.index_file_v2(
+            collection_name,
+            files=files,
+            idempotency_key=idempotency_key,
+            processing_type=processing_type,
+            custom_metadata=custom_metadata,
+            request_options=request_options,
+        )
+        return _response.data
+
+    async def validate_parsing_script_v2(
+        self, *, file: core.File, request_options: typing.Optional[RequestOptions] = None
+    ) -> ValidateParsingScriptResponseV2:
+        """
+        Validates a JavaScript parsing script without running it against real data. Upload your .js file as multipart/form-data under the file field. Checks that the script parses cleanly and exports a default function. Use this before uploading a script to catch syntax errors and structural problems. The return-type contract (must return a string) is enforced at indexing time by json_handler against your real JSON.
+
+        Parameters
+        ----------
+        file : core.File
+            See core.File for more documentation
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        ValidateParsingScriptResponseV2
+            Validation result. Returned for both valid AND invalid scripts.
+
+        Examples
+        --------
+        import asyncio
+
+        from runcaptain import AsyncCaptain
+
+        client = AsyncCaptain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.indexing.validate_parsing_script_v2()
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.validate_parsing_script_v2(file=file, request_options=request_options)
         return _response.data

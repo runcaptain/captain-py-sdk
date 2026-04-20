@@ -7,10 +7,19 @@ from ..core.api_error import ApiError
 from ..core.client_wrapper import AsyncClientWrapper, SyncClientWrapper
 from ..core.http_response import AsyncHttpResponse, HttpResponse
 from ..core.jsonable_encoder import jsonable_encoder
+from ..core.parse_error import ParsingError
 from ..core.pydantic_utilities import parse_obj_as
 from ..core.request_options import RequestOptions
 from ..errors.not_found_error import NotFoundError
 from ..errors.unauthorized_error import UnauthorizedError
+from .types.general_entity_affiliates_response import GeneralEntityAffiliatesResponse
+from .types.general_entity_locations_response import GeneralEntityLocationsResponse
+from .types.general_entity_news_response import GeneralEntityNewsResponse
+from .types.general_entity_people_response import GeneralEntityPeopleResponse
+from .types.general_search_request_entity_type import GeneralSearchRequestEntityType
+from .types.general_search_response import GeneralSearchResponse
+from .types.general_search_shared_response import GeneralSearchSharedResponse
+from pydantic import ValidationError
 
 
 class RawGeneralClient:
@@ -18,26 +27,178 @@ class RawGeneralClient:
         self._client_wrapper = client_wrapper
 
     def search(
-        self, *, limit: typing.Optional[int] = None, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+        self,
+        *,
+        q: str,
+        entity_type: typing.Optional[GeneralSearchRequestEntityType] = None,
+        limit: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> HttpResponse[GeneralSearchResponse]:
         """
-        Search across all entity types (companies, people, investors, funds, deals, etc.) in a unified query. Returns matching entities with their type and basic information. Use this for broad discovery before drilling into specific entity types.
+        Cross-entity search across companies and people.
+
+        Returns the company match first, then executives (C-suite) at that company, then other employees.
+
+        Supports `limit` parameter to control results count (default: 25, max: 100).
 
         Parameters
         ----------
+        q : str
+            Search query across all entity types (companies, people, investors)
+
+        entity_type : typing.Optional[GeneralSearchRequestEntityType]
+            Filter by entity type
+
         limit : typing.Optional[int]
-            Maximum results
+            Maximum number of results to return (1-100, default: 10)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[typing.Dict[str, typing.Any]]
+        HttpResponse[GeneralSearchResponse]
             Successful response
         """
         _response = self._client_wrapper.httpx_client.request(
             "v2/datasets/odyssey/general/search",
+            method="GET",
+            params={
+                "q": q,
+                "entity_type": entity_type,
+                "limit": limit,
+            },
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    GeneralSearchResponse,
+                    parse_obj_as(
+                        type_=GeneralSearchResponse,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return HttpResponse(response=_response, data=_data)
+            if _response.status_code == 401:
+                raise UnauthorizedError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Any,
+                        parse_obj_as(
+                            type_=typing.Any,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    def search_shared(
+        self,
+        *,
+        q: typing.Optional[str] = None,
+        limit: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> HttpResponse[GeneralSearchSharedResponse]:
+        """
+        Shared/saved search across entities.
+
+        Same as cross-entity search with shared filter support. Returns companies and people matching the query.
+
+        Parameters
+        ----------
+        q : typing.Optional[str]
+            Search query (optional)
+
+        limit : typing.Optional[int]
+            Maximum number of results to return (1-100, default: 10)
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        HttpResponse[GeneralSearchSharedResponse]
+            Successful response
+        """
+        _response = self._client_wrapper.httpx_client.request(
+            "v2/datasets/odyssey/general/search/shared",
+            method="GET",
+            params={
+                "q": q,
+                "limit": limit,
+            },
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    GeneralSearchSharedResponse,
+                    parse_obj_as(
+                        type_=GeneralSearchSharedResponse,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return HttpResponse(response=_response, data=_data)
+            if _response.status_code == 401:
+                raise UnauthorizedError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Any,
+                        parse_obj_as(
+                            type_=typing.Any,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    def entity_people(
+        self,
+        entity_id: str,
+        *,
+        limit: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> HttpResponse[GeneralEntityPeopleResponse]:
+        """
+        Get people associated with an entity (company employees/leadership).
+
+        Returns executives first (C-suite, VP, Director), then other employees. Results are deduplicated.
+
+        Supports `limit` parameter (default: 25, max: 100).
+
+        Parameters
+        ----------
+        entity_id : str
+            Entity ID (any type)
+
+        limit : typing.Optional[int]
+            Maximum results to return (default: 25, max: 100)
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        HttpResponse[GeneralEntityPeopleResponse]
+            Successful response
+        """
+        _response = self._client_wrapper.httpx_client.request(
+            f"v2/datasets/odyssey/general/{jsonable_encoder(entity_id)}/people",
             method="GET",
             params={
                 "limit": limit,
@@ -47,105 +208,9 @@ class RawGeneralClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    GeneralEntityPeopleResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return HttpResponse(response=_response, data=_data)
-            if _response.status_code == 401:
-                raise UnauthorizedError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
-    def search_shared(
-        self, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
-        """
-        Search for entities shared across your organization. Returns entities that multiple team members have accessed or tagged. Useful for discovering commonly referenced companies, investors, or people within your team.
-
-        Parameters
-        ----------
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        HttpResponse[typing.Dict[str, typing.Any]]
-            Successful response
-        """
-        _response = self._client_wrapper.httpx_client.request(
-            "v2/datasets/odyssey/general/search/shared",
-            method="GET",
-            request_options=request_options,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    typing.Dict[str, typing.Any],
-                    parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return HttpResponse(response=_response, data=_data)
-            if _response.status_code == 401:
-                raise UnauthorizedError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
-    def entity_people(
-        self, entity_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
-        """
-        Get people associated with any entity (company employees, fund team members, investor partners, etc.). Returns names, titles, and LinkedIn profiles for key people.
-
-        Parameters
-        ----------
-        entity_id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        HttpResponse[typing.Dict[str, typing.Any]]
-            Successful response
-        """
-        _response = self._client_wrapper.httpx_client.request(
-            f"v2/datasets/odyssey/general/{jsonable_encoder(entity_id)}/people",
-            method="GET",
-            request_options=request_options,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    typing.Dict[str, typing.Any],
-                    parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=GeneralEntityPeopleResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -175,24 +240,29 @@ class RawGeneralClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     def entity_locations(
         self, entity_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> HttpResponse[GeneralEntityLocationsResponse]:
         """
         Get office locations for any entity. Returns headquarters and branch office addresses with city, state, country, and full address details.
 
         Parameters
         ----------
         entity_id : str
+            Entity ID (any type)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[typing.Dict[str, typing.Any]]
+        HttpResponse[GeneralEntityLocationsResponse]
             Successful response
         """
         _response = self._client_wrapper.httpx_client.request(
@@ -203,9 +273,9 @@ class RawGeneralClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    GeneralEntityLocationsResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=GeneralEntityLocationsResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -235,24 +305,29 @@ class RawGeneralClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     def entity_affiliates(
         self, entity_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> HttpResponse[GeneralEntityAffiliatesResponse]:
         """
         Get affiliated entities and subsidiaries for any entity. Returns parent companies, subsidiaries, and related entities with ownership information.
 
         Parameters
         ----------
         entity_id : str
+            Entity ID (any type)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[typing.Dict[str, typing.Any]]
+        HttpResponse[GeneralEntityAffiliatesResponse]
             Successful response
         """
         _response = self._client_wrapper.httpx_client.request(
@@ -263,9 +338,9 @@ class RawGeneralClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    GeneralEntityAffiliatesResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=GeneralEntityAffiliatesResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -295,37 +370,52 @@ class RawGeneralClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     def entity_news(
-        self, entity_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+        self,
+        entity_id: str,
+        *,
+        limit: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> HttpResponse[GeneralEntityNewsResponse]:
         """
         Get recent news articles and mentions for any entity. Returns article titles, URLs, sources, publication dates, and snippets. Useful for tracking announcements, funding news, and company updates.
 
         Parameters
         ----------
         entity_id : str
+            Entity ID (any type)
+
+        limit : typing.Optional[int]
+            Maximum number of results to return (1-100, default: 10)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[typing.Dict[str, typing.Any]]
+        HttpResponse[GeneralEntityNewsResponse]
             Successful response
         """
         _response = self._client_wrapper.httpx_client.request(
             f"v2/datasets/odyssey/general/{jsonable_encoder(entity_id)}/news",
             method="GET",
+            params={
+                "limit": limit,
+            },
             request_options=request_options,
         )
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    GeneralEntityNewsResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=GeneralEntityNewsResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -355,66 +445,10 @@ class RawGeneralClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
-    def entity_updates(
-        self, entity_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
-        """
-        Get changelog of data updates for any entity. Returns history of changes to the entity's profile, tracking when information was added or modified. Useful for monitoring data freshness.
-
-        Parameters
-        ----------
-        entity_id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        HttpResponse[typing.Dict[str, typing.Any]]
-            Successful response
-        """
-        _response = self._client_wrapper.httpx_client.request(
-            f"v2/datasets/odyssey/general/{jsonable_encoder(entity_id)}/updates",
-            method="GET",
-            request_options=request_options,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    typing.Dict[str, typing.Any],
-                    parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return HttpResponse(response=_response, data=_data)
-            if _response.status_code == 401:
-                raise UnauthorizedError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            if _response.status_code == 404:
-                raise NotFoundError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
 
@@ -423,26 +457,178 @@ class AsyncRawGeneralClient:
         self._client_wrapper = client_wrapper
 
     async def search(
-        self, *, limit: typing.Optional[int] = None, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+        self,
+        *,
+        q: str,
+        entity_type: typing.Optional[GeneralSearchRequestEntityType] = None,
+        limit: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> AsyncHttpResponse[GeneralSearchResponse]:
         """
-        Search across all entity types (companies, people, investors, funds, deals, etc.) in a unified query. Returns matching entities with their type and basic information. Use this for broad discovery before drilling into specific entity types.
+        Cross-entity search across companies and people.
+
+        Returns the company match first, then executives (C-suite) at that company, then other employees.
+
+        Supports `limit` parameter to control results count (default: 25, max: 100).
 
         Parameters
         ----------
+        q : str
+            Search query across all entity types (companies, people, investors)
+
+        entity_type : typing.Optional[GeneralSearchRequestEntityType]
+            Filter by entity type
+
         limit : typing.Optional[int]
-            Maximum results
+            Maximum number of results to return (1-100, default: 10)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+        AsyncHttpResponse[GeneralSearchResponse]
             Successful response
         """
         _response = await self._client_wrapper.httpx_client.request(
             "v2/datasets/odyssey/general/search",
+            method="GET",
+            params={
+                "q": q,
+                "entity_type": entity_type,
+                "limit": limit,
+            },
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    GeneralSearchResponse,
+                    parse_obj_as(
+                        type_=GeneralSearchResponse,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return AsyncHttpResponse(response=_response, data=_data)
+            if _response.status_code == 401:
+                raise UnauthorizedError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Any,
+                        parse_obj_as(
+                            type_=typing.Any,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    async def search_shared(
+        self,
+        *,
+        q: typing.Optional[str] = None,
+        limit: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> AsyncHttpResponse[GeneralSearchSharedResponse]:
+        """
+        Shared/saved search across entities.
+
+        Same as cross-entity search with shared filter support. Returns companies and people matching the query.
+
+        Parameters
+        ----------
+        q : typing.Optional[str]
+            Search query (optional)
+
+        limit : typing.Optional[int]
+            Maximum number of results to return (1-100, default: 10)
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AsyncHttpResponse[GeneralSearchSharedResponse]
+            Successful response
+        """
+        _response = await self._client_wrapper.httpx_client.request(
+            "v2/datasets/odyssey/general/search/shared",
+            method="GET",
+            params={
+                "q": q,
+                "limit": limit,
+            },
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    GeneralSearchSharedResponse,
+                    parse_obj_as(
+                        type_=GeneralSearchSharedResponse,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return AsyncHttpResponse(response=_response, data=_data)
+            if _response.status_code == 401:
+                raise UnauthorizedError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Any,
+                        parse_obj_as(
+                            type_=typing.Any,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    async def entity_people(
+        self,
+        entity_id: str,
+        *,
+        limit: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> AsyncHttpResponse[GeneralEntityPeopleResponse]:
+        """
+        Get people associated with an entity (company employees/leadership).
+
+        Returns executives first (C-suite, VP, Director), then other employees. Results are deduplicated.
+
+        Supports `limit` parameter (default: 25, max: 100).
+
+        Parameters
+        ----------
+        entity_id : str
+            Entity ID (any type)
+
+        limit : typing.Optional[int]
+            Maximum results to return (default: 25, max: 100)
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AsyncHttpResponse[GeneralEntityPeopleResponse]
+            Successful response
+        """
+        _response = await self._client_wrapper.httpx_client.request(
+            f"v2/datasets/odyssey/general/{jsonable_encoder(entity_id)}/people",
             method="GET",
             params={
                 "limit": limit,
@@ -452,105 +638,9 @@ class AsyncRawGeneralClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    GeneralEntityPeopleResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return AsyncHttpResponse(response=_response, data=_data)
-            if _response.status_code == 401:
-                raise UnauthorizedError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
-    async def search_shared(
-        self, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
-        """
-        Search for entities shared across your organization. Returns entities that multiple team members have accessed or tagged. Useful for discovering commonly referenced companies, investors, or people within your team.
-
-        Parameters
-        ----------
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
-            Successful response
-        """
-        _response = await self._client_wrapper.httpx_client.request(
-            "v2/datasets/odyssey/general/search/shared",
-            method="GET",
-            request_options=request_options,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    typing.Dict[str, typing.Any],
-                    parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return AsyncHttpResponse(response=_response, data=_data)
-            if _response.status_code == 401:
-                raise UnauthorizedError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
-    async def entity_people(
-        self, entity_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
-        """
-        Get people associated with any entity (company employees, fund team members, investor partners, etc.). Returns names, titles, and LinkedIn profiles for key people.
-
-        Parameters
-        ----------
-        entity_id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
-            Successful response
-        """
-        _response = await self._client_wrapper.httpx_client.request(
-            f"v2/datasets/odyssey/general/{jsonable_encoder(entity_id)}/people",
-            method="GET",
-            request_options=request_options,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    typing.Dict[str, typing.Any],
-                    parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=GeneralEntityPeopleResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -580,24 +670,29 @@ class AsyncRawGeneralClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def entity_locations(
         self, entity_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> AsyncHttpResponse[GeneralEntityLocationsResponse]:
         """
         Get office locations for any entity. Returns headquarters and branch office addresses with city, state, country, and full address details.
 
         Parameters
         ----------
         entity_id : str
+            Entity ID (any type)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+        AsyncHttpResponse[GeneralEntityLocationsResponse]
             Successful response
         """
         _response = await self._client_wrapper.httpx_client.request(
@@ -608,9 +703,9 @@ class AsyncRawGeneralClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    GeneralEntityLocationsResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=GeneralEntityLocationsResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -640,24 +735,29 @@ class AsyncRawGeneralClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def entity_affiliates(
         self, entity_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> AsyncHttpResponse[GeneralEntityAffiliatesResponse]:
         """
         Get affiliated entities and subsidiaries for any entity. Returns parent companies, subsidiaries, and related entities with ownership information.
 
         Parameters
         ----------
         entity_id : str
+            Entity ID (any type)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+        AsyncHttpResponse[GeneralEntityAffiliatesResponse]
             Successful response
         """
         _response = await self._client_wrapper.httpx_client.request(
@@ -668,9 +768,9 @@ class AsyncRawGeneralClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    GeneralEntityAffiliatesResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=GeneralEntityAffiliatesResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -700,37 +800,52 @@ class AsyncRawGeneralClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def entity_news(
-        self, entity_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+        self,
+        entity_id: str,
+        *,
+        limit: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> AsyncHttpResponse[GeneralEntityNewsResponse]:
         """
         Get recent news articles and mentions for any entity. Returns article titles, URLs, sources, publication dates, and snippets. Useful for tracking announcements, funding news, and company updates.
 
         Parameters
         ----------
         entity_id : str
+            Entity ID (any type)
+
+        limit : typing.Optional[int]
+            Maximum number of results to return (1-100, default: 10)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+        AsyncHttpResponse[GeneralEntityNewsResponse]
             Successful response
         """
         _response = await self._client_wrapper.httpx_client.request(
             f"v2/datasets/odyssey/general/{jsonable_encoder(entity_id)}/news",
             method="GET",
+            params={
+                "limit": limit,
+            },
             request_options=request_options,
         )
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    GeneralEntityNewsResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=GeneralEntityNewsResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -760,64 +875,8 @@ class AsyncRawGeneralClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
-    async def entity_updates(
-        self, entity_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
-        """
-        Get changelog of data updates for any entity. Returns history of changes to the entity's profile, tracking when information was added or modified. Useful for monitoring data freshness.
-
-        Parameters
-        ----------
-        entity_id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
-            Successful response
-        """
-        _response = await self._client_wrapper.httpx_client.request(
-            f"v2/datasets/odyssey/general/{jsonable_encoder(entity_id)}/updates",
-            method="GET",
-            request_options=request_options,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    typing.Dict[str, typing.Any],
-                    parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return AsyncHttpResponse(response=_response, data=_data)
-            if _response.status_code == 401:
-                raise UnauthorizedError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            if _response.status_code == 404:
-                raise NotFoundError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)

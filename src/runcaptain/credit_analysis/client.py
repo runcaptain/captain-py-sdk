@@ -5,6 +5,13 @@ import typing
 from ..core.client_wrapper import AsyncClientWrapper, SyncClientWrapper
 from ..core.request_options import RequestOptions
 from .raw_client import AsyncRawCreditAnalysisClient, RawCreditAnalysisClient
+from .types.credit_analysis_bdc_search_request_seniority import CreditAnalysisBdcSearchRequestSeniority
+from .types.credit_analysis_funds_search_request_strategy import CreditAnalysisFundsSearchRequestStrategy
+from .types.credit_analysis_news_bulk_response import CreditAnalysisNewsBulkResponse
+from .types.credit_analysis_news_detail_response import CreditAnalysisNewsDetailResponse
+from .types.credit_analysis_news_recent_response import CreditAnalysisNewsRecentResponse
+from .types.credit_analysis_news_search_response import CreditAnalysisNewsSearchResponse
+from .types.credit_analysis_sba_search_request_status import CreditAnalysisSbaSearchRequestStatus
 
 # this is used as the default value for optional parameters
 OMIT = typing.cast(typing.Any, ...)
@@ -28,16 +35,28 @@ class CreditAnalysisClient:
     def news_search(
         self,
         *,
+        q: str,
+        category: typing.Optional[str] = None,
+        regions: typing.Optional[str] = None,
         start_date: typing.Optional[str] = None,
         end_date: typing.Optional[str] = None,
         limit: typing.Optional[int] = None,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> CreditAnalysisNewsSearchResponse:
         """
         Search for credit-related news and filings including bond issuances, credit rating changes, and default events. Returns matching news with dates, sources, and content.
 
         Parameters
         ----------
+        q : str
+            Search query for credit news (e.g., 'Tesla bond issuance')
+
+        category : typing.Optional[str]
+            Filter by news category (e.g., 'bond_issuance', 'rating_change', 'default', 'restructuring')
+
+        regions : typing.Optional[str]
+            Filter by region (e.g., 'north_america', 'europe', 'asia')
+
         start_date : typing.Optional[str]
             Start date (YYYY-MM-DD)
 
@@ -45,14 +64,14 @@ class CreditAnalysisClient:
             End date (YYYY-MM-DD)
 
         limit : typing.Optional[int]
-            Maximum results
+            Maximum number of results to return (1-100, default: 20)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        CreditAnalysisNewsSearchResponse
             Successful response
 
         Examples
@@ -63,25 +82,39 @@ class CreditAnalysisClient:
             organization_id="YOUR_ORGANIZATION_ID",
             key="YOUR_KEY",
         )
-        client.credit_analysis.news_search()
+        client.credit_analysis.news_search(
+            q="Ares Capital",
+            limit=10,
+        )
         """
         _response = self._raw_client.news_search(
-            start_date=start_date, end_date=end_date, limit=limit, request_options=request_options
+            q=q,
+            category=category,
+            regions=regions,
+            start_date=start_date,
+            end_date=end_date,
+            limit=limit,
+            request_options=request_options,
         )
         return _response.data
 
-    def news_recent(self, *, request_options: typing.Optional[RequestOptions] = None) -> typing.Dict[str, typing.Any]:
+    def news_recent(
+        self, *, limit: typing.Optional[int] = None, request_options: typing.Optional[RequestOptions] = None
+    ) -> CreditAnalysisNewsRecentResponse:
         """
         Get most recent credit news and filings. Returns latest credit events, ratings, and bond issuances from the past 30 days.
 
         Parameters
         ----------
+        limit : typing.Optional[int]
+            Maximum number of results to return (1-100, default: 20)
+
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        CreditAnalysisNewsRecentResponse
             Successful response
 
         Examples
@@ -94,25 +127,26 @@ class CreditAnalysisClient:
         )
         client.credit_analysis.news_recent()
         """
-        _response = self._raw_client.news_recent(request_options=request_options)
+        _response = self._raw_client.news_recent(limit=limit, request_options=request_options)
         return _response.data
 
     def news_detail(
         self, news_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> CreditAnalysisNewsDetailResponse:
         """
         Get detailed credit news article or filing including full text, metadata, and related entities. Returns comprehensive news item with analysis.
 
         Parameters
         ----------
         news_id : str
+            News article ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        CreditAnalysisNewsDetailResponse
             Successful response
 
         Examples
@@ -130,23 +164,21 @@ class CreditAnalysisClient:
         _response = self._raw_client.news_detail(news_id, request_options=request_options)
         return _response.data
 
-    def news_attachment(
-        self, news_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    def news_attachment(self, news_id: str, *, request_options: typing.Optional[RequestOptions] = None) -> None:
         """
-        Download attachment files associated with credit news including prospectuses, indentures, and rating reports. Returns document files.
+        **Coming Soon** - Download attachment files associated with credit news including prospectuses, indentures, and rating reports. Returns document files.
 
         Parameters
         ----------
         news_id : str
+            News article ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
-            Successful response
+        None
 
         Examples
         --------
@@ -168,7 +200,7 @@ class CreditAnalysisClient:
         *,
         queries: typing.Optional[typing.Sequence[str]] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> CreditAnalysisNewsBulkResponse:
         """
         Retrieve multiple credit news articles by ID in a single request. Returns batch results with article details for each requested ID.
 
@@ -182,7 +214,7 @@ class CreditAnalysisClient:
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        CreditAnalysisNewsBulkResponse
             Successful response
 
         Examples
@@ -198,6 +230,819 @@ class CreditAnalysisClient:
         )
         """
         _response = self._raw_client.news_bulk(queries=queries, request_options=request_options)
+        return _response.data
+
+    def list_bdcs(self, *, request_options: typing.Optional[RequestOptions] = None) -> typing.Dict[str, typing.Any]:
+        """
+        List all tracked Business Development Companies (BDCs). BDCs are publicly traded private credit funds that disclose every loan quarterly in SEC 10-Q/10-K filings.
+
+        Parameters
+        ----------
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        typing.Dict[str, typing.Any]
+            List of tracked BDCs
+
+        Examples
+        --------
+        from runcaptain import Captain
+
+        client = Captain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+        client.credit_analysis.list_bdcs()
+        """
+        _response = self._raw_client.list_bdcs(request_options=request_options)
+        return _response.data
+
+    def bdc_search(
+        self,
+        *,
+        q: str,
+        seniority: typing.Optional[CreditAnalysisBdcSearchRequestSeniority] = None,
+        non_accrual_only: typing.Optional[bool] = None,
+        limit: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> typing.Dict[str, typing.Any]:
+        """
+        Search across all indexed BDC portfolios for a borrower, industry, or keyword.
+
+        Searches loan-level data from ~50 BDC quarterly filings covering $150B+ in direct loans. Returns matching investments with terms (spread, seniority, maturity, fair value).
+
+        Parameters
+        ----------
+        q : str
+            Search query  -  borrower name, industry, or keyword
+
+        seniority : typing.Optional[CreditAnalysisBdcSearchRequestSeniority]
+            Filter by loan seniority
+
+        non_accrual_only : typing.Optional[bool]
+            Only return defaulted (non-accrual) investments
+
+        limit : typing.Optional[int]
+            Maximum results
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        typing.Dict[str, typing.Any]
+            Matching BDC investments
+
+        Examples
+        --------
+        from runcaptain import Captain
+
+        client = Captain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+        client.credit_analysis.bdc_search(
+            q="software",
+            seniority="first_lien",
+            limit=10,
+        )
+        """
+        _response = self._raw_client.bdc_search(
+            q=q, seniority=seniority, non_accrual_only=non_accrual_only, limit=limit, request_options=request_options
+        )
+        return _response.data
+
+    def bdc_portfolio(
+        self,
+        ticker: str,
+        *,
+        quarter: typing.Optional[str] = None,
+        limit: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> typing.Dict[str, typing.Any]:
+        """
+        Full Schedule of Investments for a specific BDC, parsed from SEC 10-Q/10-K filings.
+
+        Each investment includes: borrower name, industry, investment type, seniority, coupon, spread, reference rate, maturity, principal, fair value, and non-accrual status.
+
+        Parameters
+        ----------
+        ticker : str
+            BDC ticker symbol (e.g., ARCC, BXSL, FSK)
+
+        quarter : typing.Optional[str]
+            Quarter like '2025-Q1'  -  defaults to latest filing
+
+        limit : typing.Optional[int]
+            Maximum investments to return
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        typing.Dict[str, typing.Any]
+            BDC portfolio holdings
+
+        Examples
+        --------
+        from runcaptain import Captain
+
+        client = Captain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+        client.credit_analysis.bdc_portfolio(
+            ticker="ARCC",
+        )
+        """
+        _response = self._raw_client.bdc_portfolio(
+            ticker, quarter=quarter, limit=limit, request_options=request_options
+        )
+        return _response.data
+
+    def bdc_stats(
+        self, ticker: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> typing.Dict[str, typing.Any]:
+        """
+        Aggregate portfolio statistics for a BDC. Returns weighted average spread, non-accrual rate, seniority breakdown, and top industries.
+
+        Parameters
+        ----------
+        ticker : str
+            BDC ticker symbol
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        typing.Dict[str, typing.Any]
+            BDC aggregate statistics
+
+        Examples
+        --------
+        from runcaptain import Captain
+
+        client = Captain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+        client.credit_analysis.bdc_stats(
+            ticker="ARCC",
+        )
+        """
+        _response = self._raw_client.bdc_stats(ticker, request_options=request_options)
+        return _response.data
+
+    def borrower_lookup(
+        self, name: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> typing.Dict[str, typing.Any]:
+        """
+        Cross-BDC borrower lookup  -  find a company across all BDC portfolios.
+
+        Returns every BDC that holds this borrower's debt, with position sizes, spreads, and valuations. Reveals syndication patterns and allows cross-lender credit deterioration monitoring.
+
+        Parameters
+        ----------
+        name : str
+            Borrower/company name
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        typing.Dict[str, typing.Any]
+            Borrower positions across BDCs
+
+        Examples
+        --------
+        from runcaptain import Captain
+
+        client = Captain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+        client.credit_analysis.borrower_lookup(
+            name="Finastra",
+        )
+        """
+        _response = self._raw_client.borrower_lookup(name, request_options=request_options)
+        return _response.data
+
+    def market_overview(
+        self, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> typing.Dict[str, typing.Any]:
+        """
+        Comprehensive private credit market snapshot from free public sources.
+
+        Returns:
+        - **Lending standards** (SLOOS): Net % of banks tightening C&I loan standards
+        - **Credit spreads**: ICE BofA High Yield, BBB, BB, CCC spreads
+        - **Bank lending**: Total C&I loans outstanding
+        - **Interest rates**: 10Y Treasury, SOFR
+        - **Financial conditions**: St. Louis Financial Stress Index, Chicago NFCI
+
+        Data sourced from Federal Reserve (FRED API), updated daily/weekly/quarterly.
+
+        Parameters
+        ----------
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        typing.Dict[str, typing.Any]
+            Market data snapshot
+
+        Examples
+        --------
+        from runcaptain import Captain
+
+        client = Captain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+        client.credit_analysis.market_overview()
+        """
+        _response = self._raw_client.market_overview(request_options=request_options)
+        return _response.data
+
+    def market_spreads(
+        self, *, history: typing.Optional[int] = None, request_options: typing.Optional[RequestOptions] = None
+    ) -> typing.Dict[str, typing.Any]:
+        """
+        Current and historical credit spread data from ICE BofA indices. Returns High Yield, BBB, BB, and CCC spreads with historical trend.
+
+        Parameters
+        ----------
+        history : typing.Optional[int]
+            Number of historical data points
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        typing.Dict[str, typing.Any]
+            Credit spread data
+
+        Examples
+        --------
+        from runcaptain import Captain
+
+        client = Captain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+        client.credit_analysis.market_spreads(
+            history=30,
+        )
+        """
+        _response = self._raw_client.market_spreads(history=history, request_options=request_options)
+        return _response.data
+
+    def lending_standards(
+        self, *, history: typing.Optional[int] = None, request_options: typing.Optional[RequestOptions] = None
+    ) -> typing.Dict[str, typing.Any]:
+        """
+        Federal Reserve Senior Loan Officer Opinion Survey (SLOOS) data. Shows net % of banks tightening or easing C&I loan standards. Leading indicator for private credit market conditions.
+
+        Parameters
+        ----------
+        history : typing.Optional[int]
+            Number of quarterly data points
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        typing.Dict[str, typing.Any]
+            SLOOS lending standards data
+
+        Examples
+        --------
+        from runcaptain import Captain
+
+        client = Captain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+        client.credit_analysis.lending_standards(
+            history=20,
+        )
+        """
+        _response = self._raw_client.lending_standards(history=history, request_options=request_options)
+        return _response.data
+
+    def funds_search(
+        self,
+        *,
+        q: str,
+        strategy: typing.Optional[CreditAnalysisFundsSearchRequestStrategy] = None,
+        limit: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> typing.Dict[str, typing.Any]:
+        """
+        Search private credit funds via SEC Form D filings. Form D is filed when private funds raise capital under Regulation D. Covers fund formations, managers, and capital raised.
+
+        Parameters
+        ----------
+        q : str
+            Fund name, manager name, or keyword
+
+        strategy : typing.Optional[CreditAnalysisFundsSearchRequestStrategy]
+            Filter by strategy
+
+        limit : typing.Optional[int]
+            Maximum results
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        typing.Dict[str, typing.Any]
+            Matching funds
+
+        Examples
+        --------
+        from runcaptain import Captain
+
+        client = Captain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+        client.credit_analysis.funds_search(
+            q="Ares",
+            strategy="direct_lending",
+        )
+        """
+        _response = self._raw_client.funds_search(q=q, strategy=strategy, limit=limit, request_options=request_options)
+        return _response.data
+
+    def fund_formations(
+        self,
+        *,
+        days_back: typing.Optional[int] = None,
+        limit: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> typing.Dict[str, typing.Any]:
+        """
+        Recent private credit fund formations from SEC Form D filings. Shows new funds launching in the private credit space.
+
+        Parameters
+        ----------
+        days_back : typing.Optional[int]
+            Look back period in days
+
+        limit : typing.Optional[int]
+            Maximum results
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        typing.Dict[str, typing.Any]
+            Recent fund formations
+
+        Examples
+        --------
+        from runcaptain import Captain
+
+        client = Captain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+        client.credit_analysis.fund_formations(
+            days_back=90,
+        )
+        """
+        _response = self._raw_client.fund_formations(days_back=days_back, limit=limit, request_options=request_options)
+        return _response.data
+
+    def list_managers(self, *, request_options: typing.Optional[RequestOptions] = None) -> typing.Dict[str, typing.Any]:
+        """
+        List known private credit fund managers with their strategies and SEC CIK numbers.
+
+        Parameters
+        ----------
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        typing.Dict[str, typing.Any]
+            List of credit managers
+
+        Examples
+        --------
+        from runcaptain import Captain
+
+        client = Captain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+        client.credit_analysis.list_managers()
+        """
+        _response = self._raw_client.list_managers(request_options=request_options)
+        return _response.data
+
+    def manager_detail(
+        self, name: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> typing.Dict[str, typing.Any]:
+        """
+        Detailed information about a private credit fund manager. Combines SEC filing data with known manager intelligence. Returns filing history, fund count, strategy, and recent Form D filings.
+
+        Parameters
+        ----------
+        name : str
+            Manager name (e.g., 'Ares Management')
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        typing.Dict[str, typing.Any]
+            Manager details
+
+        Examples
+        --------
+        from runcaptain import Captain
+
+        client = Captain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+        client.credit_analysis.manager_detail(
+            name="Ares Management",
+        )
+        """
+        _response = self._raw_client.manager_detail(name, request_options=request_options)
+        return _response.data
+
+    def sba_search(
+        self,
+        *,
+        borrower: typing.Optional[str] = None,
+        lender: typing.Optional[str] = None,
+        state: typing.Optional[str] = None,
+        naics: typing.Optional[str] = None,
+        status: typing.Optional[CreditAnalysisSbaSearchRequestStatus] = None,
+        min_amount: typing.Optional[float] = None,
+        limit: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> typing.Dict[str, typing.Any]:
+        """
+        Search SBA 7(a) loan data. Contains loan-level data with borrower, lender, terms, and performance for 100,000+ loans (FY2020-present).
+
+        Parameters
+        ----------
+        borrower : typing.Optional[str]
+            Borrower name (partial match)
+
+        lender : typing.Optional[str]
+            Bank/lender name (partial match)
+
+        state : typing.Optional[str]
+            State code (e.g., CA, NY, TX)
+
+        naics : typing.Optional[str]
+            NAICS code prefix (e.g., 5112 for software)
+
+        status : typing.Optional[CreditAnalysisSbaSearchRequestStatus]
+            Loan status: CHGOFF (charged off), PIF (paid in full)
+
+        min_amount : typing.Optional[float]
+            Minimum gross approval amount ($)
+
+        limit : typing.Optional[int]
+            Maximum results
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        typing.Dict[str, typing.Any]
+            Matching SBA loans
+
+        Examples
+        --------
+        from runcaptain import Captain
+
+        client = Captain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+        client.credit_analysis.sba_search(
+            state="CA",
+            status="CHGOFF",
+            limit=5,
+        )
+        """
+        _response = self._raw_client.sba_search(
+            borrower=borrower,
+            lender=lender,
+            state=state,
+            naics=naics,
+            status=status,
+            min_amount=min_amount,
+            limit=limit,
+            request_options=request_options,
+        )
+        return _response.data
+
+    def sba_stats(self, *, request_options: typing.Optional[RequestOptions] = None) -> typing.Dict[str, typing.Any]:
+        """
+        Aggregate SBA 7(a) loan statistics. Returns default rates, average loan size, top states, and top industries from 100,000+ indexed loans.
+
+        Parameters
+        ----------
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        typing.Dict[str, typing.Any]
+            SBA aggregate statistics
+
+        Examples
+        --------
+        from runcaptain import Captain
+
+        client = Captain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+        client.credit_analysis.sba_stats()
+        """
+        _response = self._raw_client.sba_stats(request_options=request_options)
+        return _response.data
+
+    def agreements_search(
+        self,
+        *,
+        borrower: typing.Optional[str] = None,
+        lender: typing.Optional[str] = None,
+        date_from: typing.Optional[str] = None,
+        limit: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> typing.Dict[str, typing.Any]:
+        """
+        Search SEC 8-K filings for credit agreements. When public companies enter material credit facilities, they file the agreement as an exhibit to an 8-K.
+
+        Parameters
+        ----------
+        borrower : typing.Optional[str]
+            Borrower/company name
+
+        lender : typing.Optional[str]
+            Lender/agent name
+
+        date_from : typing.Optional[str]
+            Start date (YYYY-MM-DD)
+
+        limit : typing.Optional[int]
+            Maximum results
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        typing.Dict[str, typing.Any]
+            Matching credit agreement filings
+
+        Examples
+        --------
+        from runcaptain import Captain
+
+        client = Captain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+        client.credit_analysis.agreements_search(
+            borrower="Dell",
+        )
+        """
+        _response = self._raw_client.agreements_search(
+            borrower=borrower, lender=lender, date_from=date_from, limit=limit, request_options=request_options
+        )
+        return _response.data
+
+    def agreement_detail(
+        self, company: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> typing.Dict[str, typing.Any]:
+        """
+        Get the most recent credit agreement filing for a company. Locates the 8-K filing containing the credit agreement.
+
+        Parameters
+        ----------
+        company : str
+            Company name
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        typing.Dict[str, typing.Any]
+            Credit agreement detail
+
+        Examples
+        --------
+        from runcaptain import Captain
+
+        client = Captain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+        client.credit_analysis.agreement_detail(
+            company="Alloy",
+        )
+        """
+        _response = self._raw_client.agreement_detail(company, request_options=request_options)
+        return _response.data
+
+    def nport_funds(self, *, request_options: typing.Optional[RequestOptions] = None) -> typing.Dict[str, typing.Any]:
+        """
+        List tracked private credit interval funds that file N-PORT. These filings contain loan-by-loan holdings.
+
+        Parameters
+        ----------
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        typing.Dict[str, typing.Any]
+            List of tracked funds
+
+        Examples
+        --------
+        from runcaptain import Captain
+
+        client = Captain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+        client.credit_analysis.nport_funds()
+        """
+        _response = self._raw_client.nport_funds(request_options=request_options)
+        return _response.data
+
+    def nport_search(
+        self, *, q: str, limit: typing.Optional[int] = None, request_options: typing.Optional[RequestOptions] = None
+    ) -> typing.Dict[str, typing.Any]:
+        """
+        Search N-PORT filings for private credit holdings matching a borrower name or keyword.
+
+        Parameters
+        ----------
+        q : str
+            Borrower name or keyword
+
+        limit : typing.Optional[int]
+            Maximum results
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        typing.Dict[str, typing.Any]
+            Matching N-PORT holdings
+
+        Examples
+        --------
+        from runcaptain import Captain
+
+        client = Captain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+        client.credit_analysis.nport_search(
+            q="Brightstone Capital",
+            limit=10,
+        )
+        """
+        _response = self._raw_client.nport_search(q=q, limit=limit, request_options=request_options)
+        return _response.data
+
+    def nport_fund_filings(
+        self, ticker: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> typing.Dict[str, typing.Any]:
+        """
+        Get N-PORT filing list for a specific private credit interval fund.
+
+        Parameters
+        ----------
+        ticker : str
+            Fund ticker (e.g., CCLFX, AFT)
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        typing.Dict[str, typing.Any]
+            Fund N-PORT filings
+
+        Examples
+        --------
+        from runcaptain import Captain
+
+        client = Captain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+        client.credit_analysis.nport_fund_filings(
+            ticker="CCLFX",
+        )
+        """
+        _response = self._raw_client.nport_fund_filings(ticker, request_options=request_options)
+        return _response.data
+
+    def relationships_search(
+        self,
+        *,
+        lender: typing.Optional[str] = None,
+        borrower: typing.Optional[str] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> typing.Dict[str, typing.Any]:
+        """
+        Search lender-borrower relationships across BDC portfolios. Provide either `lender` (to find their borrowers) or `borrower` (to find their lenders).
+
+        Parameters
+        ----------
+        lender : typing.Optional[str]
+            Lender name  -  find their borrowers
+
+        borrower : typing.Optional[str]
+            Borrower name  -  find their lenders
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        typing.Dict[str, typing.Any]
+            Matching relationships
+
+        Examples
+        --------
+        from runcaptain import Captain
+
+        client = Captain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+        client.credit_analysis.relationships_search(
+            lender="Ares Capital",
+        )
+        """
+        _response = self._raw_client.relationships_search(
+            lender=lender, borrower=borrower, request_options=request_options
+        )
+        return _response.data
+
+    def ucc_portals(
+        self, *, state: typing.Optional[str] = None, request_options: typing.Optional[RequestOptions] = None
+    ) -> typing.Dict[str, typing.Any]:
+        """
+        Get UCC filing search portal information for free state-level databases. Returns URLs for CA, NY, TX, FL, IL portals and a list of known major private credit lenders.
+
+        Parameters
+        ----------
+        state : typing.Optional[str]
+            State code (e.g., CA, NY). Omit for all states.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        typing.Dict[str, typing.Any]
+            UCC portal information
+
+        Examples
+        --------
+        from runcaptain import Captain
+
+        client = Captain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+        client.credit_analysis.ucc_portals()
+        """
+        _response = self._raw_client.ucc_portals(state=state, request_options=request_options)
         return _response.data
 
 
@@ -219,16 +1064,28 @@ class AsyncCreditAnalysisClient:
     async def news_search(
         self,
         *,
+        q: str,
+        category: typing.Optional[str] = None,
+        regions: typing.Optional[str] = None,
         start_date: typing.Optional[str] = None,
         end_date: typing.Optional[str] = None,
         limit: typing.Optional[int] = None,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> CreditAnalysisNewsSearchResponse:
         """
         Search for credit-related news and filings including bond issuances, credit rating changes, and default events. Returns matching news with dates, sources, and content.
 
         Parameters
         ----------
+        q : str
+            Search query for credit news (e.g., 'Tesla bond issuance')
+
+        category : typing.Optional[str]
+            Filter by news category (e.g., 'bond_issuance', 'rating_change', 'default', 'restructuring')
+
+        regions : typing.Optional[str]
+            Filter by region (e.g., 'north_america', 'europe', 'asia')
+
         start_date : typing.Optional[str]
             Start date (YYYY-MM-DD)
 
@@ -236,14 +1093,14 @@ class AsyncCreditAnalysisClient:
             End date (YYYY-MM-DD)
 
         limit : typing.Optional[int]
-            Maximum results
+            Maximum number of results to return (1-100, default: 20)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        CreditAnalysisNewsSearchResponse
             Successful response
 
         Examples
@@ -259,30 +1116,42 @@ class AsyncCreditAnalysisClient:
 
 
         async def main() -> None:
-            await client.credit_analysis.news_search()
+            await client.credit_analysis.news_search(
+                q="Ares Capital",
+                limit=10,
+            )
 
 
         asyncio.run(main())
         """
         _response = await self._raw_client.news_search(
-            start_date=start_date, end_date=end_date, limit=limit, request_options=request_options
+            q=q,
+            category=category,
+            regions=regions,
+            start_date=start_date,
+            end_date=end_date,
+            limit=limit,
+            request_options=request_options,
         )
         return _response.data
 
     async def news_recent(
-        self, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+        self, *, limit: typing.Optional[int] = None, request_options: typing.Optional[RequestOptions] = None
+    ) -> CreditAnalysisNewsRecentResponse:
         """
         Get most recent credit news and filings. Returns latest credit events, ratings, and bond issuances from the past 30 days.
 
         Parameters
         ----------
+        limit : typing.Optional[int]
+            Maximum number of results to return (1-100, default: 20)
+
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        CreditAnalysisNewsRecentResponse
             Successful response
 
         Examples
@@ -303,25 +1172,26 @@ class AsyncCreditAnalysisClient:
 
         asyncio.run(main())
         """
-        _response = await self._raw_client.news_recent(request_options=request_options)
+        _response = await self._raw_client.news_recent(limit=limit, request_options=request_options)
         return _response.data
 
     async def news_detail(
         self, news_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> CreditAnalysisNewsDetailResponse:
         """
         Get detailed credit news article or filing including full text, metadata, and related entities. Returns comprehensive news item with analysis.
 
         Parameters
         ----------
         news_id : str
+            News article ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        CreditAnalysisNewsDetailResponse
             Successful response
 
         Examples
@@ -347,23 +1217,21 @@ class AsyncCreditAnalysisClient:
         _response = await self._raw_client.news_detail(news_id, request_options=request_options)
         return _response.data
 
-    async def news_attachment(
-        self, news_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    async def news_attachment(self, news_id: str, *, request_options: typing.Optional[RequestOptions] = None) -> None:
         """
-        Download attachment files associated with credit news including prospectuses, indentures, and rating reports. Returns document files.
+        **Coming Soon** - Download attachment files associated with credit news including prospectuses, indentures, and rating reports. Returns document files.
 
         Parameters
         ----------
         news_id : str
+            News article ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
-            Successful response
+        None
 
         Examples
         --------
@@ -393,7 +1261,7 @@ class AsyncCreditAnalysisClient:
         *,
         queries: typing.Optional[typing.Sequence[str]] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> CreditAnalysisNewsBulkResponse:
         """
         Retrieve multiple credit news articles by ID in a single request. Returns batch results with article details for each requested ID.
 
@@ -407,7 +1275,7 @@ class AsyncCreditAnalysisClient:
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        CreditAnalysisNewsBulkResponse
             Successful response
 
         Examples
@@ -431,4 +1299,997 @@ class AsyncCreditAnalysisClient:
         asyncio.run(main())
         """
         _response = await self._raw_client.news_bulk(queries=queries, request_options=request_options)
+        return _response.data
+
+    async def list_bdcs(
+        self, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> typing.Dict[str, typing.Any]:
+        """
+        List all tracked Business Development Companies (BDCs). BDCs are publicly traded private credit funds that disclose every loan quarterly in SEC 10-Q/10-K filings.
+
+        Parameters
+        ----------
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        typing.Dict[str, typing.Any]
+            List of tracked BDCs
+
+        Examples
+        --------
+        import asyncio
+
+        from runcaptain import AsyncCaptain
+
+        client = AsyncCaptain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.credit_analysis.list_bdcs()
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.list_bdcs(request_options=request_options)
+        return _response.data
+
+    async def bdc_search(
+        self,
+        *,
+        q: str,
+        seniority: typing.Optional[CreditAnalysisBdcSearchRequestSeniority] = None,
+        non_accrual_only: typing.Optional[bool] = None,
+        limit: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> typing.Dict[str, typing.Any]:
+        """
+        Search across all indexed BDC portfolios for a borrower, industry, or keyword.
+
+        Searches loan-level data from ~50 BDC quarterly filings covering $150B+ in direct loans. Returns matching investments with terms (spread, seniority, maturity, fair value).
+
+        Parameters
+        ----------
+        q : str
+            Search query  -  borrower name, industry, or keyword
+
+        seniority : typing.Optional[CreditAnalysisBdcSearchRequestSeniority]
+            Filter by loan seniority
+
+        non_accrual_only : typing.Optional[bool]
+            Only return defaulted (non-accrual) investments
+
+        limit : typing.Optional[int]
+            Maximum results
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        typing.Dict[str, typing.Any]
+            Matching BDC investments
+
+        Examples
+        --------
+        import asyncio
+
+        from runcaptain import AsyncCaptain
+
+        client = AsyncCaptain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.credit_analysis.bdc_search(
+                q="software",
+                seniority="first_lien",
+                limit=10,
+            )
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.bdc_search(
+            q=q, seniority=seniority, non_accrual_only=non_accrual_only, limit=limit, request_options=request_options
+        )
+        return _response.data
+
+    async def bdc_portfolio(
+        self,
+        ticker: str,
+        *,
+        quarter: typing.Optional[str] = None,
+        limit: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> typing.Dict[str, typing.Any]:
+        """
+        Full Schedule of Investments for a specific BDC, parsed from SEC 10-Q/10-K filings.
+
+        Each investment includes: borrower name, industry, investment type, seniority, coupon, spread, reference rate, maturity, principal, fair value, and non-accrual status.
+
+        Parameters
+        ----------
+        ticker : str
+            BDC ticker symbol (e.g., ARCC, BXSL, FSK)
+
+        quarter : typing.Optional[str]
+            Quarter like '2025-Q1'  -  defaults to latest filing
+
+        limit : typing.Optional[int]
+            Maximum investments to return
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        typing.Dict[str, typing.Any]
+            BDC portfolio holdings
+
+        Examples
+        --------
+        import asyncio
+
+        from runcaptain import AsyncCaptain
+
+        client = AsyncCaptain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.credit_analysis.bdc_portfolio(
+                ticker="ARCC",
+            )
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.bdc_portfolio(
+            ticker, quarter=quarter, limit=limit, request_options=request_options
+        )
+        return _response.data
+
+    async def bdc_stats(
+        self, ticker: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> typing.Dict[str, typing.Any]:
+        """
+        Aggregate portfolio statistics for a BDC. Returns weighted average spread, non-accrual rate, seniority breakdown, and top industries.
+
+        Parameters
+        ----------
+        ticker : str
+            BDC ticker symbol
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        typing.Dict[str, typing.Any]
+            BDC aggregate statistics
+
+        Examples
+        --------
+        import asyncio
+
+        from runcaptain import AsyncCaptain
+
+        client = AsyncCaptain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.credit_analysis.bdc_stats(
+                ticker="ARCC",
+            )
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.bdc_stats(ticker, request_options=request_options)
+        return _response.data
+
+    async def borrower_lookup(
+        self, name: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> typing.Dict[str, typing.Any]:
+        """
+        Cross-BDC borrower lookup  -  find a company across all BDC portfolios.
+
+        Returns every BDC that holds this borrower's debt, with position sizes, spreads, and valuations. Reveals syndication patterns and allows cross-lender credit deterioration monitoring.
+
+        Parameters
+        ----------
+        name : str
+            Borrower/company name
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        typing.Dict[str, typing.Any]
+            Borrower positions across BDCs
+
+        Examples
+        --------
+        import asyncio
+
+        from runcaptain import AsyncCaptain
+
+        client = AsyncCaptain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.credit_analysis.borrower_lookup(
+                name="Finastra",
+            )
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.borrower_lookup(name, request_options=request_options)
+        return _response.data
+
+    async def market_overview(
+        self, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> typing.Dict[str, typing.Any]:
+        """
+        Comprehensive private credit market snapshot from free public sources.
+
+        Returns:
+        - **Lending standards** (SLOOS): Net % of banks tightening C&I loan standards
+        - **Credit spreads**: ICE BofA High Yield, BBB, BB, CCC spreads
+        - **Bank lending**: Total C&I loans outstanding
+        - **Interest rates**: 10Y Treasury, SOFR
+        - **Financial conditions**: St. Louis Financial Stress Index, Chicago NFCI
+
+        Data sourced from Federal Reserve (FRED API), updated daily/weekly/quarterly.
+
+        Parameters
+        ----------
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        typing.Dict[str, typing.Any]
+            Market data snapshot
+
+        Examples
+        --------
+        import asyncio
+
+        from runcaptain import AsyncCaptain
+
+        client = AsyncCaptain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.credit_analysis.market_overview()
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.market_overview(request_options=request_options)
+        return _response.data
+
+    async def market_spreads(
+        self, *, history: typing.Optional[int] = None, request_options: typing.Optional[RequestOptions] = None
+    ) -> typing.Dict[str, typing.Any]:
+        """
+        Current and historical credit spread data from ICE BofA indices. Returns High Yield, BBB, BB, and CCC spreads with historical trend.
+
+        Parameters
+        ----------
+        history : typing.Optional[int]
+            Number of historical data points
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        typing.Dict[str, typing.Any]
+            Credit spread data
+
+        Examples
+        --------
+        import asyncio
+
+        from runcaptain import AsyncCaptain
+
+        client = AsyncCaptain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.credit_analysis.market_spreads(
+                history=30,
+            )
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.market_spreads(history=history, request_options=request_options)
+        return _response.data
+
+    async def lending_standards(
+        self, *, history: typing.Optional[int] = None, request_options: typing.Optional[RequestOptions] = None
+    ) -> typing.Dict[str, typing.Any]:
+        """
+        Federal Reserve Senior Loan Officer Opinion Survey (SLOOS) data. Shows net % of banks tightening or easing C&I loan standards. Leading indicator for private credit market conditions.
+
+        Parameters
+        ----------
+        history : typing.Optional[int]
+            Number of quarterly data points
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        typing.Dict[str, typing.Any]
+            SLOOS lending standards data
+
+        Examples
+        --------
+        import asyncio
+
+        from runcaptain import AsyncCaptain
+
+        client = AsyncCaptain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.credit_analysis.lending_standards(
+                history=20,
+            )
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.lending_standards(history=history, request_options=request_options)
+        return _response.data
+
+    async def funds_search(
+        self,
+        *,
+        q: str,
+        strategy: typing.Optional[CreditAnalysisFundsSearchRequestStrategy] = None,
+        limit: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> typing.Dict[str, typing.Any]:
+        """
+        Search private credit funds via SEC Form D filings. Form D is filed when private funds raise capital under Regulation D. Covers fund formations, managers, and capital raised.
+
+        Parameters
+        ----------
+        q : str
+            Fund name, manager name, or keyword
+
+        strategy : typing.Optional[CreditAnalysisFundsSearchRequestStrategy]
+            Filter by strategy
+
+        limit : typing.Optional[int]
+            Maximum results
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        typing.Dict[str, typing.Any]
+            Matching funds
+
+        Examples
+        --------
+        import asyncio
+
+        from runcaptain import AsyncCaptain
+
+        client = AsyncCaptain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.credit_analysis.funds_search(
+                q="Ares",
+                strategy="direct_lending",
+            )
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.funds_search(
+            q=q, strategy=strategy, limit=limit, request_options=request_options
+        )
+        return _response.data
+
+    async def fund_formations(
+        self,
+        *,
+        days_back: typing.Optional[int] = None,
+        limit: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> typing.Dict[str, typing.Any]:
+        """
+        Recent private credit fund formations from SEC Form D filings. Shows new funds launching in the private credit space.
+
+        Parameters
+        ----------
+        days_back : typing.Optional[int]
+            Look back period in days
+
+        limit : typing.Optional[int]
+            Maximum results
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        typing.Dict[str, typing.Any]
+            Recent fund formations
+
+        Examples
+        --------
+        import asyncio
+
+        from runcaptain import AsyncCaptain
+
+        client = AsyncCaptain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.credit_analysis.fund_formations(
+                days_back=90,
+            )
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.fund_formations(
+            days_back=days_back, limit=limit, request_options=request_options
+        )
+        return _response.data
+
+    async def list_managers(
+        self, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> typing.Dict[str, typing.Any]:
+        """
+        List known private credit fund managers with their strategies and SEC CIK numbers.
+
+        Parameters
+        ----------
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        typing.Dict[str, typing.Any]
+            List of credit managers
+
+        Examples
+        --------
+        import asyncio
+
+        from runcaptain import AsyncCaptain
+
+        client = AsyncCaptain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.credit_analysis.list_managers()
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.list_managers(request_options=request_options)
+        return _response.data
+
+    async def manager_detail(
+        self, name: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> typing.Dict[str, typing.Any]:
+        """
+        Detailed information about a private credit fund manager. Combines SEC filing data with known manager intelligence. Returns filing history, fund count, strategy, and recent Form D filings.
+
+        Parameters
+        ----------
+        name : str
+            Manager name (e.g., 'Ares Management')
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        typing.Dict[str, typing.Any]
+            Manager details
+
+        Examples
+        --------
+        import asyncio
+
+        from runcaptain import AsyncCaptain
+
+        client = AsyncCaptain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.credit_analysis.manager_detail(
+                name="Ares Management",
+            )
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.manager_detail(name, request_options=request_options)
+        return _response.data
+
+    async def sba_search(
+        self,
+        *,
+        borrower: typing.Optional[str] = None,
+        lender: typing.Optional[str] = None,
+        state: typing.Optional[str] = None,
+        naics: typing.Optional[str] = None,
+        status: typing.Optional[CreditAnalysisSbaSearchRequestStatus] = None,
+        min_amount: typing.Optional[float] = None,
+        limit: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> typing.Dict[str, typing.Any]:
+        """
+        Search SBA 7(a) loan data. Contains loan-level data with borrower, lender, terms, and performance for 100,000+ loans (FY2020-present).
+
+        Parameters
+        ----------
+        borrower : typing.Optional[str]
+            Borrower name (partial match)
+
+        lender : typing.Optional[str]
+            Bank/lender name (partial match)
+
+        state : typing.Optional[str]
+            State code (e.g., CA, NY, TX)
+
+        naics : typing.Optional[str]
+            NAICS code prefix (e.g., 5112 for software)
+
+        status : typing.Optional[CreditAnalysisSbaSearchRequestStatus]
+            Loan status: CHGOFF (charged off), PIF (paid in full)
+
+        min_amount : typing.Optional[float]
+            Minimum gross approval amount ($)
+
+        limit : typing.Optional[int]
+            Maximum results
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        typing.Dict[str, typing.Any]
+            Matching SBA loans
+
+        Examples
+        --------
+        import asyncio
+
+        from runcaptain import AsyncCaptain
+
+        client = AsyncCaptain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.credit_analysis.sba_search(
+                state="CA",
+                status="CHGOFF",
+                limit=5,
+            )
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.sba_search(
+            borrower=borrower,
+            lender=lender,
+            state=state,
+            naics=naics,
+            status=status,
+            min_amount=min_amount,
+            limit=limit,
+            request_options=request_options,
+        )
+        return _response.data
+
+    async def sba_stats(
+        self, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> typing.Dict[str, typing.Any]:
+        """
+        Aggregate SBA 7(a) loan statistics. Returns default rates, average loan size, top states, and top industries from 100,000+ indexed loans.
+
+        Parameters
+        ----------
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        typing.Dict[str, typing.Any]
+            SBA aggregate statistics
+
+        Examples
+        --------
+        import asyncio
+
+        from runcaptain import AsyncCaptain
+
+        client = AsyncCaptain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.credit_analysis.sba_stats()
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.sba_stats(request_options=request_options)
+        return _response.data
+
+    async def agreements_search(
+        self,
+        *,
+        borrower: typing.Optional[str] = None,
+        lender: typing.Optional[str] = None,
+        date_from: typing.Optional[str] = None,
+        limit: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> typing.Dict[str, typing.Any]:
+        """
+        Search SEC 8-K filings for credit agreements. When public companies enter material credit facilities, they file the agreement as an exhibit to an 8-K.
+
+        Parameters
+        ----------
+        borrower : typing.Optional[str]
+            Borrower/company name
+
+        lender : typing.Optional[str]
+            Lender/agent name
+
+        date_from : typing.Optional[str]
+            Start date (YYYY-MM-DD)
+
+        limit : typing.Optional[int]
+            Maximum results
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        typing.Dict[str, typing.Any]
+            Matching credit agreement filings
+
+        Examples
+        --------
+        import asyncio
+
+        from runcaptain import AsyncCaptain
+
+        client = AsyncCaptain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.credit_analysis.agreements_search(
+                borrower="Dell",
+            )
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.agreements_search(
+            borrower=borrower, lender=lender, date_from=date_from, limit=limit, request_options=request_options
+        )
+        return _response.data
+
+    async def agreement_detail(
+        self, company: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> typing.Dict[str, typing.Any]:
+        """
+        Get the most recent credit agreement filing for a company. Locates the 8-K filing containing the credit agreement.
+
+        Parameters
+        ----------
+        company : str
+            Company name
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        typing.Dict[str, typing.Any]
+            Credit agreement detail
+
+        Examples
+        --------
+        import asyncio
+
+        from runcaptain import AsyncCaptain
+
+        client = AsyncCaptain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.credit_analysis.agreement_detail(
+                company="Alloy",
+            )
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.agreement_detail(company, request_options=request_options)
+        return _response.data
+
+    async def nport_funds(
+        self, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> typing.Dict[str, typing.Any]:
+        """
+        List tracked private credit interval funds that file N-PORT. These filings contain loan-by-loan holdings.
+
+        Parameters
+        ----------
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        typing.Dict[str, typing.Any]
+            List of tracked funds
+
+        Examples
+        --------
+        import asyncio
+
+        from runcaptain import AsyncCaptain
+
+        client = AsyncCaptain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.credit_analysis.nport_funds()
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.nport_funds(request_options=request_options)
+        return _response.data
+
+    async def nport_search(
+        self, *, q: str, limit: typing.Optional[int] = None, request_options: typing.Optional[RequestOptions] = None
+    ) -> typing.Dict[str, typing.Any]:
+        """
+        Search N-PORT filings for private credit holdings matching a borrower name or keyword.
+
+        Parameters
+        ----------
+        q : str
+            Borrower name or keyword
+
+        limit : typing.Optional[int]
+            Maximum results
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        typing.Dict[str, typing.Any]
+            Matching N-PORT holdings
+
+        Examples
+        --------
+        import asyncio
+
+        from runcaptain import AsyncCaptain
+
+        client = AsyncCaptain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.credit_analysis.nport_search(
+                q="Brightstone Capital",
+                limit=10,
+            )
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.nport_search(q=q, limit=limit, request_options=request_options)
+        return _response.data
+
+    async def nport_fund_filings(
+        self, ticker: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> typing.Dict[str, typing.Any]:
+        """
+        Get N-PORT filing list for a specific private credit interval fund.
+
+        Parameters
+        ----------
+        ticker : str
+            Fund ticker (e.g., CCLFX, AFT)
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        typing.Dict[str, typing.Any]
+            Fund N-PORT filings
+
+        Examples
+        --------
+        import asyncio
+
+        from runcaptain import AsyncCaptain
+
+        client = AsyncCaptain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.credit_analysis.nport_fund_filings(
+                ticker="CCLFX",
+            )
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.nport_fund_filings(ticker, request_options=request_options)
+        return _response.data
+
+    async def relationships_search(
+        self,
+        *,
+        lender: typing.Optional[str] = None,
+        borrower: typing.Optional[str] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> typing.Dict[str, typing.Any]:
+        """
+        Search lender-borrower relationships across BDC portfolios. Provide either `lender` (to find their borrowers) or `borrower` (to find their lenders).
+
+        Parameters
+        ----------
+        lender : typing.Optional[str]
+            Lender name  -  find their borrowers
+
+        borrower : typing.Optional[str]
+            Borrower name  -  find their lenders
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        typing.Dict[str, typing.Any]
+            Matching relationships
+
+        Examples
+        --------
+        import asyncio
+
+        from runcaptain import AsyncCaptain
+
+        client = AsyncCaptain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.credit_analysis.relationships_search(
+                lender="Ares Capital",
+            )
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.relationships_search(
+            lender=lender, borrower=borrower, request_options=request_options
+        )
+        return _response.data
+
+    async def ucc_portals(
+        self, *, state: typing.Optional[str] = None, request_options: typing.Optional[RequestOptions] = None
+    ) -> typing.Dict[str, typing.Any]:
+        """
+        Get UCC filing search portal information for free state-level databases. Returns URLs for CA, NY, TX, FL, IL portals and a list of known major private credit lenders.
+
+        Parameters
+        ----------
+        state : typing.Optional[str]
+            State code (e.g., CA, NY). Omit for all states.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        typing.Dict[str, typing.Any]
+            UCC portal information
+
+        Examples
+        --------
+        import asyncio
+
+        from runcaptain import AsyncCaptain
+
+        client = AsyncCaptain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.credit_analysis.ucc_portals()
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.ucc_portals(state=state, request_options=request_options)
         return _response.data

@@ -5,6 +5,8 @@ import typing
 from ..core.client_wrapper import AsyncClientWrapper, SyncClientWrapper
 from ..core.request_options import RequestOptions
 from .raw_client import AsyncRawPeopleClient, RawPeopleClient
+from .types.people_bio_response import PeopleBioResponse
+from .types.people_search_response import PeopleSearchResponse
 
 
 class PeopleClient:
@@ -25,16 +27,36 @@ class PeopleClient:
     def search(
         self,
         *,
+        q: str,
+        company: typing.Optional[str] = None,
         title: typing.Optional[str] = None,
         location: typing.Optional[str] = None,
         limit: typing.Optional[int] = None,
+        offset: typing.Optional[int] = None,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> PeopleSearchResponse:
         """
-        Search for professionals by name, company, title, or location. Returns matching profiles with current position, company, and LinkedIn URL. Use this to find person entity IDs for detailed lookups.
+        Search for people by name, company, title, or natural language query. Returns LinkedIn profiles with rich metadata including professional headline, location, bio excerpt, follower count, and school.
+
+        Use the returned `entity_id` with `/bio`, `/contact`, or `/education-work` to get full enrichment data.
+
+        **Pagination:** Use `offset` and `limit` to page through results. Check `has_more` in the response to determine if more pages are available.
+
+        **Large result sets:** Supports up to 500 results per request. For requests exceeding 100 results, the API automatically expands the search with query variations to discover more profiles, then deduplicates by LinkedIn URL.
+
+        **Examples:**
+        - `?q=engineers at Anthropic in San Francisco&limit=20`
+        - `?q=Sam Altman&limit=1`
+        - `?q=senior data scientists&company=Stripe&location=New York&limit=50&offset=0`
 
         Parameters
         ----------
+        q : str
+            Person name or search query
+
+        company : typing.Optional[str]
+            Filter by current company
+
         title : typing.Optional[str]
             Filter by job title
 
@@ -42,14 +64,17 @@ class PeopleClient:
             Filter by location
 
         limit : typing.Optional[int]
-            Maximum results
+            Maximum results per page (1-500). For limits above 100, query expansion is used automatically.
+
+        offset : typing.Optional[int]
+            Number of results to skip for pagination. Use with limit to page through results.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        PeopleSearchResponse
             Successful response
 
         Examples
@@ -60,29 +85,38 @@ class PeopleClient:
             organization_id="YOUR_ORGANIZATION_ID",
             key="YOUR_KEY",
         )
-        client.people.search()
+        client.people.search(
+            q="engineers at Anthropic in San Francisco",
+            limit=5,
+            offset=0,
+        )
         """
         _response = self._raw_client.search(
-            title=title, location=location, limit=limit, request_options=request_options
+            q=q,
+            company=company,
+            title=title,
+            location=location,
+            limit=limit,
+            offset=offset,
+            request_options=request_options,
         )
         return _response.data
 
-    def bio(
-        self, person_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    def bio(self, person_id: str, *, request_options: typing.Optional[RequestOptions] = None) -> PeopleBioResponse:
         """
-        Get comprehensive person profile including headline, summary, current company, location, and social profiles. This is the primary endpoint for person overview data.
+        Get complete person profile including bio, contact information (emails, phones, social profiles), work history (all positions with companies, titles, dates), and education (schools, degrees, fields of study). One API call returns everything. Use the entity_id from /people/search results.
 
         Parameters
         ----------
         person_id : str
+            Person entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        PeopleBioResponse
             Successful response
 
         Examples
@@ -94,109 +128,10 @@ class PeopleClient:
             key="YOUR_KEY",
         )
         client.people.bio(
-            person_id="ody_pe_019cb8ac-f123-749e-a75e-e5f669g53c05",
+            person_id="019d886b-c9e6-745a-b91f-d7ece19a914c",
         )
         """
         _response = self._raw_client.bio(person_id, request_options=request_options)
-        return _response.data
-
-    def contact(
-        self, person_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
-        """
-        Get contact information including email addresses, phone numbers, and social media profiles. Returns verified contact details for outreach.
-
-        Parameters
-        ----------
-        person_id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        typing.Dict[str, typing.Any]
-            Successful response
-
-        Examples
-        --------
-        from runcaptain import Captain
-
-        client = Captain(
-            organization_id="YOUR_ORGANIZATION_ID",
-            key="YOUR_KEY",
-        )
-        client.people.contact(
-            person_id="linkedin.com/in/samaltman",
-        )
-        """
-        _response = self._raw_client.contact(person_id, request_options=request_options)
-        return _response.data
-
-    def education_work(
-        self, person_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
-        """
-        Get complete professional history including work experience and education. Returns job positions with companies, titles, dates, and degree information with schools and majors.
-
-        Parameters
-        ----------
-        person_id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        typing.Dict[str, typing.Any]
-            Successful response
-
-        Examples
-        --------
-        from runcaptain import Captain
-
-        client = Captain(
-            organization_id="YOUR_ORGANIZATION_ID",
-            key="YOUR_KEY",
-        )
-        client.people.education_work(
-            person_id="linkedin.com/in/samaltman",
-        )
-        """
-        _response = self._raw_client.education_work(person_id, request_options=request_options)
-        return _response.data
-
-    def updates(
-        self, person_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
-        """
-        Get changelog of updates to person profile data. Returns history of career moves, title changes, and profile updates with timestamps.
-
-        Parameters
-        ----------
-        person_id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        typing.Dict[str, typing.Any]
-            Successful response
-
-        Examples
-        --------
-        from runcaptain import Captain
-
-        client = Captain(
-            organization_id="YOUR_ORGANIZATION_ID",
-            key="YOUR_KEY",
-        )
-        client.people.updates(
-            person_id="linkedin.com/in/samaltman",
-        )
-        """
-        _response = self._raw_client.updates(person_id, request_options=request_options)
         return _response.data
 
 
@@ -218,16 +153,36 @@ class AsyncPeopleClient:
     async def search(
         self,
         *,
+        q: str,
+        company: typing.Optional[str] = None,
         title: typing.Optional[str] = None,
         location: typing.Optional[str] = None,
         limit: typing.Optional[int] = None,
+        offset: typing.Optional[int] = None,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> PeopleSearchResponse:
         """
-        Search for professionals by name, company, title, or location. Returns matching profiles with current position, company, and LinkedIn URL. Use this to find person entity IDs for detailed lookups.
+        Search for people by name, company, title, or natural language query. Returns LinkedIn profiles with rich metadata including professional headline, location, bio excerpt, follower count, and school.
+
+        Use the returned `entity_id` with `/bio`, `/contact`, or `/education-work` to get full enrichment data.
+
+        **Pagination:** Use `offset` and `limit` to page through results. Check `has_more` in the response to determine if more pages are available.
+
+        **Large result sets:** Supports up to 500 results per request. For requests exceeding 100 results, the API automatically expands the search with query variations to discover more profiles, then deduplicates by LinkedIn URL.
+
+        **Examples:**
+        - `?q=engineers at Anthropic in San Francisco&limit=20`
+        - `?q=Sam Altman&limit=1`
+        - `?q=senior data scientists&company=Stripe&location=New York&limit=50&offset=0`
 
         Parameters
         ----------
+        q : str
+            Person name or search query
+
+        company : typing.Optional[str]
+            Filter by current company
+
         title : typing.Optional[str]
             Filter by job title
 
@@ -235,14 +190,17 @@ class AsyncPeopleClient:
             Filter by location
 
         limit : typing.Optional[int]
-            Maximum results
+            Maximum results per page (1-500). For limits above 100, query expansion is used automatically.
+
+        offset : typing.Optional[int]
+            Number of results to skip for pagination. Use with limit to page through results.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        PeopleSearchResponse
             Successful response
 
         Examples
@@ -258,32 +216,43 @@ class AsyncPeopleClient:
 
 
         async def main() -> None:
-            await client.people.search()
+            await client.people.search(
+                q="engineers at Anthropic in San Francisco",
+                limit=5,
+                offset=0,
+            )
 
 
         asyncio.run(main())
         """
         _response = await self._raw_client.search(
-            title=title, location=location, limit=limit, request_options=request_options
+            q=q,
+            company=company,
+            title=title,
+            location=location,
+            limit=limit,
+            offset=offset,
+            request_options=request_options,
         )
         return _response.data
 
     async def bio(
         self, person_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> PeopleBioResponse:
         """
-        Get comprehensive person profile including headline, summary, current company, location, and social profiles. This is the primary endpoint for person overview data.
+        Get complete person profile including bio, contact information (emails, phones, social profiles), work history (all positions with companies, titles, dates), and education (schools, degrees, fields of study). One API call returns everything. Use the entity_id from /people/search results.
 
         Parameters
         ----------
         person_id : str
+            Person entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        PeopleBioResponse
             Successful response
 
         Examples
@@ -300,134 +269,11 @@ class AsyncPeopleClient:
 
         async def main() -> None:
             await client.people.bio(
-                person_id="ody_pe_019cb8ac-f123-749e-a75e-e5f669g53c05",
+                person_id="019d886b-c9e6-745a-b91f-d7ece19a914c",
             )
 
 
         asyncio.run(main())
         """
         _response = await self._raw_client.bio(person_id, request_options=request_options)
-        return _response.data
-
-    async def contact(
-        self, person_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
-        """
-        Get contact information including email addresses, phone numbers, and social media profiles. Returns verified contact details for outreach.
-
-        Parameters
-        ----------
-        person_id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        typing.Dict[str, typing.Any]
-            Successful response
-
-        Examples
-        --------
-        import asyncio
-
-        from runcaptain import AsyncCaptain
-
-        client = AsyncCaptain(
-            organization_id="YOUR_ORGANIZATION_ID",
-            key="YOUR_KEY",
-        )
-
-
-        async def main() -> None:
-            await client.people.contact(
-                person_id="linkedin.com/in/samaltman",
-            )
-
-
-        asyncio.run(main())
-        """
-        _response = await self._raw_client.contact(person_id, request_options=request_options)
-        return _response.data
-
-    async def education_work(
-        self, person_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
-        """
-        Get complete professional history including work experience and education. Returns job positions with companies, titles, dates, and degree information with schools and majors.
-
-        Parameters
-        ----------
-        person_id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        typing.Dict[str, typing.Any]
-            Successful response
-
-        Examples
-        --------
-        import asyncio
-
-        from runcaptain import AsyncCaptain
-
-        client = AsyncCaptain(
-            organization_id="YOUR_ORGANIZATION_ID",
-            key="YOUR_KEY",
-        )
-
-
-        async def main() -> None:
-            await client.people.education_work(
-                person_id="linkedin.com/in/samaltman",
-            )
-
-
-        asyncio.run(main())
-        """
-        _response = await self._raw_client.education_work(person_id, request_options=request_options)
-        return _response.data
-
-    async def updates(
-        self, person_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
-        """
-        Get changelog of updates to person profile data. Returns history of career moves, title changes, and profile updates with timestamps.
-
-        Parameters
-        ----------
-        person_id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        typing.Dict[str, typing.Any]
-            Successful response
-
-        Examples
-        --------
-        import asyncio
-
-        from runcaptain import AsyncCaptain
-
-        client = AsyncCaptain(
-            organization_id="YOUR_ORGANIZATION_ID",
-            key="YOUR_KEY",
-        )
-
-
-        async def main() -> None:
-            await client.people.updates(
-                person_id="linkedin.com/in/samaltman",
-            )
-
-
-        asyncio.run(main())
-        """
-        _response = await self._raw_client.updates(person_id, request_options=request_options)
         return _response.data

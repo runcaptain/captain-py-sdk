@@ -38,15 +38,19 @@ Instantiate and use the client with the following:
 from runcaptain import Captain
 
 client = Captain(
-    organization_id="YOUR_ORGANIZATION_ID",
-    key="YOUR_KEY",
+    key="<token>",
+    organization_id="<X-Organization-ID>",
 )
-response = client.query.collection_v2stream(
-    collection_name="collection_name",
-    query="query",
+
+client.query.collection_v2(
+    collection_name="my_documents",
+    query="What are the key terms in the contract?",
+    inference=True,
+    stream=True,
+    rerank=True,
+    top_k=10,
+    include_bbox=False,
 )
-for chunk in response.data:
-    yield chunk
 ```
 
 ## Async Client
@@ -59,18 +63,21 @@ import asyncio
 from runcaptain import AsyncCaptain
 
 client = AsyncCaptain(
-    organization_id="YOUR_ORGANIZATION_ID",
-    key="YOUR_KEY",
+    key="<token>",
+    organization_id="<X-Organization-ID>",
 )
 
 
 async def main() -> None:
-    response = await client.query.collection_v2stream(
-        collection_name="collection_name",
-        query="query",
+    await client.query.collection_v2(
+        collection_name="my_documents",
+        query="What are the key terms in the contract?",
+        inference=True,
+        stream=True,
+        rerank=True,
+        top_k=10,
+        include_bbox=False,
     )
-    async for chunk in response.data:
-        yield chunk
 
 
 asyncio.run(main())
@@ -85,7 +92,7 @@ will be thrown.
 from runcaptain.core.api_error import ApiError
 
 try:
-    client.query.collection_v2stream(...)
+    client.query.collection_v2(...)
 except ApiError as e:
     print(e.status_code)
     print(e.body)
@@ -120,15 +127,11 @@ The `.with_raw_response` property returns a "raw" client that can be used to acc
 ```python
 from runcaptain import Captain
 
-client = Captain(
-    ...,
-)
-with client.query.with_raw_response.collection_v2stream(...) as response:
-    print(
-        response.headers
-    )  # access the response headersprint(response.status_code)  # access the response status code
-    for chunk in response.data:
-        print(chunk)  # access the underlying object(s)
+client = Captain(...)
+response = client.query.with_raw_response.collection_v2(...)
+print(response.headers)  # access the response headers
+print(response.status_code)  # access the response status code
+print(response.data)  # access the underlying object
 ```
 
 ### Retries
@@ -146,7 +149,7 @@ A request is deemed retryable when any of the following HTTP status codes is ret
 Use the `max_retries` request option to configure this behavior.
 
 ```python
-client.query.collection_v2stream(..., request_options={
+client.query.collection_v2(..., request_options={
     "max_retries": 1
 })
 ```
@@ -156,17 +159,12 @@ client.query.collection_v2stream(..., request_options={
 The SDK defaults to a 60 second timeout. You can configure this with a timeout option at the client or request level.
 
 ```python
-
 from runcaptain import Captain
 
-client = Captain(
-    ...,
-    timeout=20.0,
-)
-
+client = Captain(..., timeout=20.0)
 
 # Override timeout for a specific method
-client.query.collection_v2stream(..., request_options={
+client.query.collection_v2(..., request_options={
     "timeout_in_seconds": 1
 })
 ```

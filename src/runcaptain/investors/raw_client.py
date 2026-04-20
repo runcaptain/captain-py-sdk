@@ -7,11 +7,22 @@ from ..core.api_error import ApiError
 from ..core.client_wrapper import AsyncClientWrapper, SyncClientWrapper
 from ..core.http_response import AsyncHttpResponse, HttpResponse
 from ..core.jsonable_encoder import jsonable_encoder
+from ..core.parse_error import ParsingError
 from ..core.pydantic_utilities import parse_obj_as
 from ..core.request_options import RequestOptions
 from ..errors.not_found_error import NotFoundError
 from ..errors.not_implemented_error import NotImplementedError
 from ..errors.unauthorized_error import UnauthorizedError
+from .types.investors_active_investments_response import InvestorsActiveInvestmentsResponse
+from .types.investors_bio_response import InvestorsBioResponse
+from .types.investors_board_seats_response import InvestorsBoardSeatsResponse
+from .types.investors_funds_latest_response import InvestorsFundsLatestResponse
+from .types.investors_funds_response import InvestorsFundsResponse
+from .types.investors_preferences_response import InvestorsPreferencesResponse
+from .types.investors_search_response import InvestorsSearchResponse
+from .types.investors_service_providers_deal_response import InvestorsServiceProvidersDealResponse
+from .types.investors_service_providers_response import InvestorsServiceProvidersResponse
+from pydantic import ValidationError
 
 
 class RawInvestorsClient:
@@ -21,15 +32,23 @@ class RawInvestorsClient:
     def search(
         self,
         *,
+        q: typing.Optional[str] = None,
+        investor_type: typing.Optional[str] = None,
         page: typing.Optional[int] = None,
         page_size: typing.Optional[int] = None,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> HttpResponse[InvestorsSearchResponse]:
         """
         Search for venture capital firms, angel investors, and institutional investors by name. Returns matching investor profiles with investment focus, portfolio size, and notable investments. Use this to find investor entity IDs for detailed lookups.
 
         Parameters
         ----------
+        q : typing.Optional[str]
+            Investor name or keyword (e.g., 'Sequoia Capital')
+
+        investor_type : typing.Optional[str]
+            Filter by investor type
+
         page : typing.Optional[int]
             Page number
 
@@ -41,13 +60,15 @@ class RawInvestorsClient:
 
         Returns
         -------
-        HttpResponse[typing.Dict[str, typing.Any]]
+        HttpResponse[InvestorsSearchResponse]
             Successful response
         """
         _response = self._client_wrapper.httpx_client.request(
             "v2/datasets/odyssey/investors/search",
             method="GET",
             params={
+                "q": q,
+                "investor_type": investor_type,
                 "page": page,
                 "page_size": page_size,
             },
@@ -56,9 +77,9 @@ class RawInvestorsClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    InvestorsSearchResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=InvestorsSearchResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -77,24 +98,29 @@ class RawInvestorsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     def bio(
         self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> HttpResponse[InvestorsBioResponse]:
         """
         Get comprehensive investor profile including description, investment thesis, stage focus, sector focus, and notable portfolio companies. This is the primary endpoint for investor overview data.
 
         Parameters
         ----------
         id : str
+            Investor name (e.g., 'Sequoia Capital') or entity ID from /investors/search
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[typing.Dict[str, typing.Any]]
+        HttpResponse[InvestorsBioResponse]
             Successful response
         """
         _response = self._client_wrapper.httpx_client.request(
@@ -105,9 +131,9 @@ class RawInvestorsClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    InvestorsBioResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=InvestorsBioResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -137,37 +163,59 @@ class RawInvestorsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     def active_investments(
-        self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+        self,
+        id: str,
+        *,
+        page: typing.Optional[int] = None,
+        page_size: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> HttpResponse[InvestorsActiveInvestmentsResponse]:
         """
         Get current portfolio companies that the investor has active positions in. Returns company names, investment dates, and current status.
+
+        Supports pagination via `page` and `page_size` query parameters. Response includes `total_in_database` for the full count across all pages.
 
         Parameters
         ----------
         id : str
+            Investor name (e.g., 'Sequoia Capital') or entity ID from /investors/search
+
+        page : typing.Optional[int]
+            Page number for pagination (default: 1)
+
+        page_size : typing.Optional[int]
+            Results per page (default: 50, max: 1000)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[typing.Dict[str, typing.Any]]
+        HttpResponse[InvestorsActiveInvestmentsResponse]
             Successful response
         """
         _response = self._client_wrapper.httpx_client.request(
             f"v2/datasets/odyssey/investors/{jsonable_encoder(id)}/active-investments",
             method="GET",
+            params={
+                "page": page,
+                "page_size": page_size,
+            },
             request_options=request_options,
         )
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    InvestorsActiveInvestmentsResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=InvestorsActiveInvestmentsResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -197,84 +245,29 @@ class RawInvestorsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
-    def all_investments(
-        self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
-        """
-        Get complete investment history including current portfolio and exited positions. Returns all companies the investor has backed with investment details and outcomes.
-
-        Parameters
-        ----------
-        id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        HttpResponse[typing.Dict[str, typing.Any]]
-            Successful response
-        """
-        _response = self._client_wrapper.httpx_client.request(
-            f"v2/datasets/odyssey/investors/{jsonable_encoder(id)}/all-investments",
-            method="GET",
-            request_options=request_options,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    typing.Dict[str, typing.Any],
-                    parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return HttpResponse(response=_response, data=_data)
-            if _response.status_code == 401:
-                raise UnauthorizedError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            if _response.status_code == 404:
-                raise NotFoundError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     def preferences(
         self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> HttpResponse[InvestorsPreferencesResponse]:
         """
         Get investment preferences including stage focus, sector preferences, geography, and typical check size. Useful for determining investment fit.
 
         Parameters
         ----------
         id : str
+            Investor name (e.g., 'Sequoia Capital') or entity ID from /investors/search
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[typing.Dict[str, typing.Any]]
+        HttpResponse[InvestorsPreferencesResponse]
             Successful response
         """
         _response = self._client_wrapper.httpx_client.request(
@@ -285,9 +278,9 @@ class RawInvestorsClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    InvestorsPreferencesResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=InvestorsPreferencesResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -317,24 +310,29 @@ class RawInvestorsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     def funds(
         self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> HttpResponse[InvestorsFundsResponse]:
         """
         Get all funds managed by the investor including fund names, sizes, vintage years, and status. Returns complete fund portfolio for multi-fund investors.
 
         Parameters
         ----------
         id : str
+            Investor name (e.g., 'Sequoia Capital') or entity ID from /investors/search
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[typing.Dict[str, typing.Any]]
+        HttpResponse[InvestorsFundsResponse]
             Successful response
         """
         _response = self._client_wrapper.httpx_client.request(
@@ -345,9 +343,9 @@ class RawInvestorsClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    InvestorsFundsResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=InvestorsFundsResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -388,24 +386,29 @@ class RawInvestorsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     def funds_latest(
         self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> HttpResponse[InvestorsFundsLatestResponse]:
         """
         Get information about the investor's most recent fund including size, vintage year, and deployment status. Useful for understanding current investment capacity.
 
         Parameters
         ----------
         id : str
+            Investor name (e.g., 'Sequoia Capital') or entity ID from /investors/search
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[typing.Dict[str, typing.Any]]
+        HttpResponse[InvestorsFundsLatestResponse]
             Successful response
         """
         _response = self._client_wrapper.httpx_client.request(
@@ -416,9 +419,9 @@ class RawInvestorsClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    InvestorsFundsLatestResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=InvestorsFundsLatestResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -448,24 +451,29 @@ class RawInvestorsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     def board_seats(
         self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> HttpResponse[InvestorsBoardSeatsResponse]:
         """
         Get board seats held by the investor's team members. Returns companies where investor partners serve on the board of directors.
 
         Parameters
         ----------
         id : str
+            Investor name (e.g., 'Sequoia Capital') or entity ID from /investors/search
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[typing.Dict[str, typing.Any]]
+        HttpResponse[InvestorsBoardSeatsResponse]
             Successful response
         """
         _response = self._client_wrapper.httpx_client.request(
@@ -476,9 +484,9 @@ class RawInvestorsClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    InvestorsBoardSeatsResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=InvestorsBoardSeatsResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -508,24 +516,29 @@ class RawInvestorsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     def service_providers(
         self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> HttpResponse[InvestorsServiceProvidersResponse]:
         """
         Get service providers used by the investor including legal counsel, fund administrators, and consultants. Returns firm names and service types.
 
         Parameters
         ----------
         id : str
+            Investor name (e.g., 'Sequoia Capital') or entity ID from /investors/search
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[typing.Dict[str, typing.Any]]
+        HttpResponse[InvestorsServiceProvidersResponse]
             Successful response
         """
         _response = self._client_wrapper.httpx_client.request(
@@ -536,9 +549,9 @@ class RawInvestorsClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    InvestorsServiceProvidersResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=InvestorsServiceProvidersResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -579,24 +592,29 @@ class RawInvestorsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     def service_providers_deal(
         self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> HttpResponse[InvestorsServiceProvidersDealResponse]:
         """
         Get service providers involved in the investor's deal flow including transaction advisors and due diligence firms. Returns provider details specific to deal execution.
 
         Parameters
         ----------
         id : str
+            Investor name (e.g., 'Sequoia Capital') or entity ID from /investors/search
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[typing.Dict[str, typing.Any]]
+        HttpResponse[InvestorsServiceProvidersDealResponse]
             Successful response
         """
         _response = self._client_wrapper.httpx_client.request(
@@ -607,9 +625,9 @@ class RawInvestorsClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    InvestorsServiceProvidersDealResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=InvestorsServiceProvidersDealResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -650,66 +668,10 @@ class RawInvestorsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
-    def updates(
-        self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
-        """
-        Get changelog of updates to investor profile data. Returns history of changes including new investments, fund raises, and team changes with timestamps.
-
-        Parameters
-        ----------
-        id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        HttpResponse[typing.Dict[str, typing.Any]]
-            Successful response
-        """
-        _response = self._client_wrapper.httpx_client.request(
-            f"v2/datasets/odyssey/investors/{jsonable_encoder(id)}/updates",
-            method="GET",
-            request_options=request_options,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    typing.Dict[str, typing.Any],
-                    parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return HttpResponse(response=_response, data=_data)
-            if _response.status_code == 401:
-                raise UnauthorizedError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            if _response.status_code == 404:
-                raise NotFoundError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
 
@@ -720,15 +682,23 @@ class AsyncRawInvestorsClient:
     async def search(
         self,
         *,
+        q: typing.Optional[str] = None,
+        investor_type: typing.Optional[str] = None,
         page: typing.Optional[int] = None,
         page_size: typing.Optional[int] = None,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> AsyncHttpResponse[InvestorsSearchResponse]:
         """
         Search for venture capital firms, angel investors, and institutional investors by name. Returns matching investor profiles with investment focus, portfolio size, and notable investments. Use this to find investor entity IDs for detailed lookups.
 
         Parameters
         ----------
+        q : typing.Optional[str]
+            Investor name or keyword (e.g., 'Sequoia Capital')
+
+        investor_type : typing.Optional[str]
+            Filter by investor type
+
         page : typing.Optional[int]
             Page number
 
@@ -740,13 +710,15 @@ class AsyncRawInvestorsClient:
 
         Returns
         -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+        AsyncHttpResponse[InvestorsSearchResponse]
             Successful response
         """
         _response = await self._client_wrapper.httpx_client.request(
             "v2/datasets/odyssey/investors/search",
             method="GET",
             params={
+                "q": q,
+                "investor_type": investor_type,
                 "page": page,
                 "page_size": page_size,
             },
@@ -755,9 +727,9 @@ class AsyncRawInvestorsClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    InvestorsSearchResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=InvestorsSearchResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -776,24 +748,29 @@ class AsyncRawInvestorsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def bio(
         self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> AsyncHttpResponse[InvestorsBioResponse]:
         """
         Get comprehensive investor profile including description, investment thesis, stage focus, sector focus, and notable portfolio companies. This is the primary endpoint for investor overview data.
 
         Parameters
         ----------
         id : str
+            Investor name (e.g., 'Sequoia Capital') or entity ID from /investors/search
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+        AsyncHttpResponse[InvestorsBioResponse]
             Successful response
         """
         _response = await self._client_wrapper.httpx_client.request(
@@ -804,9 +781,9 @@ class AsyncRawInvestorsClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    InvestorsBioResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=InvestorsBioResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -836,37 +813,59 @@ class AsyncRawInvestorsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def active_investments(
-        self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+        self,
+        id: str,
+        *,
+        page: typing.Optional[int] = None,
+        page_size: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> AsyncHttpResponse[InvestorsActiveInvestmentsResponse]:
         """
         Get current portfolio companies that the investor has active positions in. Returns company names, investment dates, and current status.
+
+        Supports pagination via `page` and `page_size` query parameters. Response includes `total_in_database` for the full count across all pages.
 
         Parameters
         ----------
         id : str
+            Investor name (e.g., 'Sequoia Capital') or entity ID from /investors/search
+
+        page : typing.Optional[int]
+            Page number for pagination (default: 1)
+
+        page_size : typing.Optional[int]
+            Results per page (default: 50, max: 1000)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+        AsyncHttpResponse[InvestorsActiveInvestmentsResponse]
             Successful response
         """
         _response = await self._client_wrapper.httpx_client.request(
             f"v2/datasets/odyssey/investors/{jsonable_encoder(id)}/active-investments",
             method="GET",
+            params={
+                "page": page,
+                "page_size": page_size,
+            },
             request_options=request_options,
         )
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    InvestorsActiveInvestmentsResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=InvestorsActiveInvestmentsResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -896,84 +895,29 @@ class AsyncRawInvestorsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
-    async def all_investments(
-        self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
-        """
-        Get complete investment history including current portfolio and exited positions. Returns all companies the investor has backed with investment details and outcomes.
-
-        Parameters
-        ----------
-        id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
-            Successful response
-        """
-        _response = await self._client_wrapper.httpx_client.request(
-            f"v2/datasets/odyssey/investors/{jsonable_encoder(id)}/all-investments",
-            method="GET",
-            request_options=request_options,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    typing.Dict[str, typing.Any],
-                    parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return AsyncHttpResponse(response=_response, data=_data)
-            if _response.status_code == 401:
-                raise UnauthorizedError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            if _response.status_code == 404:
-                raise NotFoundError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def preferences(
         self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> AsyncHttpResponse[InvestorsPreferencesResponse]:
         """
         Get investment preferences including stage focus, sector preferences, geography, and typical check size. Useful for determining investment fit.
 
         Parameters
         ----------
         id : str
+            Investor name (e.g., 'Sequoia Capital') or entity ID from /investors/search
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+        AsyncHttpResponse[InvestorsPreferencesResponse]
             Successful response
         """
         _response = await self._client_wrapper.httpx_client.request(
@@ -984,9 +928,9 @@ class AsyncRawInvestorsClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    InvestorsPreferencesResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=InvestorsPreferencesResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -1016,24 +960,29 @@ class AsyncRawInvestorsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def funds(
         self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> AsyncHttpResponse[InvestorsFundsResponse]:
         """
         Get all funds managed by the investor including fund names, sizes, vintage years, and status. Returns complete fund portfolio for multi-fund investors.
 
         Parameters
         ----------
         id : str
+            Investor name (e.g., 'Sequoia Capital') or entity ID from /investors/search
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+        AsyncHttpResponse[InvestorsFundsResponse]
             Successful response
         """
         _response = await self._client_wrapper.httpx_client.request(
@@ -1044,9 +993,9 @@ class AsyncRawInvestorsClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    InvestorsFundsResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=InvestorsFundsResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -1087,24 +1036,29 @@ class AsyncRawInvestorsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def funds_latest(
         self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> AsyncHttpResponse[InvestorsFundsLatestResponse]:
         """
         Get information about the investor's most recent fund including size, vintage year, and deployment status. Useful for understanding current investment capacity.
 
         Parameters
         ----------
         id : str
+            Investor name (e.g., 'Sequoia Capital') or entity ID from /investors/search
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+        AsyncHttpResponse[InvestorsFundsLatestResponse]
             Successful response
         """
         _response = await self._client_wrapper.httpx_client.request(
@@ -1115,9 +1069,9 @@ class AsyncRawInvestorsClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    InvestorsFundsLatestResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=InvestorsFundsLatestResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -1147,24 +1101,29 @@ class AsyncRawInvestorsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def board_seats(
         self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> AsyncHttpResponse[InvestorsBoardSeatsResponse]:
         """
         Get board seats held by the investor's team members. Returns companies where investor partners serve on the board of directors.
 
         Parameters
         ----------
         id : str
+            Investor name (e.g., 'Sequoia Capital') or entity ID from /investors/search
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+        AsyncHttpResponse[InvestorsBoardSeatsResponse]
             Successful response
         """
         _response = await self._client_wrapper.httpx_client.request(
@@ -1175,9 +1134,9 @@ class AsyncRawInvestorsClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    InvestorsBoardSeatsResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=InvestorsBoardSeatsResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -1207,24 +1166,29 @@ class AsyncRawInvestorsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def service_providers(
         self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> AsyncHttpResponse[InvestorsServiceProvidersResponse]:
         """
         Get service providers used by the investor including legal counsel, fund administrators, and consultants. Returns firm names and service types.
 
         Parameters
         ----------
         id : str
+            Investor name (e.g., 'Sequoia Capital') or entity ID from /investors/search
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+        AsyncHttpResponse[InvestorsServiceProvidersResponse]
             Successful response
         """
         _response = await self._client_wrapper.httpx_client.request(
@@ -1235,9 +1199,9 @@ class AsyncRawInvestorsClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    InvestorsServiceProvidersResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=InvestorsServiceProvidersResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -1278,24 +1242,29 @@ class AsyncRawInvestorsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def service_providers_deal(
         self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> AsyncHttpResponse[InvestorsServiceProvidersDealResponse]:
         """
         Get service providers involved in the investor's deal flow including transaction advisors and due diligence firms. Returns provider details specific to deal execution.
 
         Parameters
         ----------
         id : str
+            Investor name (e.g., 'Sequoia Capital') or entity ID from /investors/search
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+        AsyncHttpResponse[InvestorsServiceProvidersDealResponse]
             Successful response
         """
         _response = await self._client_wrapper.httpx_client.request(
@@ -1306,9 +1275,9 @@ class AsyncRawInvestorsClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    InvestorsServiceProvidersDealResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=InvestorsServiceProvidersDealResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -1349,64 +1318,8 @@ class AsyncRawInvestorsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
-    async def updates(
-        self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
-        """
-        Get changelog of updates to investor profile data. Returns history of changes including new investments, fund raises, and team changes with timestamps.
-
-        Parameters
-        ----------
-        id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
-            Successful response
-        """
-        _response = await self._client_wrapper.httpx_client.request(
-            f"v2/datasets/odyssey/investors/{jsonable_encoder(id)}/updates",
-            method="GET",
-            request_options=request_options,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    typing.Dict[str, typing.Any],
-                    parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return AsyncHttpResponse(response=_response, data=_data)
-            if _response.status_code == 401:
-                raise UnauthorizedError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            if _response.status_code == 404:
-                raise NotFoundError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)

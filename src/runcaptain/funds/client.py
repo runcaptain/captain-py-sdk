@@ -5,6 +5,9 @@ import typing
 from ..core.client_wrapper import AsyncClientWrapper, SyncClientWrapper
 from ..core.request_options import RequestOptions
 from .raw_client import AsyncRawFundsClient, RawFundsClient
+from .types.funds_active_investments_response import FundsActiveInvestmentsResponse
+from .types.funds_bio_response import FundsBioResponse
+from .types.funds_search_response import FundsSearchResponse
 
 
 class FundsClient:
@@ -25,27 +28,35 @@ class FundsClient:
     def search(
         self,
         *,
+        q: str,
+        fund_type: typing.Optional[str] = None,
         vintage_year: typing.Optional[int] = None,
         limit: typing.Optional[int] = None,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> FundsSearchResponse:
         """
         Search for venture capital and private equity funds by name. Returns matching fund profiles with size, vintage year, and investment focus. Use this to find fund entity IDs for detailed lookups.
 
         Parameters
         ----------
+        q : str
+            Fund name or keyword (e.g., 'Sequoia Capital Fund XIV')
+
+        fund_type : typing.Optional[str]
+            Filter by fund type (e.g., 'venture', 'buyout', 'growth_equity', 'real_estate', 'debt')
+
         vintage_year : typing.Optional[int]
-            Filter by vintage year
+            Filter by fund vintage year (e.g., 2023)
 
         limit : typing.Optional[int]
-            Maximum results
+            Maximum number of results to return (1-100, default: 10)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        FundsSearchResponse
             Successful response
 
         Examples
@@ -56,27 +67,31 @@ class FundsClient:
             organization_id="YOUR_ORGANIZATION_ID",
             key="YOUR_KEY",
         )
-        client.funds.search()
+        client.funds.search(
+            q="Sequoia Capital Fund",
+            limit=10,
+        )
         """
-        _response = self._raw_client.search(vintage_year=vintage_year, limit=limit, request_options=request_options)
+        _response = self._raw_client.search(
+            q=q, fund_type=fund_type, vintage_year=vintage_year, limit=limit, request_options=request_options
+        )
         return _response.data
 
-    def bio(
-        self, fund_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    def bio(self, fund_id: str, *, request_options: typing.Optional[RequestOptions] = None) -> FundsBioResponse:
         """
         Get comprehensive fund profile including fund size, vintage year, investment strategy, stage focus, and sector focus. This is the primary endpoint for fund overview data.
 
         Parameters
         ----------
         fund_id : str
+            Fund entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        FundsBioResponse
             Successful response
 
         Examples
@@ -94,23 +109,21 @@ class FundsClient:
         _response = self._raw_client.bio(fund_id, request_options=request_options)
         return _response.data
 
-    def performance(
-        self, fund_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    def performance(self, fund_id: str, *, request_options: typing.Optional[RequestOptions] = None) -> None:
         """
-        Coming Soon: Get fund performance metrics including IRR, TVPI, DPI, and RVPI. Will return LP-level performance data when implemented with proprietary fund reporting.
+        **Coming Soon** - Get fund performance metrics including IRR, TVPI, DPI, and RVPI.
 
         Parameters
         ----------
         fund_id : str
+            Fund entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
-            Successful response
+        None
 
         Examples
         --------
@@ -128,21 +141,35 @@ class FundsClient:
         return _response.data
 
     def active_investments(
-        self, fund_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+        self,
+        fund_id: str,
+        *,
+        page: typing.Optional[int] = None,
+        page_size: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> FundsActiveInvestmentsResponse:
         """
         Get current portfolio companies invested by this specific fund. Returns company names, investment amounts, and current status.
+
+        Supports pagination via `page` and `page_size` query parameters. Response includes `total_in_database` for the full count across all pages.
 
         Parameters
         ----------
         fund_id : str
+            Fund entity ID
+
+        page : typing.Optional[int]
+            Page number for pagination (default: 1)
+
+        page_size : typing.Optional[int]
+            Results per page (default: 50, max: 1000)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        FundsActiveInvestmentsResponse
             Successful response
 
         Examples
@@ -157,59 +184,26 @@ class FundsClient:
             fund_id="sequoia",
         )
         """
-        _response = self._raw_client.active_investments(fund_id, request_options=request_options)
+        _response = self._raw_client.active_investments(
+            fund_id, page=page, page_size=page_size, request_options=request_options
+        )
         return _response.data
 
-    def all_investments(
-        self, fund_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    def commitments(self, fund_id: str, *, request_options: typing.Optional[RequestOptions] = None) -> None:
         """
-        Get complete investment history for this specific fund including current and exited positions. Returns all companies backed by the fund with outcomes.
+        **Coming Soon** - Get limited partner commitments to the fund including LP names and commitment amounts. Returns investor base and capital structure.
 
         Parameters
         ----------
         fund_id : str
+            Fund entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
-            Successful response
-
-        Examples
-        --------
-        from runcaptain import Captain
-
-        client = Captain(
-            organization_id="YOUR_ORGANIZATION_ID",
-            key="YOUR_KEY",
-        )
-        client.funds.all_investments(
-            fund_id="sequoia",
-        )
-        """
-        _response = self._raw_client.all_investments(fund_id, request_options=request_options)
-        return _response.data
-
-    def commitments(
-        self, fund_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
-        """
-        Get limited partner commitments to the fund including LP names and commitment amounts. Returns investor base and capital structure.
-
-        Parameters
-        ----------
-        fund_id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        typing.Dict[str, typing.Any]
-            Successful response
+        None
 
         Examples
         --------
@@ -226,23 +220,21 @@ class FundsClient:
         _response = self._raw_client.commitments(fund_id, request_options=request_options)
         return _response.data
 
-    def cash_flows(
-        self, fund_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    def cash_flows(self, fund_id: str, *, request_options: typing.Optional[RequestOptions] = None) -> None:
         """
-        Coming Soon: Get fund cash flow history including capital calls and distributions. Will return quarterly cash flow statements when implemented with LP reporting data.
+        **Coming Soon** - Get fund cash flow history including capital calls and distributions.
 
         Parameters
         ----------
         fund_id : str
+            Fund entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
-            Successful response
+        None
 
         Examples
         --------
@@ -259,23 +251,21 @@ class FundsClient:
         _response = self._raw_client.cash_flows(fund_id, request_options=request_options)
         return _response.data
 
-    def benchmark(
-        self, fund_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    def benchmark(self, fund_id: str, *, request_options: typing.Optional[RequestOptions] = None) -> None:
         """
-        Coming Soon: Get fund performance compared to industry benchmarks and peer funds. Will return quartile rankings and comparative metrics when implemented.
+        **Coming Soon** - Get fund performance compared to industry benchmarks and peer funds.
 
         Parameters
         ----------
         fund_id : str
+            Fund entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
-            Successful response
+        None
 
         Examples
         --------
@@ -292,56 +282,21 @@ class FundsClient:
         _response = self._raw_client.benchmark(fund_id, request_options=request_options)
         return _response.data
 
-    def people(
-        self, fund_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    def preferences(self, fund_id: str, *, request_options: typing.Optional[RequestOptions] = None) -> None:
         """
-        Get investment team members for the fund including partners, principals, and associates. Returns names, titles, and LinkedIn profiles.
+        **Coming Soon** - Get investment criteria and preferences for the fund including stage focus, sector preferences, geography, and check size ranges.
 
         Parameters
         ----------
         fund_id : str
+            Fund entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
-            Successful response
-
-        Examples
-        --------
-        from runcaptain import Captain
-
-        client = Captain(
-            organization_id="YOUR_ORGANIZATION_ID",
-            key="YOUR_KEY",
-        )
-        client.funds.people(
-            fund_id="sequoia",
-        )
-        """
-        _response = self._raw_client.people(fund_id, request_options=request_options)
-        return _response.data
-
-    def preferences(
-        self, fund_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
-        """
-        Get investment criteria and preferences for the fund including stage focus, sector preferences, geography, and check size ranges.
-
-        Parameters
-        ----------
-        fund_id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        typing.Dict[str, typing.Any]
-            Successful response
+        None
 
         Examples
         --------
@@ -356,39 +311,6 @@ class FundsClient:
         )
         """
         _response = self._raw_client.preferences(fund_id, request_options=request_options)
-        return _response.data
-
-    def updates(
-        self, fund_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
-        """
-        Get changelog of updates to fund profile data. Returns history of changes including new investments, exits, and team changes with timestamps.
-
-        Parameters
-        ----------
-        fund_id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        typing.Dict[str, typing.Any]
-            Successful response
-
-        Examples
-        --------
-        from runcaptain import Captain
-
-        client = Captain(
-            organization_id="YOUR_ORGANIZATION_ID",
-            key="YOUR_KEY",
-        )
-        client.funds.updates(
-            fund_id="sequoia",
-        )
-        """
-        _response = self._raw_client.updates(fund_id, request_options=request_options)
         return _response.data
 
 
@@ -410,27 +332,35 @@ class AsyncFundsClient:
     async def search(
         self,
         *,
+        q: str,
+        fund_type: typing.Optional[str] = None,
         vintage_year: typing.Optional[int] = None,
         limit: typing.Optional[int] = None,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> FundsSearchResponse:
         """
         Search for venture capital and private equity funds by name. Returns matching fund profiles with size, vintage year, and investment focus. Use this to find fund entity IDs for detailed lookups.
 
         Parameters
         ----------
+        q : str
+            Fund name or keyword (e.g., 'Sequoia Capital Fund XIV')
+
+        fund_type : typing.Optional[str]
+            Filter by fund type (e.g., 'venture', 'buyout', 'growth_equity', 'real_estate', 'debt')
+
         vintage_year : typing.Optional[int]
-            Filter by vintage year
+            Filter by fund vintage year (e.g., 2023)
 
         limit : typing.Optional[int]
-            Maximum results
+            Maximum number of results to return (1-100, default: 10)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        FundsSearchResponse
             Successful response
 
         Examples
@@ -446,32 +376,34 @@ class AsyncFundsClient:
 
 
         async def main() -> None:
-            await client.funds.search()
+            await client.funds.search(
+                q="Sequoia Capital Fund",
+                limit=10,
+            )
 
 
         asyncio.run(main())
         """
         _response = await self._raw_client.search(
-            vintage_year=vintage_year, limit=limit, request_options=request_options
+            q=q, fund_type=fund_type, vintage_year=vintage_year, limit=limit, request_options=request_options
         )
         return _response.data
 
-    async def bio(
-        self, fund_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    async def bio(self, fund_id: str, *, request_options: typing.Optional[RequestOptions] = None) -> FundsBioResponse:
         """
         Get comprehensive fund profile including fund size, vintage year, investment strategy, stage focus, and sector focus. This is the primary endpoint for fund overview data.
 
         Parameters
         ----------
         fund_id : str
+            Fund entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        FundsBioResponse
             Successful response
 
         Examples
@@ -497,23 +429,21 @@ class AsyncFundsClient:
         _response = await self._raw_client.bio(fund_id, request_options=request_options)
         return _response.data
 
-    async def performance(
-        self, fund_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    async def performance(self, fund_id: str, *, request_options: typing.Optional[RequestOptions] = None) -> None:
         """
-        Coming Soon: Get fund performance metrics including IRR, TVPI, DPI, and RVPI. Will return LP-level performance data when implemented with proprietary fund reporting.
+        **Coming Soon** - Get fund performance metrics including IRR, TVPI, DPI, and RVPI.
 
         Parameters
         ----------
         fund_id : str
+            Fund entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
-            Successful response
+        None
 
         Examples
         --------
@@ -539,21 +469,35 @@ class AsyncFundsClient:
         return _response.data
 
     async def active_investments(
-        self, fund_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+        self,
+        fund_id: str,
+        *,
+        page: typing.Optional[int] = None,
+        page_size: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> FundsActiveInvestmentsResponse:
         """
         Get current portfolio companies invested by this specific fund. Returns company names, investment amounts, and current status.
+
+        Supports pagination via `page` and `page_size` query parameters. Response includes `total_in_database` for the full count across all pages.
 
         Parameters
         ----------
         fund_id : str
+            Fund entity ID
+
+        page : typing.Optional[int]
+            Page number for pagination (default: 1)
+
+        page_size : typing.Optional[int]
+            Results per page (default: 50, max: 1000)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        FundsActiveInvestmentsResponse
             Successful response
 
         Examples
@@ -576,67 +520,26 @@ class AsyncFundsClient:
 
         asyncio.run(main())
         """
-        _response = await self._raw_client.active_investments(fund_id, request_options=request_options)
-        return _response.data
-
-    async def all_investments(
-        self, fund_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
-        """
-        Get complete investment history for this specific fund including current and exited positions. Returns all companies backed by the fund with outcomes.
-
-        Parameters
-        ----------
-        fund_id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        typing.Dict[str, typing.Any]
-            Successful response
-
-        Examples
-        --------
-        import asyncio
-
-        from runcaptain import AsyncCaptain
-
-        client = AsyncCaptain(
-            organization_id="YOUR_ORGANIZATION_ID",
-            key="YOUR_KEY",
+        _response = await self._raw_client.active_investments(
+            fund_id, page=page, page_size=page_size, request_options=request_options
         )
-
-
-        async def main() -> None:
-            await client.funds.all_investments(
-                fund_id="sequoia",
-            )
-
-
-        asyncio.run(main())
-        """
-        _response = await self._raw_client.all_investments(fund_id, request_options=request_options)
         return _response.data
 
-    async def commitments(
-        self, fund_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    async def commitments(self, fund_id: str, *, request_options: typing.Optional[RequestOptions] = None) -> None:
         """
-        Get limited partner commitments to the fund including LP names and commitment amounts. Returns investor base and capital structure.
+        **Coming Soon** - Get limited partner commitments to the fund including LP names and commitment amounts. Returns investor base and capital structure.
 
         Parameters
         ----------
         fund_id : str
+            Fund entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
-            Successful response
+        None
 
         Examples
         --------
@@ -661,23 +564,21 @@ class AsyncFundsClient:
         _response = await self._raw_client.commitments(fund_id, request_options=request_options)
         return _response.data
 
-    async def cash_flows(
-        self, fund_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    async def cash_flows(self, fund_id: str, *, request_options: typing.Optional[RequestOptions] = None) -> None:
         """
-        Coming Soon: Get fund cash flow history including capital calls and distributions. Will return quarterly cash flow statements when implemented with LP reporting data.
+        **Coming Soon** - Get fund cash flow history including capital calls and distributions.
 
         Parameters
         ----------
         fund_id : str
+            Fund entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
-            Successful response
+        None
 
         Examples
         --------
@@ -702,23 +603,21 @@ class AsyncFundsClient:
         _response = await self._raw_client.cash_flows(fund_id, request_options=request_options)
         return _response.data
 
-    async def benchmark(
-        self, fund_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    async def benchmark(self, fund_id: str, *, request_options: typing.Optional[RequestOptions] = None) -> None:
         """
-        Coming Soon: Get fund performance compared to industry benchmarks and peer funds. Will return quartile rankings and comparative metrics when implemented.
+        **Coming Soon** - Get fund performance compared to industry benchmarks and peer funds.
 
         Parameters
         ----------
         fund_id : str
+            Fund entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
-            Successful response
+        None
 
         Examples
         --------
@@ -743,64 +642,21 @@ class AsyncFundsClient:
         _response = await self._raw_client.benchmark(fund_id, request_options=request_options)
         return _response.data
 
-    async def people(
-        self, fund_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    async def preferences(self, fund_id: str, *, request_options: typing.Optional[RequestOptions] = None) -> None:
         """
-        Get investment team members for the fund including partners, principals, and associates. Returns names, titles, and LinkedIn profiles.
+        **Coming Soon** - Get investment criteria and preferences for the fund including stage focus, sector preferences, geography, and check size ranges.
 
         Parameters
         ----------
         fund_id : str
+            Fund entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
-            Successful response
-
-        Examples
-        --------
-        import asyncio
-
-        from runcaptain import AsyncCaptain
-
-        client = AsyncCaptain(
-            organization_id="YOUR_ORGANIZATION_ID",
-            key="YOUR_KEY",
-        )
-
-
-        async def main() -> None:
-            await client.funds.people(
-                fund_id="sequoia",
-            )
-
-
-        asyncio.run(main())
-        """
-        _response = await self._raw_client.people(fund_id, request_options=request_options)
-        return _response.data
-
-    async def preferences(
-        self, fund_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
-        """
-        Get investment criteria and preferences for the fund including stage focus, sector preferences, geography, and check size ranges.
-
-        Parameters
-        ----------
-        fund_id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        typing.Dict[str, typing.Any]
-            Successful response
+        None
 
         Examples
         --------
@@ -823,45 +679,4 @@ class AsyncFundsClient:
         asyncio.run(main())
         """
         _response = await self._raw_client.preferences(fund_id, request_options=request_options)
-        return _response.data
-
-    async def updates(
-        self, fund_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
-        """
-        Get changelog of updates to fund profile data. Returns history of changes including new investments, exits, and team changes with timestamps.
-
-        Parameters
-        ----------
-        fund_id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        typing.Dict[str, typing.Any]
-            Successful response
-
-        Examples
-        --------
-        import asyncio
-
-        from runcaptain import AsyncCaptain
-
-        client = AsyncCaptain(
-            organization_id="YOUR_ORGANIZATION_ID",
-            key="YOUR_KEY",
-        )
-
-
-        async def main() -> None:
-            await client.funds.updates(
-                fund_id="sequoia",
-            )
-
-
-        asyncio.run(main())
-        """
-        _response = await self._raw_client.updates(fund_id, request_options=request_options)
         return _response.data
