@@ -6,6 +6,7 @@ from ..core.client_wrapper import AsyncClientWrapper, SyncClientWrapper
 from ..core.request_options import RequestOptions
 from ..types.dataset_article_response import DatasetArticleResponse
 from ..types.dataset_search_response import DatasetSearchResponse
+from ..types.scientific_ask_response import ScientificAskResponse
 from .raw_client import AsyncRawDatasetsClient, RawDatasetsClient
 from .types.batch_search_datasets_response import BatchSearchDatasetsResponse
 
@@ -34,6 +35,7 @@ class DatasetsClient:
         *,
         q: str,
         limit: typing.Optional[int] = None,
+        author: typing.Optional[str] = None,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> DatasetSearchResponse:
         """
@@ -55,6 +57,9 @@ class DatasetsClient:
         limit : typing.Optional[int]
             Maximum number of results to return (default: 10, max: 100)
 
+        author : typing.Optional[str]
+            Filter results by author/byline name. Used as an AND condition with `q` â€” returns only articles matching BOTH the query topic AND the specified author. For all articles by an author regardless of topic, use a broad query like `q=*` with `author`.
+
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
@@ -72,11 +77,14 @@ class DatasetsClient:
             key="YOUR_KEY",
         )
         client.datasets.search_dataset(
-            dataset="dataset_name",
-            q="climate change policy",
+            dataset="nytimes",
+            q="latest technology trends",
+            limit=10,
         )
         """
-        _response = self._raw_client.search_dataset(dataset, q=q, limit=limit, request_options=request_options)
+        _response = self._raw_client.search_dataset(
+            dataset, q=q, limit=limit, author=author, request_options=request_options
+        )
         return _response.data
 
     def batch_search_datasets(
@@ -85,6 +93,7 @@ class DatasetsClient:
         q: str,
         datasets: typing.Optional[typing.Sequence[str]] = OMIT,
         limit: typing.Optional[int] = OMIT,
+        author: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> BatchSearchDatasetsResponse:
         """
@@ -92,19 +101,10 @@ class DatasetsClient:
 
         Searches the same query across all specified datasets simultaneously. If no datasets are specified, searches all available datasets.
 
-        ## Supported Datasets
-        - `nytimes` - New York Times
-        - `washpost` - Washington Post
-        - `sfstandard` - SF Standard
-        - `sacbee` - Sacramento Bee
-        - `sfchronicle` - San Francisco Chronicle
-        - `newyorker` - The New Yorker
-        - `theatlantic` - The Atlantic
-        - `sjmercury` - San Jose Mercury News
-        - `latimes` - Los Angeles Times
+        Contact your Account Executive for available datasets.
 
         ## Response
-        Returns results grouped by dataset source, with title, URL, snippet, and date for each article.
+        Returns results grouped by dataset source, with title, URL, snippet, author, and date for each article.
 
         Parameters
         ----------
@@ -116,6 +116,9 @@ class DatasetsClient:
 
         limit : typing.Optional[int]
             Maximum number of results to return (default: 10, max: 100)
+
+        author : typing.Optional[str]
+            Filter results by author/byline name. Used as an AND condition with `q`  -  returns only articles matching BOTH the query topic AND the specified author. For all articles by an author regardless of topic, use a broad query like `q=*` with `author`.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -135,12 +138,12 @@ class DatasetsClient:
         )
         client.datasets.batch_search_datasets(
             q="artificial intelligence regulation",
-            datasets=["nytimes", "washpost", "theatlantic"],
             limit=10,
+            datasets=["nytimes", "washpost", "theatlantic"],
         )
         """
         _response = self._raw_client.batch_search_datasets(
-            q=q, datasets=datasets, limit=limit, request_options=request_options
+            q=q, datasets=datasets, limit=limit, author=author, request_options=request_options
         )
         return _response.data
 
@@ -189,6 +192,74 @@ class DatasetsClient:
         _response = self._raw_client.get_dataset_article(dataset, url, request_options=request_options)
         return _response.data
 
+    def search_medical_papers(
+        self,
+        *,
+        question: str,
+        max_sources: typing.Optional[int] = OMIT,
+        include_trials: typing.Optional[bool] = OMIT,
+        recency_years: typing.Optional[int] = OMIT,
+        stream: typing.Optional[bool] = OMIT,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> ScientificAskResponse:
+        """
+        Search medical and biomedical papers with a natural-language question.
+        Federates PubMed, PMC full-text, ClinicalTrials.gov, and Semantic Scholar,
+        then synthesizes a cited answer.
+
+        `stream=true` returns text/event-stream with `tool_use`, `tool_result_summary`,
+        `text_delta`, and `done` event types.
+
+        Parameters
+        ----------
+        question : str
+            Natural-language question.
+
+        max_sources : typing.Optional[int]
+            Target number of cited sources in the final answer.
+
+        include_trials : typing.Optional[bool]
+            Whether the agent may call ClinicalTrials.gov.
+
+        recency_years : typing.Optional[int]
+            Prefer evidence within the last N years where the question allows.
+
+        stream : typing.Optional[bool]
+            If true, response is text/event-stream; otherwise JSON.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        ScientificAskResponse
+            Synthesized answer with cited sources. Returns JSON by default; when `stream=true` the response is `text/event-stream` with `tool_use`, `tool_result_summary`, `text_delta`, and `done` events.
+
+        Examples
+        --------
+        from runcaptain import Captain
+
+        client = Captain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+        client.datasets.search_medical_papers(
+            question="What is the evidence that BRCA1-mutated breast cancer patients benefit from PARP inhibitors?",
+            max_sources=10,
+            include_trials=True,
+            recency_years=10,
+        )
+        """
+        _response = self._raw_client.search_medical_papers(
+            question=question,
+            max_sources=max_sources,
+            include_trials=include_trials,
+            recency_years=recency_years,
+            stream=stream,
+            request_options=request_options,
+        )
+        return _response.data
+
 
 class AsyncDatasetsClient:
     def __init__(self, *, client_wrapper: AsyncClientWrapper):
@@ -211,6 +282,7 @@ class AsyncDatasetsClient:
         *,
         q: str,
         limit: typing.Optional[int] = None,
+        author: typing.Optional[str] = None,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> DatasetSearchResponse:
         """
@@ -231,6 +303,9 @@ class AsyncDatasetsClient:
 
         limit : typing.Optional[int]
             Maximum number of results to return (default: 10, max: 100)
+
+        author : typing.Optional[str]
+            Filter results by author/byline name. Used as an AND condition with `q` â€” returns only articles matching BOTH the query topic AND the specified author. For all articles by an author regardless of topic, use a broad query like `q=*` with `author`.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -254,14 +329,17 @@ class AsyncDatasetsClient:
 
         async def main() -> None:
             await client.datasets.search_dataset(
-                dataset="dataset_name",
-                q="climate change policy",
+                dataset="nytimes",
+                q="latest technology trends",
+                limit=10,
             )
 
 
         asyncio.run(main())
         """
-        _response = await self._raw_client.search_dataset(dataset, q=q, limit=limit, request_options=request_options)
+        _response = await self._raw_client.search_dataset(
+            dataset, q=q, limit=limit, author=author, request_options=request_options
+        )
         return _response.data
 
     async def batch_search_datasets(
@@ -270,6 +348,7 @@ class AsyncDatasetsClient:
         q: str,
         datasets: typing.Optional[typing.Sequence[str]] = OMIT,
         limit: typing.Optional[int] = OMIT,
+        author: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> BatchSearchDatasetsResponse:
         """
@@ -277,19 +356,10 @@ class AsyncDatasetsClient:
 
         Searches the same query across all specified datasets simultaneously. If no datasets are specified, searches all available datasets.
 
-        ## Supported Datasets
-        - `nytimes` - New York Times
-        - `washpost` - Washington Post
-        - `sfstandard` - SF Standard
-        - `sacbee` - Sacramento Bee
-        - `sfchronicle` - San Francisco Chronicle
-        - `newyorker` - The New Yorker
-        - `theatlantic` - The Atlantic
-        - `sjmercury` - San Jose Mercury News
-        - `latimes` - Los Angeles Times
+        Contact your Account Executive for available datasets.
 
         ## Response
-        Returns results grouped by dataset source, with title, URL, snippet, and date for each article.
+        Returns results grouped by dataset source, with title, URL, snippet, author, and date for each article.
 
         Parameters
         ----------
@@ -301,6 +371,9 @@ class AsyncDatasetsClient:
 
         limit : typing.Optional[int]
             Maximum number of results to return (default: 10, max: 100)
+
+        author : typing.Optional[str]
+            Filter results by author/byline name. Used as an AND condition with `q`  -  returns only articles matching BOTH the query topic AND the specified author. For all articles by an author regardless of topic, use a broad query like `q=*` with `author`.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -325,15 +398,15 @@ class AsyncDatasetsClient:
         async def main() -> None:
             await client.datasets.batch_search_datasets(
                 q="artificial intelligence regulation",
-                datasets=["nytimes", "washpost", "theatlantic"],
                 limit=10,
+                datasets=["nytimes", "washpost", "theatlantic"],
             )
 
 
         asyncio.run(main())
         """
         _response = await self._raw_client.batch_search_datasets(
-            q=q, datasets=datasets, limit=limit, request_options=request_options
+            q=q, datasets=datasets, limit=limit, author=author, request_options=request_options
         )
         return _response.data
 
@@ -388,4 +461,80 @@ class AsyncDatasetsClient:
         asyncio.run(main())
         """
         _response = await self._raw_client.get_dataset_article(dataset, url, request_options=request_options)
+        return _response.data
+
+    async def search_medical_papers(
+        self,
+        *,
+        question: str,
+        max_sources: typing.Optional[int] = OMIT,
+        include_trials: typing.Optional[bool] = OMIT,
+        recency_years: typing.Optional[int] = OMIT,
+        stream: typing.Optional[bool] = OMIT,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> ScientificAskResponse:
+        """
+        Search medical and biomedical papers with a natural-language question.
+        Federates PubMed, PMC full-text, ClinicalTrials.gov, and Semantic Scholar,
+        then synthesizes a cited answer.
+
+        `stream=true` returns text/event-stream with `tool_use`, `tool_result_summary`,
+        `text_delta`, and `done` event types.
+
+        Parameters
+        ----------
+        question : str
+            Natural-language question.
+
+        max_sources : typing.Optional[int]
+            Target number of cited sources in the final answer.
+
+        include_trials : typing.Optional[bool]
+            Whether the agent may call ClinicalTrials.gov.
+
+        recency_years : typing.Optional[int]
+            Prefer evidence within the last N years where the question allows.
+
+        stream : typing.Optional[bool]
+            If true, response is text/event-stream; otherwise JSON.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        ScientificAskResponse
+            Synthesized answer with cited sources. Returns JSON by default; when `stream=true` the response is `text/event-stream` with `tool_use`, `tool_result_summary`, `text_delta`, and `done` events.
+
+        Examples
+        --------
+        import asyncio
+
+        from runcaptain import AsyncCaptain
+
+        client = AsyncCaptain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.datasets.search_medical_papers(
+                question="What is the evidence that BRCA1-mutated breast cancer patients benefit from PARP inhibitors?",
+                max_sources=10,
+                include_trials=True,
+                recency_years=10,
+            )
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.search_medical_papers(
+            question=question,
+            max_sources=max_sources,
+            include_trials=include_trials,
+            recency_years=recency_years,
+            stream=stream,
+            request_options=request_options,
+        )
         return _response.data

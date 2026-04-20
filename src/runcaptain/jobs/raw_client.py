@@ -7,11 +7,15 @@ from ..core.api_error import ApiError
 from ..core.client_wrapper import AsyncClientWrapper, SyncClientWrapper
 from ..core.http_response import AsyncHttpResponse, HttpResponse
 from ..core.jsonable_encoder import jsonable_encoder
+from ..core.parse_error import ParsingError
 from ..core.pydantic_utilities import parse_obj_as
 from ..core.request_options import RequestOptions
+from ..errors.conflict_error import ConflictError
 from ..errors.not_found_error import NotFoundError
 from ..types.job_cancel_response_v2 import JobCancelResponseV2
+from ..types.job_rollback_response_v2 import JobRollbackResponseV2
 from ..types.job_status_response_v2 import JobStatusResponseV2
+from pydantic import ValidationError
 
 
 class RawJobsClient:
@@ -52,6 +56,7 @@ class RawJobsClient:
         Parameters
         ----------
         job_id : str
+            The job ID returned from an indexing request
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -90,13 +95,17 @@ class RawJobsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
-    def cancel_job_v2(
+    def delete_job_v2(
         self, job_id: str, *, request_options: typing.Optional[RequestOptions] = None
     ) -> HttpResponse[JobCancelResponseV2]:
         """
-        Cancel an indexing job.
+        Cancel and delete an indexing job.
 
         Behavior:
         - If job is pending or running -> transitions to cancelled
@@ -105,6 +114,7 @@ class RawJobsClient:
         Parameters
         ----------
         job_id : str
+            The job ID to delete/cancel
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -112,11 +122,11 @@ class RawJobsClient:
         Returns
         -------
         HttpResponse[JobCancelResponseV2]
-            Cancel Result
+            Delete Result
         """
         _response = self._client_wrapper.httpx_client.request(
-            f"v2/jobs/{jsonable_encoder(job_id)}/cancel",
-            method="POST",
+            f"v2/jobs/{jsonable_encoder(job_id)}",
+            method="DELETE",
             request_options=request_options,
         )
         try:
@@ -132,6 +142,85 @@ class RawJobsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    def rollback_job_v2(
+        self, job_id: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> HttpResponse[JobRollbackResponseV2]:
+        """
+        Rollback a completed or failed indexing job  -  removes all indexed files and their associated data.
+
+        ## Behavior
+        - **Running job**: Returns `409 Conflict`  -  cancel the job first using `DELETE /v2/jobs/{job_id}`
+        - **Completed/Failed/Cancelled job**: Deletes all files indexed by this job and returns the list of files removed
+        - **Not found**: Returns `404`
+
+        ## Use Cases
+        - Undo a completed indexing job that indexed incorrect data
+        - Clean up partial data from a failed job
+        - Remove test data after development/staging indexing runs
+
+        Parameters
+        ----------
+        job_id : str
+            The job ID to rollback
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        HttpResponse[JobRollbackResponseV2]
+            Rollback completed successfully
+        """
+        _response = self._client_wrapper.httpx_client.request(
+            f"v2/jobs/{jsonable_encoder(job_id)}/rollback",
+            method="PATCH",
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    JobRollbackResponseV2,
+                    parse_obj_as(
+                        type_=JobRollbackResponseV2,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return HttpResponse(response=_response, data=_data)
+            if _response.status_code == 404:
+                raise NotFoundError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Any,
+                        parse_obj_as(
+                            type_=typing.Any,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 409:
+                raise ConflictError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Any,
+                        parse_obj_as(
+                            type_=typing.Any,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
 
@@ -173,6 +262,7 @@ class AsyncRawJobsClient:
         Parameters
         ----------
         job_id : str
+            The job ID returned from an indexing request
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -211,13 +301,17 @@ class AsyncRawJobsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
-    async def cancel_job_v2(
+    async def delete_job_v2(
         self, job_id: str, *, request_options: typing.Optional[RequestOptions] = None
     ) -> AsyncHttpResponse[JobCancelResponseV2]:
         """
-        Cancel an indexing job.
+        Cancel and delete an indexing job.
 
         Behavior:
         - If job is pending or running -> transitions to cancelled
@@ -226,6 +320,7 @@ class AsyncRawJobsClient:
         Parameters
         ----------
         job_id : str
+            The job ID to delete/cancel
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -233,11 +328,11 @@ class AsyncRawJobsClient:
         Returns
         -------
         AsyncHttpResponse[JobCancelResponseV2]
-            Cancel Result
+            Delete Result
         """
         _response = await self._client_wrapper.httpx_client.request(
-            f"v2/jobs/{jsonable_encoder(job_id)}/cancel",
-            method="POST",
+            f"v2/jobs/{jsonable_encoder(job_id)}",
+            method="DELETE",
             request_options=request_options,
         )
         try:
@@ -253,4 +348,83 @@ class AsyncRawJobsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    async def rollback_job_v2(
+        self, job_id: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> AsyncHttpResponse[JobRollbackResponseV2]:
+        """
+        Rollback a completed or failed indexing job  -  removes all indexed files and their associated data.
+
+        ## Behavior
+        - **Running job**: Returns `409 Conflict`  -  cancel the job first using `DELETE /v2/jobs/{job_id}`
+        - **Completed/Failed/Cancelled job**: Deletes all files indexed by this job and returns the list of files removed
+        - **Not found**: Returns `404`
+
+        ## Use Cases
+        - Undo a completed indexing job that indexed incorrect data
+        - Clean up partial data from a failed job
+        - Remove test data after development/staging indexing runs
+
+        Parameters
+        ----------
+        job_id : str
+            The job ID to rollback
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AsyncHttpResponse[JobRollbackResponseV2]
+            Rollback completed successfully
+        """
+        _response = await self._client_wrapper.httpx_client.request(
+            f"v2/jobs/{jsonable_encoder(job_id)}/rollback",
+            method="PATCH",
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    JobRollbackResponseV2,
+                    parse_obj_as(
+                        type_=JobRollbackResponseV2,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return AsyncHttpResponse(response=_response, data=_data)
+            if _response.status_code == 404:
+                raise NotFoundError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Any,
+                        parse_obj_as(
+                            type_=typing.Any,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 409:
+                raise ConflictError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Any,
+                        parse_obj_as(
+                            type_=typing.Any,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)

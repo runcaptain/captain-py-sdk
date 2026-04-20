@@ -5,6 +5,18 @@ import typing
 from ..core.client_wrapper import AsyncClientWrapper, SyncClientWrapper
 from ..core.request_options import RequestOptions
 from .raw_client import AsyncRawCompaniesClient, RawCompaniesClient
+from .types.companies_active_investors_response import CompaniesActiveInvestorsResponse
+from .types.companies_bio_response import CompaniesBioResponse
+from .types.companies_deals_response import CompaniesDealsResponse
+from .types.companies_debt_financing_recent_response import CompaniesDebtFinancingRecentResponse
+from .types.companies_financials_recent_response import CompaniesFinancialsRecentResponse
+from .types.companies_financials_response import CompaniesFinancialsResponse
+from .types.companies_financing_recent_response import CompaniesFinancingRecentResponse
+from .types.companies_full_response import CompaniesFullResponse
+from .types.companies_search_response import CompaniesSearchResponse
+from .types.companies_service_providers_deal_response import CompaniesServiceProvidersDealResponse
+from .types.companies_service_providers_response import CompaniesServiceProvidersResponse
+from .types.companies_similar_response import CompaniesSimilarResponse
 
 
 class CompaniesClient:
@@ -22,18 +34,39 @@ class CompaniesClient:
         """
         return self._raw_client
 
-    def search(self, *, request_options: typing.Optional[RequestOptions] = None) -> typing.Dict[str, typing.Any]:
+    def search(
+        self, *, q: str, limit: typing.Optional[int] = None, request_options: typing.Optional[RequestOptions] = None
+    ) -> CompaniesSearchResponse:
         """
-        Search for companies by name, industry, or location. Returns matching company profiles with employee count, industry classification, founding date, and headquarters. Use this to find company entity IDs for detailed lookups.
+        Search for companies by name or natural language description.
+
+        ## Search Modes
+
+        - **Direct lookup**: Short queries like `Stripe` or `OpenAI` resolve to a single company match
+        - **Natural language search**: Longer queries like `AI startups in San Francisco raising Series B` return up to 5 matching companies with surface-level data
+
+        The endpoint auto-detects which mode to use based on the query.
+
+        ## Response Fields
+
+        Each result includes: name, website, description, employee_count, industry, location, founded, size, total_funding_raised, latest_funding_stage, tags, and linkedin_url.
+
+        Use the entity_id or company identifier from results to call detail endpoints (bio, financing, investors, full).
 
         Parameters
         ----------
+        q : str
+            Company name, domain, or natural language query (e.g. 'AI startups in San Francisco raising Series B')
+
+        limit : typing.Optional[int]
+            Maximum results (default 5)
+
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        CompaniesSearchResponse
             Successful response
 
         Examples
@@ -44,25 +77,67 @@ class CompaniesClient:
             organization_id="YOUR_ORGANIZATION_ID",
             key="YOUR_KEY",
         )
-        client.companies.search()
+        client.companies.search(
+            q="OpenAI",
+            limit=10,
+        )
         """
-        _response = self._raw_client.search(request_options=request_options)
+        _response = self._raw_client.search(q=q, limit=limit, request_options=request_options)
         return _response.data
 
-    def bio(self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None) -> typing.Any:
+    def full(
+        self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> CompaniesFullResponse:
         """
-        Get comprehensive company profile including description, founding date, headquarters location, employee count, industry classification, and social media profiles. This is the primary endpoint for company overview data.
+        Get the complete company record with ALL available data fields.
+
+        Returns everything: base profile, funding details with amounts and investors, employee analytics and growth rates, executive changes, office locations, job postings, industry classifications, subsidiaries, and more.
+
+        Use this after identifying a company via search to get the full picture.
 
         Parameters
         ----------
         company_id : str
+            Company entity ID, website domain, or company name (e.g., 'openai.com', 'OpenAI', or UUID)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Any
+        CompaniesFullResponse
+            Complete company record
+
+        Examples
+        --------
+        from runcaptain import Captain
+
+        client = Captain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+        client.companies.full(
+            company_id="anthropic.com",
+        )
+        """
+        _response = self._raw_client.full(company_id, request_options=request_options)
+        return _response.data
+
+    def bio(self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None) -> CompaniesBioResponse:
+        """
+        Get comprehensive company profile including description, founding date, headquarters location, employee count, industry classification, and social media profiles. This is the primary endpoint for company overview data.
+
+        Parameters
+        ----------
+        company_id : str
+            Company entity ID, website domain, or company name (e.g., 'openai.com', 'OpenAI', or UUID)
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        CompaniesBioResponse
             Company bio retrieved successfully
 
         Examples
@@ -80,55 +155,30 @@ class CompaniesClient:
         _response = self._raw_client.bio(company_id, request_options=request_options)
         return _response.data
 
-    def industries(
-        self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
-        """
-        Get industry classifications including NAICS codes, SIC codes, and industry descriptions. Useful for filtering companies by vertical or sector.
-
-        Parameters
-        ----------
-        company_id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        typing.Dict[str, typing.Any]
-            Successful response
-
-        Examples
-        --------
-        from runcaptain import Captain
-
-        client = Captain(
-            organization_id="YOUR_ORGANIZATION_ID",
-            key="YOUR_KEY",
-        )
-        client.companies.industries(
-            company_id="openai.com",
-        )
-        """
-        _response = self._raw_client.industries(company_id, request_options=request_options)
-        return _response.data
-
     def financials(
-        self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+        self,
+        company_id: str,
+        *,
+        fiscal_year: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> CompaniesFinancialsResponse:
         """
         Get financial statements for public companies including revenue, net income, assets, and liabilities. Returns most recent fiscal year data or specific year if requested.
 
         Parameters
         ----------
         company_id : str
+            Company entity ID, website domain, or company name (e.g., 'openai.com', 'OpenAI', or UUID)
+
+        fiscal_year : typing.Optional[int]
+            Fiscal year (default: most recent)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        CompaniesFinancialsResponse
             Successful response
 
         Examples
@@ -143,25 +193,26 @@ class CompaniesClient:
             company_id="ody_co_sample_msft",
         )
         """
-        _response = self._raw_client.financials(company_id, request_options=request_options)
+        _response = self._raw_client.financials(company_id, fiscal_year=fiscal_year, request_options=request_options)
         return _response.data
 
     def financials_recent(
         self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> CompaniesFinancialsRecentResponse:
         """
         Get most recent financial statements for public companies. Convenience endpoint that automatically returns the latest available fiscal year data.
 
         Parameters
         ----------
         company_id : str
+            Company entity ID, website domain, or company name (e.g., 'openai.com', 'OpenAI', or UUID)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        CompaniesFinancialsRecentResponse
             Successful response
 
         Examples
@@ -181,20 +232,21 @@ class CompaniesClient:
 
     def financing_recent(
         self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> CompaniesFinancingRecentResponse:
         """
         Get most recent funding rounds including round type, amount raised, investors, and valuation. Returns detailed information about the latest equity financing event.
 
         Parameters
         ----------
         company_id : str
+            Company entity ID, website domain, or company name (e.g., 'openai.com', 'OpenAI', or UUID)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        CompaniesFinancingRecentResponse
             Successful response
 
         Examples
@@ -214,20 +266,21 @@ class CompaniesClient:
 
     def active_investors(
         self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Any:
+    ) -> CompaniesActiveInvestorsResponse:
         """
         Get current investors in the company from recent funding rounds. Returns investor names, types, and contact information.
 
         Parameters
         ----------
         company_id : str
+            Company entity ID, website domain, or company name (e.g., 'openai.com', 'OpenAI', or UUID)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Any
+        CompaniesActiveInvestorsResponse
             Active investors retrieved successfully
 
         Examples
@@ -245,53 +298,23 @@ class CompaniesClient:
         _response = self._raw_client.active_investors(company_id, request_options=request_options)
         return _response.data
 
-    def all_investors(
+    def deals(
         self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
-        """
-        Get complete investor history including historical investors from all funding rounds. Returns comprehensive list of all investors who have participated in company financing.
-
-        Parameters
-        ----------
-        company_id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        typing.Dict[str, typing.Any]
-            Successful response
-
-        Examples
-        --------
-        from runcaptain import Captain
-
-        client = Captain(
-            organization_id="YOUR_ORGANIZATION_ID",
-            key="YOUR_KEY",
-        )
-        client.companies.all_investors(
-            company_id="openai.com",
-        )
-        """
-        _response = self._raw_client.all_investors(company_id, request_options=request_options)
-        return _response.data
-
-    def deals(self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None) -> typing.Any:
+    ) -> CompaniesDealsResponse:
         """
         Get all deals for a company including funding rounds and acquisitions. Each deal includes the deal type, round name, investors involved, amount raised, and status. Funding rounds are sourced from investor data, while acquisitions are sourced from M&A records.
 
         Parameters
         ----------
         company_id : str
+            Company entity ID, website domain, or company name (e.g., 'openai.com', 'OpenAI', or UUID)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Any
+        CompaniesDealsResponse
             Company deals retrieved successfully
 
         Examples
@@ -311,20 +334,21 @@ class CompaniesClient:
 
     def service_providers(
         self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> CompaniesServiceProvidersResponse:
         """
         Get service providers working with the company including legal counsel, accounting firms, and consultants. Returns firm names, service types, and engagement information.
 
         Parameters
         ----------
         company_id : str
+            Company entity ID, website domain, or company name (e.g., 'openai.com', 'OpenAI', or UUID)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        CompaniesServiceProvidersResponse
             Successful response
 
         Examples
@@ -344,20 +368,21 @@ class CompaniesClient:
 
     def service_providers_deal(
         self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> CompaniesServiceProvidersDealResponse:
         """
         Get service providers involved in specific financing deals including investment bankers, legal advisors, and financial consultants. Returns provider details specific to fundraising transactions.
 
         Parameters
         ----------
         company_id : str
+            Company entity ID, website domain, or company name (e.g., 'openai.com', 'OpenAI', or UUID)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        CompaniesServiceProvidersDealResponse
             Successful response
 
         Examples
@@ -377,20 +402,21 @@ class CompaniesClient:
 
     def debt_financing_recent(
         self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> CompaniesDebtFinancingRecentResponse:
         """
         Get most recent debt financing rounds including venture debt, credit lines, and loans. Returns lender information, amounts, and terms.
 
         Parameters
         ----------
         company_id : str
+            Company entity ID, website domain, or company name (e.g., 'openai.com', 'OpenAI', or UUID)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        CompaniesDebtFinancingRecentResponse
             Successful response
 
         Examples
@@ -409,21 +435,29 @@ class CompaniesClient:
         return _response.data
 
     def similar(
-        self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+        self,
+        company_id: str,
+        *,
+        limit: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> CompaniesSimilarResponse:
         """
         Get companies similar to this one based on industry, size, and business model. Returns competitor and peer company information with similarity scores.
 
         Parameters
         ----------
         company_id : str
+            Company entity ID, website domain, or company name (e.g., 'openai.com', 'OpenAI', or UUID)
+
+        limit : typing.Optional[int]
+            Maximum number of results to return (1-100, default: 10)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        CompaniesSimilarResponse
             Successful response
 
         Examples
@@ -438,59 +472,24 @@ class CompaniesClient:
             company_id="openai.com",
         )
         """
-        _response = self._raw_client.similar(company_id, request_options=request_options)
+        _response = self._raw_client.similar(company_id, limit=limit, request_options=request_options)
         return _response.data
 
-    def social_analytics(
-        self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    def vc_exit_predictions(self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None) -> None:
         """
-        Get social media metrics including LinkedIn followers, Twitter engagement, and Facebook presence. Useful for measuring company online visibility and growth.
+        **Coming Soon** - Get predicted likelihood and timeline for company exit events (IPO or acquisition).
 
         Parameters
         ----------
         company_id : str
+            Company entity ID, website domain, or company name (e.g., 'openai.com', 'OpenAI', or UUID)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
-            Successful response
-
-        Examples
-        --------
-        from runcaptain import Captain
-
-        client = Captain(
-            organization_id="YOUR_ORGANIZATION_ID",
-            key="YOUR_KEY",
-        )
-        client.companies.social_analytics(
-            company_id="openai.com",
-        )
-        """
-        _response = self._raw_client.social_analytics(company_id, request_options=request_options)
-        return _response.data
-
-    def vc_exit_predictions(
-        self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
-        """
-        Coming Soon: Get predicted likelihood and timeline for company exit events (IPO or acquisition). Will return ML-based exit probability scores and estimated exit valuation ranges when implemented.
-
-        Parameters
-        ----------
-        company_id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        typing.Dict[str, typing.Any]
-            Successful response
+        None
 
         Examples
         --------
@@ -505,39 +504,6 @@ class CompaniesClient:
         )
         """
         _response = self._raw_client.vc_exit_predictions(company_id, request_options=request_options)
-        return _response.data
-
-    def updates(
-        self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
-        """
-        Get changelog of updates to company profile data. Returns history of changes to company information with timestamps and modified fields.
-
-        Parameters
-        ----------
-        company_id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        typing.Dict[str, typing.Any]
-            Successful response
-
-        Examples
-        --------
-        from runcaptain import Captain
-
-        client = Captain(
-            organization_id="YOUR_ORGANIZATION_ID",
-            key="YOUR_KEY",
-        )
-        client.companies.updates(
-            company_id="openai.com",
-        )
-        """
-        _response = self._raw_client.updates(company_id, request_options=request_options)
         return _response.data
 
 
@@ -556,18 +522,39 @@ class AsyncCompaniesClient:
         """
         return self._raw_client
 
-    async def search(self, *, request_options: typing.Optional[RequestOptions] = None) -> typing.Dict[str, typing.Any]:
+    async def search(
+        self, *, q: str, limit: typing.Optional[int] = None, request_options: typing.Optional[RequestOptions] = None
+    ) -> CompaniesSearchResponse:
         """
-        Search for companies by name, industry, or location. Returns matching company profiles with employee count, industry classification, founding date, and headquarters. Use this to find company entity IDs for detailed lookups.
+        Search for companies by name or natural language description.
+
+        ## Search Modes
+
+        - **Direct lookup**: Short queries like `Stripe` or `OpenAI` resolve to a single company match
+        - **Natural language search**: Longer queries like `AI startups in San Francisco raising Series B` return up to 5 matching companies with surface-level data
+
+        The endpoint auto-detects which mode to use based on the query.
+
+        ## Response Fields
+
+        Each result includes: name, website, description, employee_count, industry, location, founded, size, total_funding_raised, latest_funding_stage, tags, and linkedin_url.
+
+        Use the entity_id or company identifier from results to call detail endpoints (bio, financing, investors, full).
 
         Parameters
         ----------
+        q : str
+            Company name, domain, or natural language query (e.g. 'AI startups in San Francisco raising Series B')
+
+        limit : typing.Optional[int]
+            Maximum results (default 5)
+
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        CompaniesSearchResponse
             Successful response
 
         Examples
@@ -583,28 +570,80 @@ class AsyncCompaniesClient:
 
 
         async def main() -> None:
-            await client.companies.search()
+            await client.companies.search(
+                q="OpenAI",
+                limit=10,
+            )
 
 
         asyncio.run(main())
         """
-        _response = await self._raw_client.search(request_options=request_options)
+        _response = await self._raw_client.search(q=q, limit=limit, request_options=request_options)
         return _response.data
 
-    async def bio(self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None) -> typing.Any:
+    async def full(
+        self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> CompaniesFullResponse:
         """
-        Get comprehensive company profile including description, founding date, headquarters location, employee count, industry classification, and social media profiles. This is the primary endpoint for company overview data.
+        Get the complete company record with ALL available data fields.
+
+        Returns everything: base profile, funding details with amounts and investors, employee analytics and growth rates, executive changes, office locations, job postings, industry classifications, subsidiaries, and more.
+
+        Use this after identifying a company via search to get the full picture.
 
         Parameters
         ----------
         company_id : str
+            Company entity ID, website domain, or company name (e.g., 'openai.com', 'OpenAI', or UUID)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Any
+        CompaniesFullResponse
+            Complete company record
+
+        Examples
+        --------
+        import asyncio
+
+        from runcaptain import AsyncCaptain
+
+        client = AsyncCaptain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.companies.full(
+                company_id="anthropic.com",
+            )
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.full(company_id, request_options=request_options)
+        return _response.data
+
+    async def bio(
+        self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> CompaniesBioResponse:
+        """
+        Get comprehensive company profile including description, founding date, headquarters location, employee count, industry classification, and social media profiles. This is the primary endpoint for company overview data.
+
+        Parameters
+        ----------
+        company_id : str
+            Company entity ID, website domain, or company name (e.g., 'openai.com', 'OpenAI', or UUID)
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        CompaniesBioResponse
             Company bio retrieved successfully
 
         Examples
@@ -630,63 +669,30 @@ class AsyncCompaniesClient:
         _response = await self._raw_client.bio(company_id, request_options=request_options)
         return _response.data
 
-    async def industries(
-        self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
-        """
-        Get industry classifications including NAICS codes, SIC codes, and industry descriptions. Useful for filtering companies by vertical or sector.
-
-        Parameters
-        ----------
-        company_id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        typing.Dict[str, typing.Any]
-            Successful response
-
-        Examples
-        --------
-        import asyncio
-
-        from runcaptain import AsyncCaptain
-
-        client = AsyncCaptain(
-            organization_id="YOUR_ORGANIZATION_ID",
-            key="YOUR_KEY",
-        )
-
-
-        async def main() -> None:
-            await client.companies.industries(
-                company_id="openai.com",
-            )
-
-
-        asyncio.run(main())
-        """
-        _response = await self._raw_client.industries(company_id, request_options=request_options)
-        return _response.data
-
     async def financials(
-        self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+        self,
+        company_id: str,
+        *,
+        fiscal_year: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> CompaniesFinancialsResponse:
         """
         Get financial statements for public companies including revenue, net income, assets, and liabilities. Returns most recent fiscal year data or specific year if requested.
 
         Parameters
         ----------
         company_id : str
+            Company entity ID, website domain, or company name (e.g., 'openai.com', 'OpenAI', or UUID)
+
+        fiscal_year : typing.Optional[int]
+            Fiscal year (default: most recent)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        CompaniesFinancialsResponse
             Successful response
 
         Examples
@@ -709,25 +715,28 @@ class AsyncCompaniesClient:
 
         asyncio.run(main())
         """
-        _response = await self._raw_client.financials(company_id, request_options=request_options)
+        _response = await self._raw_client.financials(
+            company_id, fiscal_year=fiscal_year, request_options=request_options
+        )
         return _response.data
 
     async def financials_recent(
         self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> CompaniesFinancialsRecentResponse:
         """
         Get most recent financial statements for public companies. Convenience endpoint that automatically returns the latest available fiscal year data.
 
         Parameters
         ----------
         company_id : str
+            Company entity ID, website domain, or company name (e.g., 'openai.com', 'OpenAI', or UUID)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        CompaniesFinancialsRecentResponse
             Successful response
 
         Examples
@@ -755,20 +764,21 @@ class AsyncCompaniesClient:
 
     async def financing_recent(
         self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> CompaniesFinancingRecentResponse:
         """
         Get most recent funding rounds including round type, amount raised, investors, and valuation. Returns detailed information about the latest equity financing event.
 
         Parameters
         ----------
         company_id : str
+            Company entity ID, website domain, or company name (e.g., 'openai.com', 'OpenAI', or UUID)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        CompaniesFinancingRecentResponse
             Successful response
 
         Examples
@@ -796,20 +806,21 @@ class AsyncCompaniesClient:
 
     async def active_investors(
         self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Any:
+    ) -> CompaniesActiveInvestorsResponse:
         """
         Get current investors in the company from recent funding rounds. Returns investor names, types, and contact information.
 
         Parameters
         ----------
         company_id : str
+            Company entity ID, website domain, or company name (e.g., 'openai.com', 'OpenAI', or UUID)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Any
+        CompaniesActiveInvestorsResponse
             Active investors retrieved successfully
 
         Examples
@@ -835,61 +846,23 @@ class AsyncCompaniesClient:
         _response = await self._raw_client.active_investors(company_id, request_options=request_options)
         return _response.data
 
-    async def all_investors(
+    async def deals(
         self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
-        """
-        Get complete investor history including historical investors from all funding rounds. Returns comprehensive list of all investors who have participated in company financing.
-
-        Parameters
-        ----------
-        company_id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        typing.Dict[str, typing.Any]
-            Successful response
-
-        Examples
-        --------
-        import asyncio
-
-        from runcaptain import AsyncCaptain
-
-        client = AsyncCaptain(
-            organization_id="YOUR_ORGANIZATION_ID",
-            key="YOUR_KEY",
-        )
-
-
-        async def main() -> None:
-            await client.companies.all_investors(
-                company_id="openai.com",
-            )
-
-
-        asyncio.run(main())
-        """
-        _response = await self._raw_client.all_investors(company_id, request_options=request_options)
-        return _response.data
-
-    async def deals(self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None) -> typing.Any:
+    ) -> CompaniesDealsResponse:
         """
         Get all deals for a company including funding rounds and acquisitions. Each deal includes the deal type, round name, investors involved, amount raised, and status. Funding rounds are sourced from investor data, while acquisitions are sourced from M&A records.
 
         Parameters
         ----------
         company_id : str
+            Company entity ID, website domain, or company name (e.g., 'openai.com', 'OpenAI', or UUID)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Any
+        CompaniesDealsResponse
             Company deals retrieved successfully
 
         Examples
@@ -917,20 +890,21 @@ class AsyncCompaniesClient:
 
     async def service_providers(
         self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> CompaniesServiceProvidersResponse:
         """
         Get service providers working with the company including legal counsel, accounting firms, and consultants. Returns firm names, service types, and engagement information.
 
         Parameters
         ----------
         company_id : str
+            Company entity ID, website domain, or company name (e.g., 'openai.com', 'OpenAI', or UUID)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        CompaniesServiceProvidersResponse
             Successful response
 
         Examples
@@ -958,20 +932,21 @@ class AsyncCompaniesClient:
 
     async def service_providers_deal(
         self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> CompaniesServiceProvidersDealResponse:
         """
         Get service providers involved in specific financing deals including investment bankers, legal advisors, and financial consultants. Returns provider details specific to fundraising transactions.
 
         Parameters
         ----------
         company_id : str
+            Company entity ID, website domain, or company name (e.g., 'openai.com', 'OpenAI', or UUID)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        CompaniesServiceProvidersDealResponse
             Successful response
 
         Examples
@@ -999,20 +974,21 @@ class AsyncCompaniesClient:
 
     async def debt_financing_recent(
         self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> CompaniesDebtFinancingRecentResponse:
         """
         Get most recent debt financing rounds including venture debt, credit lines, and loans. Returns lender information, amounts, and terms.
 
         Parameters
         ----------
         company_id : str
+            Company entity ID, website domain, or company name (e.g., 'openai.com', 'OpenAI', or UUID)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        CompaniesDebtFinancingRecentResponse
             Successful response
 
         Examples
@@ -1039,21 +1015,29 @@ class AsyncCompaniesClient:
         return _response.data
 
     async def similar(
-        self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+        self,
+        company_id: str,
+        *,
+        limit: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> CompaniesSimilarResponse:
         """
         Get companies similar to this one based on industry, size, and business model. Returns competitor and peer company information with similarity scores.
 
         Parameters
         ----------
         company_id : str
+            Company entity ID, website domain, or company name (e.g., 'openai.com', 'OpenAI', or UUID)
+
+        limit : typing.Optional[int]
+            Maximum number of results to return (1-100, default: 10)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        CompaniesSimilarResponse
             Successful response
 
         Examples
@@ -1076,67 +1060,26 @@ class AsyncCompaniesClient:
 
         asyncio.run(main())
         """
-        _response = await self._raw_client.similar(company_id, request_options=request_options)
-        return _response.data
-
-    async def social_analytics(
-        self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
-        """
-        Get social media metrics including LinkedIn followers, Twitter engagement, and Facebook presence. Useful for measuring company online visibility and growth.
-
-        Parameters
-        ----------
-        company_id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        typing.Dict[str, typing.Any]
-            Successful response
-
-        Examples
-        --------
-        import asyncio
-
-        from runcaptain import AsyncCaptain
-
-        client = AsyncCaptain(
-            organization_id="YOUR_ORGANIZATION_ID",
-            key="YOUR_KEY",
-        )
-
-
-        async def main() -> None:
-            await client.companies.social_analytics(
-                company_id="openai.com",
-            )
-
-
-        asyncio.run(main())
-        """
-        _response = await self._raw_client.social_analytics(company_id, request_options=request_options)
+        _response = await self._raw_client.similar(company_id, limit=limit, request_options=request_options)
         return _response.data
 
     async def vc_exit_predictions(
         self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> None:
         """
-        Coming Soon: Get predicted likelihood and timeline for company exit events (IPO or acquisition). Will return ML-based exit probability scores and estimated exit valuation ranges when implemented.
+        **Coming Soon** - Get predicted likelihood and timeline for company exit events (IPO or acquisition).
 
         Parameters
         ----------
         company_id : str
+            Company entity ID, website domain, or company name (e.g., 'openai.com', 'OpenAI', or UUID)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
-            Successful response
+        None
 
         Examples
         --------
@@ -1159,45 +1102,4 @@ class AsyncCompaniesClient:
         asyncio.run(main())
         """
         _response = await self._raw_client.vc_exit_predictions(company_id, request_options=request_options)
-        return _response.data
-
-    async def updates(
-        self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
-        """
-        Get changelog of updates to company profile data. Returns history of changes to company information with timestamps and modified fields.
-
-        Parameters
-        ----------
-        company_id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        typing.Dict[str, typing.Any]
-            Successful response
-
-        Examples
-        --------
-        import asyncio
-
-        from runcaptain import AsyncCaptain
-
-        client = AsyncCaptain(
-            organization_id="YOUR_ORGANIZATION_ID",
-            key="YOUR_KEY",
-        )
-
-
-        async def main() -> None:
-            await client.companies.updates(
-                company_id="openai.com",
-            )
-
-
-        asyncio.run(main())
-        """
-        _response = await self._raw_client.updates(company_id, request_options=request_options)
         return _response.data

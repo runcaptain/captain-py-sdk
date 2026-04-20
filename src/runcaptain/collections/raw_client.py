@@ -7,6 +7,7 @@ from ..core.api_error import ApiError
 from ..core.client_wrapper import AsyncClientWrapper, SyncClientWrapper
 from ..core.http_response import AsyncHttpResponse, HttpResponse
 from ..core.jsonable_encoder import jsonable_encoder
+from ..core.parse_error import ParsingError
 from ..core.pydantic_utilities import parse_obj_as
 from ..core.request_options import RequestOptions
 from ..errors.bad_request_error import BadRequestError
@@ -19,6 +20,7 @@ from ..types.document_delete_response_v2 import DocumentDeleteResponseV2
 from ..types.document_list_response_v2 import DocumentListResponseV2
 from ..types.standard_response_v2 import StandardResponseV2
 from .types.change_environment_request_v2new_environment import ChangeEnvironmentRequestV2NewEnvironment
+from pydantic import ValidationError
 
 # this is used as the default value for optional parameters
 OMIT = typing.cast(typing.Any, ...)
@@ -29,7 +31,11 @@ class RawCollectionsClient:
         self._client_wrapper = client_wrapper
 
     def list_collections_v2(
-        self, *, request_options: typing.Optional[RequestOptions] = None
+        self,
+        *,
+        limit: typing.Optional[int] = None,
+        offset: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[CollectionListResponseV2]:
         """
         List all collections for an organization.
@@ -38,6 +44,12 @@ class RawCollectionsClient:
 
         Parameters
         ----------
+        limit : typing.Optional[int]
+            Maximum number of collections to return
+
+        offset : typing.Optional[int]
+            Pagination offset
+
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
@@ -49,6 +61,10 @@ class RawCollectionsClient:
         _response = self._client_wrapper.httpx_client.request(
             "v2/collections",
             method="GET",
+            params={
+                "limit": limit,
+                "offset": offset,
+            },
             request_options=request_options,
         )
         try:
@@ -64,6 +80,10 @@ class RawCollectionsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     def create_collection_v2(
@@ -79,6 +99,7 @@ class RawCollectionsClient:
         Parameters
         ----------
         collection_name : str
+            Name of the collection to create
 
         description : typing.Optional[str]
 
@@ -115,6 +136,10 @@ class RawCollectionsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     def delete_collection_v2(
@@ -126,6 +151,7 @@ class RawCollectionsClient:
         Parameters
         ----------
         collection_name : str
+            Name of the collection to delete
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -164,6 +190,10 @@ class RawCollectionsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     def change_collection_environment_v2(
@@ -176,7 +206,7 @@ class RawCollectionsClient:
         """
         Move a collection from one environment to another (e.g., development to production) without reindexing.
 
-        All files, indexed data, and vector embeddings are preserved. The collection's internal ID stays the same â€” only the environment label changes.
+        All files, indexed data, and vector embeddings are preserved. The collection's internal ID stays the same  -  only the environment label changes.
 
         ## Use Cases
         - Promote a development collection to production after testing
@@ -191,6 +221,7 @@ class RawCollectionsClient:
         Parameters
         ----------
         collection_name : str
+            Name of the collection to move
 
         new_environment : ChangeEnvironmentRequestV2NewEnvironment
             The target environment to move the collection to
@@ -261,12 +292,17 @@ class RawCollectionsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     def list_documents_v2(
         self,
         collection_name: str,
         *,
+        limit: typing.Optional[int] = None,
         offset: typing.Optional[int] = None,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[DocumentListResponseV2]:
@@ -276,6 +312,10 @@ class RawCollectionsClient:
         Parameters
         ----------
         collection_name : str
+            Name of the collection
+
+        limit : typing.Optional[int]
+            Maximum number of documents to return
 
         offset : typing.Optional[int]
             Pagination offset
@@ -292,6 +332,7 @@ class RawCollectionsClient:
             f"v2/collections/{jsonable_encoder(collection_name)}/documents",
             method="GET",
             params={
+                "limit": limit,
                 "offset": offset,
             },
             request_options=request_options,
@@ -309,6 +350,10 @@ class RawCollectionsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     def wipe_collection_documents_v2(
@@ -320,6 +365,7 @@ class RawCollectionsClient:
         Parameters
         ----------
         collection_name : str
+            Name of the collection to wipe
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -347,6 +393,10 @@ class RawCollectionsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     def delete_document_v2(
@@ -358,8 +408,10 @@ class RawCollectionsClient:
         Parameters
         ----------
         collection_name : str
+            Name of the collection
 
         document_id : str
+            ID of the document to delete
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -398,6 +450,10 @@ class RawCollectionsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
 
@@ -406,7 +462,11 @@ class AsyncRawCollectionsClient:
         self._client_wrapper = client_wrapper
 
     async def list_collections_v2(
-        self, *, request_options: typing.Optional[RequestOptions] = None
+        self,
+        *,
+        limit: typing.Optional[int] = None,
+        offset: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[CollectionListResponseV2]:
         """
         List all collections for an organization.
@@ -415,6 +475,12 @@ class AsyncRawCollectionsClient:
 
         Parameters
         ----------
+        limit : typing.Optional[int]
+            Maximum number of collections to return
+
+        offset : typing.Optional[int]
+            Pagination offset
+
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
@@ -426,6 +492,10 @@ class AsyncRawCollectionsClient:
         _response = await self._client_wrapper.httpx_client.request(
             "v2/collections",
             method="GET",
+            params={
+                "limit": limit,
+                "offset": offset,
+            },
             request_options=request_options,
         )
         try:
@@ -441,6 +511,10 @@ class AsyncRawCollectionsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def create_collection_v2(
@@ -456,6 +530,7 @@ class AsyncRawCollectionsClient:
         Parameters
         ----------
         collection_name : str
+            Name of the collection to create
 
         description : typing.Optional[str]
 
@@ -492,6 +567,10 @@ class AsyncRawCollectionsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def delete_collection_v2(
@@ -503,6 +582,7 @@ class AsyncRawCollectionsClient:
         Parameters
         ----------
         collection_name : str
+            Name of the collection to delete
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -541,6 +621,10 @@ class AsyncRawCollectionsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def change_collection_environment_v2(
@@ -553,7 +637,7 @@ class AsyncRawCollectionsClient:
         """
         Move a collection from one environment to another (e.g., development to production) without reindexing.
 
-        All files, indexed data, and vector embeddings are preserved. The collection's internal ID stays the same â€” only the environment label changes.
+        All files, indexed data, and vector embeddings are preserved. The collection's internal ID stays the same  -  only the environment label changes.
 
         ## Use Cases
         - Promote a development collection to production after testing
@@ -568,6 +652,7 @@ class AsyncRawCollectionsClient:
         Parameters
         ----------
         collection_name : str
+            Name of the collection to move
 
         new_environment : ChangeEnvironmentRequestV2NewEnvironment
             The target environment to move the collection to
@@ -638,12 +723,17 @@ class AsyncRawCollectionsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def list_documents_v2(
         self,
         collection_name: str,
         *,
+        limit: typing.Optional[int] = None,
         offset: typing.Optional[int] = None,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[DocumentListResponseV2]:
@@ -653,6 +743,10 @@ class AsyncRawCollectionsClient:
         Parameters
         ----------
         collection_name : str
+            Name of the collection
+
+        limit : typing.Optional[int]
+            Maximum number of documents to return
 
         offset : typing.Optional[int]
             Pagination offset
@@ -669,6 +763,7 @@ class AsyncRawCollectionsClient:
             f"v2/collections/{jsonable_encoder(collection_name)}/documents",
             method="GET",
             params={
+                "limit": limit,
                 "offset": offset,
             },
             request_options=request_options,
@@ -686,6 +781,10 @@ class AsyncRawCollectionsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def wipe_collection_documents_v2(
@@ -697,6 +796,7 @@ class AsyncRawCollectionsClient:
         Parameters
         ----------
         collection_name : str
+            Name of the collection to wipe
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -724,6 +824,10 @@ class AsyncRawCollectionsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def delete_document_v2(
@@ -735,8 +839,10 @@ class AsyncRawCollectionsClient:
         Parameters
         ----------
         collection_name : str
+            Name of the collection
 
         document_id : str
+            ID of the document to delete
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -775,4 +881,8 @@ class AsyncRawCollectionsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)

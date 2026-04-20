@@ -8,7 +8,7 @@ from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
 
 class SearchResult(UniversalBaseModel):
     """
-    Individual search result for inference=false queries
+    Individual search result with chunk content, scores, and source URI
     """
 
     score: typing.Optional[float] = pydantic.Field(default=None)
@@ -31,6 +31,11 @@ class SearchResult(UniversalBaseModel):
     Name of the source file
     """
 
+    uri: typing.Optional[str] = pydantic.Field(default=None)
+    """
+    Source URI of the document. External files show their original URI (e.g., s3://bucket/key). Files uploaded via Captain show captain://org-id/object-key.
+    """
+
     chunk_index: typing.Optional[int] = pydantic.Field(default=None)
     """
     Index of this chunk within the document
@@ -48,7 +53,7 @@ class SearchResult(UniversalBaseModel):
 
     rerank_score: typing.Optional[float] = pydantic.Field(default=None)
     """
-    Voyage rerank-2.5 relevance score when rerank=true was used
+    Reranker relevance score (Gemini Flash 2.5 or Voyage rerank-2.5) when rerank=true was used
     """
 
     metadata: typing.Optional[typing.Dict[str, typing.Any]] = pydantic.Field(default=None)

@@ -5,6 +5,7 @@ import typing
 from ..core.client_wrapper import AsyncClientWrapper, SyncClientWrapper
 from ..core.request_options import RequestOptions
 from ..types.job_cancel_response_v2 import JobCancelResponseV2
+from ..types.job_rollback_response_v2 import JobRollbackResponseV2
 from ..types.job_status_response_v2 import JobStatusResponseV2
 from .raw_client import AsyncRawJobsClient, RawJobsClient
 
@@ -58,6 +59,7 @@ class JobsClient:
         Parameters
         ----------
         job_id : str
+            The job ID returned from an indexing request
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -76,17 +78,17 @@ class JobsClient:
             key="YOUR_KEY",
         )
         client.jobs.get_job_status_v2(
-            job_id="job_s3_abc123",
+            job_id="job_id",
         )
         """
         _response = self._raw_client.get_job_status_v2(job_id, request_options=request_options)
         return _response.data
 
-    def cancel_job_v2(
+    def delete_job_v2(
         self, job_id: str, *, request_options: typing.Optional[RequestOptions] = None
     ) -> JobCancelResponseV2:
         """
-        Cancel an indexing job.
+        Cancel and delete an indexing job.
 
         Behavior:
         - If job is pending or running -> transitions to cancelled
@@ -95,6 +97,7 @@ class JobsClient:
         Parameters
         ----------
         job_id : str
+            The job ID to delete/cancel
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -102,7 +105,7 @@ class JobsClient:
         Returns
         -------
         JobCancelResponseV2
-            Cancel Result
+            Delete Result
 
         Examples
         --------
@@ -112,11 +115,55 @@ class JobsClient:
             organization_id="YOUR_ORGANIZATION_ID",
             key="YOUR_KEY",
         )
-        client.jobs.cancel_job_v2(
+        client.jobs.delete_job_v2(
             job_id="job_s3_abc123",
         )
         """
-        _response = self._raw_client.cancel_job_v2(job_id, request_options=request_options)
+        _response = self._raw_client.delete_job_v2(job_id, request_options=request_options)
+        return _response.data
+
+    def rollback_job_v2(
+        self, job_id: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> JobRollbackResponseV2:
+        """
+        Rollback a completed or failed indexing job  -  removes all indexed files and their associated data.
+
+        ## Behavior
+        - **Running job**: Returns `409 Conflict`  -  cancel the job first using `DELETE /v2/jobs/{job_id}`
+        - **Completed/Failed/Cancelled job**: Deletes all files indexed by this job and returns the list of files removed
+        - **Not found**: Returns `404`
+
+        ## Use Cases
+        - Undo a completed indexing job that indexed incorrect data
+        - Clean up partial data from a failed job
+        - Remove test data after development/staging indexing runs
+
+        Parameters
+        ----------
+        job_id : str
+            The job ID to rollback
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        JobRollbackResponseV2
+            Rollback completed successfully
+
+        Examples
+        --------
+        from runcaptain import Captain
+
+        client = Captain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+        client.jobs.rollback_job_v2(
+            job_id="abc123xyz-1234567890",
+        )
+        """
+        _response = self._raw_client.rollback_job_v2(job_id, request_options=request_options)
         return _response.data
 
 
@@ -169,6 +216,7 @@ class AsyncJobsClient:
         Parameters
         ----------
         job_id : str
+            The job ID returned from an indexing request
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -192,7 +240,7 @@ class AsyncJobsClient:
 
         async def main() -> None:
             await client.jobs.get_job_status_v2(
-                job_id="job_s3_abc123",
+                job_id="job_id",
             )
 
 
@@ -201,11 +249,11 @@ class AsyncJobsClient:
         _response = await self._raw_client.get_job_status_v2(job_id, request_options=request_options)
         return _response.data
 
-    async def cancel_job_v2(
+    async def delete_job_v2(
         self, job_id: str, *, request_options: typing.Optional[RequestOptions] = None
     ) -> JobCancelResponseV2:
         """
-        Cancel an indexing job.
+        Cancel and delete an indexing job.
 
         Behavior:
         - If job is pending or running -> transitions to cancelled
@@ -214,6 +262,7 @@ class AsyncJobsClient:
         Parameters
         ----------
         job_id : str
+            The job ID to delete/cancel
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -221,7 +270,7 @@ class AsyncJobsClient:
         Returns
         -------
         JobCancelResponseV2
-            Cancel Result
+            Delete Result
 
         Examples
         --------
@@ -236,12 +285,64 @@ class AsyncJobsClient:
 
 
         async def main() -> None:
-            await client.jobs.cancel_job_v2(
+            await client.jobs.delete_job_v2(
                 job_id="job_s3_abc123",
             )
 
 
         asyncio.run(main())
         """
-        _response = await self._raw_client.cancel_job_v2(job_id, request_options=request_options)
+        _response = await self._raw_client.delete_job_v2(job_id, request_options=request_options)
+        return _response.data
+
+    async def rollback_job_v2(
+        self, job_id: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> JobRollbackResponseV2:
+        """
+        Rollback a completed or failed indexing job  -  removes all indexed files and their associated data.
+
+        ## Behavior
+        - **Running job**: Returns `409 Conflict`  -  cancel the job first using `DELETE /v2/jobs/{job_id}`
+        - **Completed/Failed/Cancelled job**: Deletes all files indexed by this job and returns the list of files removed
+        - **Not found**: Returns `404`
+
+        ## Use Cases
+        - Undo a completed indexing job that indexed incorrect data
+        - Clean up partial data from a failed job
+        - Remove test data after development/staging indexing runs
+
+        Parameters
+        ----------
+        job_id : str
+            The job ID to rollback
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        JobRollbackResponseV2
+            Rollback completed successfully
+
+        Examples
+        --------
+        import asyncio
+
+        from runcaptain import AsyncCaptain
+
+        client = AsyncCaptain(
+            organization_id="YOUR_ORGANIZATION_ID",
+            key="YOUR_KEY",
+        )
+
+
+        async def main() -> None:
+            await client.jobs.rollback_job_v2(
+                job_id="abc123xyz-1234567890",
+            )
+
+
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.rollback_job_v2(job_id, request_options=request_options)
         return _response.data

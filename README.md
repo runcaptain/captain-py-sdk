@@ -38,15 +38,14 @@ Instantiate and use the client with the following:
 from runcaptain import Captain
 
 client = Captain(
-    organization_id="YOUR_ORGANIZATION_ID",
-    key="YOUR_KEY",
+    key="<token>",
+    organization_id="<X-Organization-ID>",
 )
-response = client.query.collection_v2stream(
+
+client.query.collection_v2stream(
     collection_name="collection_name",
     query="query",
 )
-for chunk in response.data:
-    yield chunk
 ```
 
 ## Async Client
@@ -59,18 +58,16 @@ import asyncio
 from runcaptain import AsyncCaptain
 
 client = AsyncCaptain(
-    organization_id="YOUR_ORGANIZATION_ID",
-    key="YOUR_KEY",
+    key="<token>",
+    organization_id="<X-Organization-ID>",
 )
 
 
 async def main() -> None:
-    response = await client.query.collection_v2stream(
+    await client.query.collection_v2stream(
         collection_name="collection_name",
         query="query",
     )
-    async for chunk in response.data:
-        yield chunk
 
 
 asyncio.run(main())
@@ -99,15 +96,14 @@ The SDK supports streaming responses, as well, the response will be a generator 
 from runcaptain import Captain
 
 client = Captain(
-    organization_id="YOUR_ORGANIZATION_ID",
-    key="YOUR_KEY",
+    key="<token>",
+    organization_id="<X-Organization-ID>",
 )
-response = client.query.collection_v2stream(
+
+client.query.collection_v2stream(
     collection_name="collection_name",
     query="query",
 )
-for chunk in response.data:
-    yield chunk
 ```
 
 ## Advanced
@@ -120,15 +116,11 @@ The `.with_raw_response` property returns a "raw" client that can be used to acc
 ```python
 from runcaptain import Captain
 
-client = Captain(
-    ...,
-)
-with client.query.with_raw_response.collection_v2stream(...) as response:
-    print(
-        response.headers
-    )  # access the response headersprint(response.status_code)  # access the response status code
-    for chunk in response.data:
-        print(chunk)  # access the underlying object(s)
+client = Captain(...)
+response = client.query.with_raw_response.collection_v2stream(...)
+print(response.headers)  # access the response headers
+print(response.status_code)  # access the response status code
+print(response.data)  # access the underlying object
 ```
 
 ### Retries
@@ -156,14 +148,9 @@ client.query.collection_v2stream(..., request_options={
 The SDK defaults to a 60 second timeout. You can configure this with a timeout option at the client or request level.
 
 ```python
-
 from runcaptain import Captain
 
-client = Captain(
-    ...,
-    timeout=20.0,
-)
-
+client = Captain(..., timeout=20.0)
 
 # Override timeout for a specific method
 client.query.collection_v2stream(..., request_options={

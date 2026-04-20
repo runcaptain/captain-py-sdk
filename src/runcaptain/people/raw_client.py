@@ -7,10 +7,14 @@ from ..core.api_error import ApiError
 from ..core.client_wrapper import AsyncClientWrapper, SyncClientWrapper
 from ..core.http_response import AsyncHttpResponse, HttpResponse
 from ..core.jsonable_encoder import jsonable_encoder
+from ..core.parse_error import ParsingError
 from ..core.pydantic_utilities import parse_obj_as
 from ..core.request_options import RequestOptions
 from ..errors.not_found_error import NotFoundError
 from ..errors.unauthorized_error import UnauthorizedError
+from .types.people_bio_response import PeopleBioResponse
+from .types.people_search_response import PeopleSearchResponse
+from pydantic import ValidationError
 
 
 class RawPeopleClient:
@@ -20,16 +24,36 @@ class RawPeopleClient:
     def search(
         self,
         *,
+        q: str,
+        company: typing.Optional[str] = None,
         title: typing.Optional[str] = None,
         location: typing.Optional[str] = None,
         limit: typing.Optional[int] = None,
+        offset: typing.Optional[int] = None,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> HttpResponse[PeopleSearchResponse]:
         """
-        Search for professionals by name, company, title, or location. Returns matching profiles with current position, company, and LinkedIn URL. Use this to find person entity IDs for detailed lookups.
+        Search for people by name, company, title, or natural language query. Returns LinkedIn profiles with rich metadata including professional headline, location, bio excerpt, follower count, and school.
+
+        Use the returned `entity_id` with `/bio`, `/contact`, or `/education-work` to get full enrichment data.
+
+        **Pagination:** Use `offset` and `limit` to page through results. Check `has_more` in the response to determine if more pages are available.
+
+        **Large result sets:** Supports up to 500 results per request. For requests exceeding 100 results, the API automatically expands the search with query variations to discover more profiles, then deduplicates by LinkedIn URL.
+
+        **Examples:**
+        - `?q=engineers at Anthropic in San Francisco&limit=20`
+        - `?q=Sam Altman&limit=1`
+        - `?q=senior data scientists&company=Stripe&location=New York&limit=50&offset=0`
 
         Parameters
         ----------
+        q : str
+            Person name or search query
+
+        company : typing.Optional[str]
+            Filter by current company
+
         title : typing.Optional[str]
             Filter by job title
 
@@ -37,32 +61,38 @@ class RawPeopleClient:
             Filter by location
 
         limit : typing.Optional[int]
-            Maximum results
+            Maximum results per page (1-500). For limits above 100, query expansion is used automatically.
+
+        offset : typing.Optional[int]
+            Number of results to skip for pagination. Use with limit to page through results.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[typing.Dict[str, typing.Any]]
+        HttpResponse[PeopleSearchResponse]
             Successful response
         """
         _response = self._client_wrapper.httpx_client.request(
             "v2/datasets/odyssey/people/search",
             method="GET",
             params={
+                "q": q,
+                "company": company,
                 "title": title,
                 "location": location,
                 "limit": limit,
+                "offset": offset,
             },
             request_options=request_options,
         )
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    PeopleSearchResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=PeopleSearchResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -81,24 +111,29 @@ class RawPeopleClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     def bio(
         self, person_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> HttpResponse[PeopleBioResponse]:
         """
-        Get comprehensive person profile including headline, summary, current company, location, and social profiles. This is the primary endpoint for person overview data.
+        Get complete person profile including bio, contact information (emails, phones, social profiles), work history (all positions with companies, titles, dates), and education (schools, degrees, fields of study). One API call returns everything. Use the entity_id from /people/search results.
 
         Parameters
         ----------
         person_id : str
+            Person entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[typing.Dict[str, typing.Any]]
+        HttpResponse[PeopleBioResponse]
             Successful response
         """
         _response = self._client_wrapper.httpx_client.request(
@@ -109,9 +144,9 @@ class RawPeopleClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    PeopleBioResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=PeopleBioResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -141,186 +176,10 @@ class RawPeopleClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
-    def contact(
-        self, person_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
-        """
-        Get contact information including email addresses, phone numbers, and social media profiles. Returns verified contact details for outreach.
-
-        Parameters
-        ----------
-        person_id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        HttpResponse[typing.Dict[str, typing.Any]]
-            Successful response
-        """
-        _response = self._client_wrapper.httpx_client.request(
-            f"v2/datasets/odyssey/people/{jsonable_encoder(person_id)}/contact",
-            method="GET",
-            request_options=request_options,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    typing.Dict[str, typing.Any],
-                    parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return HttpResponse(response=_response, data=_data)
-            if _response.status_code == 401:
-                raise UnauthorizedError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            if _response.status_code == 404:
-                raise NotFoundError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
-    def education_work(
-        self, person_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
-        """
-        Get complete professional history including work experience and education. Returns job positions with companies, titles, dates, and degree information with schools and majors.
-
-        Parameters
-        ----------
-        person_id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        HttpResponse[typing.Dict[str, typing.Any]]
-            Successful response
-        """
-        _response = self._client_wrapper.httpx_client.request(
-            f"v2/datasets/odyssey/people/{jsonable_encoder(person_id)}/education-work",
-            method="GET",
-            request_options=request_options,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    typing.Dict[str, typing.Any],
-                    parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return HttpResponse(response=_response, data=_data)
-            if _response.status_code == 401:
-                raise UnauthorizedError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            if _response.status_code == 404:
-                raise NotFoundError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
-    def updates(
-        self, person_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
-        """
-        Get changelog of updates to person profile data. Returns history of career moves, title changes, and profile updates with timestamps.
-
-        Parameters
-        ----------
-        person_id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        HttpResponse[typing.Dict[str, typing.Any]]
-            Successful response
-        """
-        _response = self._client_wrapper.httpx_client.request(
-            f"v2/datasets/odyssey/people/{jsonable_encoder(person_id)}/updates",
-            method="GET",
-            request_options=request_options,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    typing.Dict[str, typing.Any],
-                    parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return HttpResponse(response=_response, data=_data)
-            if _response.status_code == 401:
-                raise UnauthorizedError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            if _response.status_code == 404:
-                raise NotFoundError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
 
@@ -331,16 +190,36 @@ class AsyncRawPeopleClient:
     async def search(
         self,
         *,
+        q: str,
+        company: typing.Optional[str] = None,
         title: typing.Optional[str] = None,
         location: typing.Optional[str] = None,
         limit: typing.Optional[int] = None,
+        offset: typing.Optional[int] = None,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> AsyncHttpResponse[PeopleSearchResponse]:
         """
-        Search for professionals by name, company, title, or location. Returns matching profiles with current position, company, and LinkedIn URL. Use this to find person entity IDs for detailed lookups.
+        Search for people by name, company, title, or natural language query. Returns LinkedIn profiles with rich metadata including professional headline, location, bio excerpt, follower count, and school.
+
+        Use the returned `entity_id` with `/bio`, `/contact`, or `/education-work` to get full enrichment data.
+
+        **Pagination:** Use `offset` and `limit` to page through results. Check `has_more` in the response to determine if more pages are available.
+
+        **Large result sets:** Supports up to 500 results per request. For requests exceeding 100 results, the API automatically expands the search with query variations to discover more profiles, then deduplicates by LinkedIn URL.
+
+        **Examples:**
+        - `?q=engineers at Anthropic in San Francisco&limit=20`
+        - `?q=Sam Altman&limit=1`
+        - `?q=senior data scientists&company=Stripe&location=New York&limit=50&offset=0`
 
         Parameters
         ----------
+        q : str
+            Person name or search query
+
+        company : typing.Optional[str]
+            Filter by current company
+
         title : typing.Optional[str]
             Filter by job title
 
@@ -348,32 +227,38 @@ class AsyncRawPeopleClient:
             Filter by location
 
         limit : typing.Optional[int]
-            Maximum results
+            Maximum results per page (1-500). For limits above 100, query expansion is used automatically.
+
+        offset : typing.Optional[int]
+            Number of results to skip for pagination. Use with limit to page through results.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+        AsyncHttpResponse[PeopleSearchResponse]
             Successful response
         """
         _response = await self._client_wrapper.httpx_client.request(
             "v2/datasets/odyssey/people/search",
             method="GET",
             params={
+                "q": q,
+                "company": company,
                 "title": title,
                 "location": location,
                 "limit": limit,
+                "offset": offset,
             },
             request_options=request_options,
         )
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    PeopleSearchResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=PeopleSearchResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -392,24 +277,29 @@ class AsyncRawPeopleClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def bio(
         self, person_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> AsyncHttpResponse[PeopleBioResponse]:
         """
-        Get comprehensive person profile including headline, summary, current company, location, and social profiles. This is the primary endpoint for person overview data.
+        Get complete person profile including bio, contact information (emails, phones, social profiles), work history (all positions with companies, titles, dates), and education (schools, degrees, fields of study). One API call returns everything. Use the entity_id from /people/search results.
 
         Parameters
         ----------
         person_id : str
+            Person entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+        AsyncHttpResponse[PeopleBioResponse]
             Successful response
         """
         _response = await self._client_wrapper.httpx_client.request(
@@ -420,9 +310,9 @@ class AsyncRawPeopleClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    PeopleBioResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=PeopleBioResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -452,184 +342,8 @@ class AsyncRawPeopleClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
-    async def contact(
-        self, person_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
-        """
-        Get contact information including email addresses, phone numbers, and social media profiles. Returns verified contact details for outreach.
-
-        Parameters
-        ----------
-        person_id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
-            Successful response
-        """
-        _response = await self._client_wrapper.httpx_client.request(
-            f"v2/datasets/odyssey/people/{jsonable_encoder(person_id)}/contact",
-            method="GET",
-            request_options=request_options,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    typing.Dict[str, typing.Any],
-                    parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return AsyncHttpResponse(response=_response, data=_data)
-            if _response.status_code == 401:
-                raise UnauthorizedError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            if _response.status_code == 404:
-                raise NotFoundError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
-    async def education_work(
-        self, person_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
-        """
-        Get complete professional history including work experience and education. Returns job positions with companies, titles, dates, and degree information with schools and majors.
-
-        Parameters
-        ----------
-        person_id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
-            Successful response
-        """
-        _response = await self._client_wrapper.httpx_client.request(
-            f"v2/datasets/odyssey/people/{jsonable_encoder(person_id)}/education-work",
-            method="GET",
-            request_options=request_options,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    typing.Dict[str, typing.Any],
-                    parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return AsyncHttpResponse(response=_response, data=_data)
-            if _response.status_code == 401:
-                raise UnauthorizedError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            if _response.status_code == 404:
-                raise NotFoundError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
-    async def updates(
-        self, person_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
-        """
-        Get changelog of updates to person profile data. Returns history of career moves, title changes, and profile updates with timestamps.
-
-        Parameters
-        ----------
-        person_id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
-            Successful response
-        """
-        _response = await self._client_wrapper.httpx_client.request(
-            f"v2/datasets/odyssey/people/{jsonable_encoder(person_id)}/updates",
-            method="GET",
-            request_options=request_options,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    typing.Dict[str, typing.Any],
-                    parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return AsyncHttpResponse(response=_response, data=_data)
-            if _response.status_code == 401:
-                raise UnauthorizedError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            if _response.status_code == 404:
-                raise NotFoundError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)

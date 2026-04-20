@@ -4,7 +4,7 @@ dynamic = ["version"]
 
 [tool.poetry]
 name = "captain-sdk"
-version = "0.1.1"
+version = "0.1.2"
 description = ""
 readme = "README.md"
 authors = []
@@ -18,8 +18,6 @@ classifiers = [
     "Intended Audience :: Developers",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -44,7 +42,7 @@ Homepage = 'https://www.runcaptain.com'
 Repository = 'https://github.com/runcaptain/captain-py-sdk'
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.10"
 httpx = ">=0.21.2"
 pydantic = ">= 1.9.2"
 pydantic-core = ">=2.18.2"

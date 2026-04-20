@@ -10,10 +10,12 @@ from ..core.client_wrapper import AsyncClientWrapper, SyncClientWrapper
 from ..core.http_response import AsyncHttpResponse, HttpResponse
 from ..core.http_sse._api import EventSource
 from ..core.jsonable_encoder import jsonable_encoder
+from ..core.parse_error import ParsingError
 from ..core.pydantic_utilities import parse_obj_as, parse_sse_obj
 from ..core.request_options import RequestOptions
 from ..types.query_response_v2 import QueryResponseV2
 from ..types.query_stream_event import QueryStreamEvent
+from pydantic import ValidationError
 
 # this is used as the default value for optional parameters
 OMIT = typing.cast(typing.Any, ...)
@@ -29,60 +31,29 @@ class RawQueryClient:
         collection_name: str,
         *,
         query: str,
+        idempotency_key: typing.Optional[str] = None,
         inference: typing.Optional[bool] = OMIT,
         top_k: typing.Optional[int] = OMIT,
         rerank: typing.Optional[bool] = OMIT,
         metadata_filter: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
         custom_prompt: typing.Optional[str] = OMIT,
+        include_bbox: typing.Optional[bool] = OMIT,
+        search_results: typing.Optional[bool] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> typing.Iterator[HttpResponse[typing.Iterator[QueryStreamEvent]]]:
         """
-        Execute a natural language query against a collection.
-
-        When `inference=true`, returns an AI-generated response with relevant documents.
-        When `inference=false`, returns raw search results with content and metadata.
-
-        ## Streaming (SSE)
-
-        When `stream: true` and `inference: true`, the response is a Server-Sent Events stream. Every `data:` field is a JSON object with a `type` discriminator.
-
-        ### SSE Event Types
-
-        | `type` value | Schema | Description |
-        |---|---|---|
-        | `text.delta` | `QueryStreamTextEvent` | Incremental text chunk of the AI response. |
-        | `tool.start` | `QueryStreamToolStartEvent` | The agent is performing a knowledge-base search. |
-        | `tool.end` | `QueryStreamToolEndEvent` | A tool call completed. `tool_call_id` correlates with the preceding `tool.start`. |
-        | `stream_complete` | `QueryStreamCompleteEvent` | Stream finished successfully. Close the connection. |
-        | `stream_error` | `QueryStreamErrorEvent` | An error occurred. Close the connection. |
-
-        ### Example SSE Stream
-
-        ```
-        data: {"type":"tool.start","seq":1,"run_id":"run_abc","tool_call_id":"tc_1","name":"searchKnowledgeBase","args":{"query":"revenue projections Q4"}}
-
-        data: {"type":"tool.end","seq":2,"run_id":"run_abc","tool_call_id":"tc_1","name":"searchKnowledgeBase","ok":true,"result_summary":{"resultCount":12}}
-
-        data: {"type":"text.delta","seq":3,"run_id":"run_abc","data":"Based on the documents"}
-        data: {"type":"text.delta","seq":4,"run_id":"run_abc","data":" provided, the revenue"}
-        data: {"type":"text.delta","seq":5,"run_id":"run_abc","data":" projections for Q4 show"}
-        data: {"type":"text.delta","seq":6,"run_id":"run_abc","data":" a 15% increase over Q3."}
-
-        data: {"type":"stream_complete","metadata":{"totalResults":12,"totalSearches":1},"stats":{"totalTokens":150}}
-        ```
-
-        ### Notes
-
-        - The agent may perform multiple searches per query. Each search produces a `tool.start` / `tool.end` pair.
-        - Text chunks are interleaved between tool events â€” text arrives after the agent has gathered results from a search.
-        - Connect with `Accept: text/event-stream` and set a generous timeout (120s+) for long responses.
+        Execute a natural language query with server-sent streaming. Yields QueryStreamEvent union members (text.delta, tool.start, tool.end, stream_complete, stream_error) as they arrive.
 
         Parameters
         ----------
         collection_name : str
+            Name of the collection to query
 
         query : str
             The natural language query to search for
+
+        idempotency_key : typing.Optional[str]
+            UUID for request deduplication
 
         inference : typing.Optional[bool]
             Enable LLM-generated answers based on the relevant sections retrieved. When false, returns raw search results.
@@ -91,13 +62,19 @@ class RawQueryClient:
             Number of results to return. Only valid when inference=false. Not supported when inference=true (the agent controls its own search strategy).
 
         rerank : typing.Optional[bool]
-            Enable Voyage AI rerank-2.5 reranking for improved relevance ordering. Adds ~100-300ms latency.
+            Enable reranking for improved relevance ordering. Uses Gemini Flash 2.5 by default, or Voyage AI rerank-2.5 as fallback. Adds ~100-300ms latency.
 
         metadata_filter : typing.Optional[typing.Dict[str, typing.Any]]
             Filter expression for vector search. Supports: $eq, $ne, $gt, $gte, $lt, $lte, $in, $nin, $and, $or
 
         custom_prompt : typing.Optional[str]
             Custom system prompt to override the default RAG prompt when inference=true. Allows customizing how the LLM processes and responds to the query with the retrieved context.
+
+        include_bbox : typing.Optional[bool]
+            Include normalized bounding box layout data for each search result. Returns element-level positions (titles, paragraphs, tables, figures, form fields) with page coordinates for PDF and DOCX files. Only supported with inference=false.
+
+        search_results : typing.Optional[bool]
+            When inference=true, include the raw search result chunks that were used as context for the LLM response. Defaults to false. Always true when inference=false.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -117,10 +94,13 @@ class RawQueryClient:
                 "rerank": rerank,
                 "metadata_filter": metadata_filter,
                 "custom_prompt": custom_prompt,
+                "include_bbox": include_bbox,
+                "search_results": search_results,
                 "stream": True,
             },
             headers={
                 "content-type": "application/json",
+                "Idempotency-Key": str(idempotency_key) if idempotency_key is not None else None,
             },
             request_options=request_options,
             omit=OMIT,
@@ -162,6 +142,13 @@ class RawQueryClient:
                     raise ApiError(
                         status_code=_response.status_code, headers=dict(_response.headers), body=_response.text
                     )
+                except ValidationError as e:
+                    raise ParsingError(
+                        status_code=_response.status_code,
+                        headers=dict(_response.headers),
+                        body=_response.json(),
+                        cause=e,
+                    )
                 raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
             yield _stream()
@@ -171,11 +158,14 @@ class RawQueryClient:
         collection_name: str,
         *,
         query: str,
+        idempotency_key: typing.Optional[str] = None,
         inference: typing.Optional[bool] = OMIT,
         top_k: typing.Optional[int] = OMIT,
         rerank: typing.Optional[bool] = OMIT,
         metadata_filter: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
         custom_prompt: typing.Optional[str] = OMIT,
+        include_bbox: typing.Optional[bool] = OMIT,
+        search_results: typing.Optional[bool] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[QueryResponseV2]:
         """
@@ -216,15 +206,33 @@ class RawQueryClient:
         ### Notes
 
         - The agent may perform multiple searches per query. Each search produces a `tool.start` / `tool.end` pair.
-        - Text chunks are interleaved between tool events â€” text arrives after the agent has gathered results from a search.
+        - Text chunks are interleaved between tool events  -  text arrives after the agent has gathered results from a search.
         - Connect with `Accept: text/event-stream` and set a generous timeout (120s+) for long responses.
+
+        ## Bounding Box Data
+
+        Set `include_bbox: true` (inference=false only) to receive element-level layout coordinates for each search result. Each result will include a `layout` object with normalized bounding box blocks for PDF and DOCX files.
+
+        Each block contains:
+        - `type`: element type (text, title, section_header, list_item, table, figure, key_value, header, footer)
+        - `content`: the text content
+        - `page`: page number
+        - `bbox`: normalized 0-1 coordinates `{ top, left, width, height }` relative to page dimensions
+        - `confidence`: extraction confidence (high/low) when available
+        - `image_url`: presigned URL for figure/chart images when available
+
+        Files without OCR data (TXT, CSV, images) will have `layout: null`.
 
         Parameters
         ----------
         collection_name : str
+            Name of the collection to query
 
         query : str
             The natural language query to search for
+
+        idempotency_key : typing.Optional[str]
+            UUID for request deduplication
 
         inference : typing.Optional[bool]
             Enable LLM-generated answers based on the relevant sections retrieved. When false, returns raw search results.
@@ -233,13 +241,19 @@ class RawQueryClient:
             Number of results to return. Only valid when inference=false. Not supported when inference=true (the agent controls its own search strategy).
 
         rerank : typing.Optional[bool]
-            Enable Voyage AI rerank-2.5 reranking for improved relevance ordering. Adds ~100-300ms latency.
+            Enable reranking for improved relevance ordering. Uses Gemini Flash 2.5 by default, or Voyage AI rerank-2.5 as fallback. Adds ~100-300ms latency.
 
         metadata_filter : typing.Optional[typing.Dict[str, typing.Any]]
             Filter expression for vector search. Supports: $eq, $ne, $gt, $gte, $lt, $lte, $in, $nin, $and, $or
 
         custom_prompt : typing.Optional[str]
             Custom system prompt to override the default RAG prompt when inference=true. Allows customizing how the LLM processes and responds to the query with the retrieved context.
+
+        include_bbox : typing.Optional[bool]
+            Include normalized bounding box layout data for each search result. Returns element-level positions (titles, paragraphs, tables, figures, form fields) with page coordinates for PDF and DOCX files. Only supported with inference=false.
+
+        search_results : typing.Optional[bool]
+            When inference=true, include the raw search result chunks that were used as context for the LLM response. Defaults to false. Always true when inference=false.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -259,10 +273,13 @@ class RawQueryClient:
                 "rerank": rerank,
                 "metadata_filter": metadata_filter,
                 "custom_prompt": custom_prompt,
+                "include_bbox": include_bbox,
+                "search_results": search_results,
                 "stream": False,
             },
             headers={
                 "content-type": "application/json",
+                "Idempotency-Key": str(idempotency_key) if idempotency_key is not None else None,
             },
             request_options=request_options,
             omit=OMIT,
@@ -280,6 +297,10 @@ class RawQueryClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
 
@@ -293,60 +314,29 @@ class AsyncRawQueryClient:
         collection_name: str,
         *,
         query: str,
+        idempotency_key: typing.Optional[str] = None,
         inference: typing.Optional[bool] = OMIT,
         top_k: typing.Optional[int] = OMIT,
         rerank: typing.Optional[bool] = OMIT,
         metadata_filter: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
         custom_prompt: typing.Optional[str] = OMIT,
+        include_bbox: typing.Optional[bool] = OMIT,
+        search_results: typing.Optional[bool] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> typing.AsyncIterator[AsyncHttpResponse[typing.AsyncIterator[QueryStreamEvent]]]:
         """
-        Execute a natural language query against a collection.
-
-        When `inference=true`, returns an AI-generated response with relevant documents.
-        When `inference=false`, returns raw search results with content and metadata.
-
-        ## Streaming (SSE)
-
-        When `stream: true` and `inference: true`, the response is a Server-Sent Events stream. Every `data:` field is a JSON object with a `type` discriminator.
-
-        ### SSE Event Types
-
-        | `type` value | Schema | Description |
-        |---|---|---|
-        | `text.delta` | `QueryStreamTextEvent` | Incremental text chunk of the AI response. |
-        | `tool.start` | `QueryStreamToolStartEvent` | The agent is performing a knowledge-base search. |
-        | `tool.end` | `QueryStreamToolEndEvent` | A tool call completed. `tool_call_id` correlates with the preceding `tool.start`. |
-        | `stream_complete` | `QueryStreamCompleteEvent` | Stream finished successfully. Close the connection. |
-        | `stream_error` | `QueryStreamErrorEvent` | An error occurred. Close the connection. |
-
-        ### Example SSE Stream
-
-        ```
-        data: {"type":"tool.start","seq":1,"run_id":"run_abc","tool_call_id":"tc_1","name":"searchKnowledgeBase","args":{"query":"revenue projections Q4"}}
-
-        data: {"type":"tool.end","seq":2,"run_id":"run_abc","tool_call_id":"tc_1","name":"searchKnowledgeBase","ok":true,"result_summary":{"resultCount":12}}
-
-        data: {"type":"text.delta","seq":3,"run_id":"run_abc","data":"Based on the documents"}
-        data: {"type":"text.delta","seq":4,"run_id":"run_abc","data":" provided, the revenue"}
-        data: {"type":"text.delta","seq":5,"run_id":"run_abc","data":" projections for Q4 show"}
-        data: {"type":"text.delta","seq":6,"run_id":"run_abc","data":" a 15% increase over Q3."}
-
-        data: {"type":"stream_complete","metadata":{"totalResults":12,"totalSearches":1},"stats":{"totalTokens":150}}
-        ```
-
-        ### Notes
-
-        - The agent may perform multiple searches per query. Each search produces a `tool.start` / `tool.end` pair.
-        - Text chunks are interleaved between tool events â€” text arrives after the agent has gathered results from a search.
-        - Connect with `Accept: text/event-stream` and set a generous timeout (120s+) for long responses.
+        Execute a natural language query with server-sent streaming. Yields QueryStreamEvent union members (text.delta, tool.start, tool.end, stream_complete, stream_error) as they arrive.
 
         Parameters
         ----------
         collection_name : str
+            Name of the collection to query
 
         query : str
             The natural language query to search for
+
+        idempotency_key : typing.Optional[str]
+            UUID for request deduplication
 
         inference : typing.Optional[bool]
             Enable LLM-generated answers based on the relevant sections retrieved. When false, returns raw search results.
@@ -355,13 +345,19 @@ class AsyncRawQueryClient:
             Number of results to return. Only valid when inference=false. Not supported when inference=true (the agent controls its own search strategy).
 
         rerank : typing.Optional[bool]
-            Enable Voyage AI rerank-2.5 reranking for improved relevance ordering. Adds ~100-300ms latency.
+            Enable reranking for improved relevance ordering. Uses Gemini Flash 2.5 by default, or Voyage AI rerank-2.5 as fallback. Adds ~100-300ms latency.
 
         metadata_filter : typing.Optional[typing.Dict[str, typing.Any]]
             Filter expression for vector search. Supports: $eq, $ne, $gt, $gte, $lt, $lte, $in, $nin, $and, $or
 
         custom_prompt : typing.Optional[str]
             Custom system prompt to override the default RAG prompt when inference=true. Allows customizing how the LLM processes and responds to the query with the retrieved context.
+
+        include_bbox : typing.Optional[bool]
+            Include normalized bounding box layout data for each search result. Returns element-level positions (titles, paragraphs, tables, figures, form fields) with page coordinates for PDF and DOCX files. Only supported with inference=false.
+
+        search_results : typing.Optional[bool]
+            When inference=true, include the raw search result chunks that were used as context for the LLM response. Defaults to false. Always true when inference=false.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -381,10 +377,13 @@ class AsyncRawQueryClient:
                 "rerank": rerank,
                 "metadata_filter": metadata_filter,
                 "custom_prompt": custom_prompt,
+                "include_bbox": include_bbox,
+                "search_results": search_results,
                 "stream": True,
             },
             headers={
                 "content-type": "application/json",
+                "Idempotency-Key": str(idempotency_key) if idempotency_key is not None else None,
             },
             request_options=request_options,
             omit=OMIT,
@@ -426,6 +425,13 @@ class AsyncRawQueryClient:
                     raise ApiError(
                         status_code=_response.status_code, headers=dict(_response.headers), body=_response.text
                     )
+                except ValidationError as e:
+                    raise ParsingError(
+                        status_code=_response.status_code,
+                        headers=dict(_response.headers),
+                        body=_response.json(),
+                        cause=e,
+                    )
                 raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
             yield await _stream()
@@ -435,11 +441,14 @@ class AsyncRawQueryClient:
         collection_name: str,
         *,
         query: str,
+        idempotency_key: typing.Optional[str] = None,
         inference: typing.Optional[bool] = OMIT,
         top_k: typing.Optional[int] = OMIT,
         rerank: typing.Optional[bool] = OMIT,
         metadata_filter: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
         custom_prompt: typing.Optional[str] = OMIT,
+        include_bbox: typing.Optional[bool] = OMIT,
+        search_results: typing.Optional[bool] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[QueryResponseV2]:
         """
@@ -480,15 +489,33 @@ class AsyncRawQueryClient:
         ### Notes
 
         - The agent may perform multiple searches per query. Each search produces a `tool.start` / `tool.end` pair.
-        - Text chunks are interleaved between tool events â€” text arrives after the agent has gathered results from a search.
+        - Text chunks are interleaved between tool events  -  text arrives after the agent has gathered results from a search.
         - Connect with `Accept: text/event-stream` and set a generous timeout (120s+) for long responses.
+
+        ## Bounding Box Data
+
+        Set `include_bbox: true` (inference=false only) to receive element-level layout coordinates for each search result. Each result will include a `layout` object with normalized bounding box blocks for PDF and DOCX files.
+
+        Each block contains:
+        - `type`: element type (text, title, section_header, list_item, table, figure, key_value, header, footer)
+        - `content`: the text content
+        - `page`: page number
+        - `bbox`: normalized 0-1 coordinates `{ top, left, width, height }` relative to page dimensions
+        - `confidence`: extraction confidence (high/low) when available
+        - `image_url`: presigned URL for figure/chart images when available
+
+        Files without OCR data (TXT, CSV, images) will have `layout: null`.
 
         Parameters
         ----------
         collection_name : str
+            Name of the collection to query
 
         query : str
             The natural language query to search for
+
+        idempotency_key : typing.Optional[str]
+            UUID for request deduplication
 
         inference : typing.Optional[bool]
             Enable LLM-generated answers based on the relevant sections retrieved. When false, returns raw search results.
@@ -497,13 +524,19 @@ class AsyncRawQueryClient:
             Number of results to return. Only valid when inference=false. Not supported when inference=true (the agent controls its own search strategy).
 
         rerank : typing.Optional[bool]
-            Enable Voyage AI rerank-2.5 reranking for improved relevance ordering. Adds ~100-300ms latency.
+            Enable reranking for improved relevance ordering. Uses Gemini Flash 2.5 by default, or Voyage AI rerank-2.5 as fallback. Adds ~100-300ms latency.
 
         metadata_filter : typing.Optional[typing.Dict[str, typing.Any]]
             Filter expression for vector search. Supports: $eq, $ne, $gt, $gte, $lt, $lte, $in, $nin, $and, $or
 
         custom_prompt : typing.Optional[str]
             Custom system prompt to override the default RAG prompt when inference=true. Allows customizing how the LLM processes and responds to the query with the retrieved context.
+
+        include_bbox : typing.Optional[bool]
+            Include normalized bounding box layout data for each search result. Returns element-level positions (titles, paragraphs, tables, figures, form fields) with page coordinates for PDF and DOCX files. Only supported with inference=false.
+
+        search_results : typing.Optional[bool]
+            When inference=true, include the raw search result chunks that were used as context for the LLM response. Defaults to false. Always true when inference=false.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -523,10 +556,13 @@ class AsyncRawQueryClient:
                 "rerank": rerank,
                 "metadata_filter": metadata_filter,
                 "custom_prompt": custom_prompt,
+                "include_bbox": include_bbox,
+                "search_results": search_results,
                 "stream": False,
             },
             headers={
                 "content-type": "application/json",
+                "Idempotency-Key": str(idempotency_key) if idempotency_key is not None else None,
             },
             request_options=request_options,
             omit=OMIT,
@@ -544,4 +580,8 @@ class AsyncRawQueryClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)

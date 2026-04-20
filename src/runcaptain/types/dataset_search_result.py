@@ -36,6 +36,11 @@ class DatasetSearchResult(UniversalBaseModel):
     Source display name
     """
 
+    author: typing.Optional[str] = pydantic.Field(default=None)
+    """
+    Article author/byline if available
+    """
+
     if IS_PYDANTIC_V2:
         model_config: typing.ClassVar[pydantic.ConfigDict] = pydantic.ConfigDict(extra="allow", frozen=True)  # type: ignore # Pydantic v2
     else:

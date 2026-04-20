@@ -1,9 +1,10 @@
 {
-  "cliVersion": "4.13.0",
+  "cliVersion": "4.78.0",
   "generatorName": "fernapi/fern-python-sdk",
-  "generatorVersion": "4.59.4",
+  "generatorVersion": "5.0.0",
   "generatorConfig": {
     "client_class_name": "Captain"
   },
-  "sdkVersion": "0.1.1"
+  "originGitCommit": "773c74e2dd953382ea51bbcc2300f803128e5de5",
+  "sdkVersion": "0.1.2"
 }
