@@ -4,7 +4,6 @@ import typing
 
 import pydantic
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
-from .relevant_document_v2 import RelevantDocumentV2
 from .search_result import SearchResult
 from .token_balance import TokenBalance
 
@@ -29,11 +28,6 @@ class QueryResponseV2(UniversalBaseModel):
     Alias for summary (v1 compatibility)
     """
 
-    relevant_documents: typing.Optional[typing.List[RelevantDocumentV2]] = pydantic.Field(default=None)
-    """
-    List of relevant documents (when inference=true)
-    """
-
     inference: typing.Optional[bool] = pydantic.Field(default=None)
     """
     Whether inference mode was used
@@ -41,7 +35,7 @@ class QueryResponseV2(UniversalBaseModel):
 
     search_results: typing.Optional[typing.List[SearchResult]] = pydantic.Field(default=None)
     """
-    Raw search results with content (when inference=false)
+    Search results with chunk content, scores, and source URIs. Returned for both inference=true (the chunks used as context) and inference=false (raw search results).
     """
 
     total_results: typing.Optional[int] = pydantic.Field(default=None)

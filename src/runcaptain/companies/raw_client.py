@@ -7,11 +7,25 @@ from ..core.api_error import ApiError
 from ..core.client_wrapper import AsyncClientWrapper, SyncClientWrapper
 from ..core.http_response import AsyncHttpResponse, HttpResponse
 from ..core.jsonable_encoder import jsonable_encoder
+from ..core.parse_error import ParsingError
 from ..core.pydantic_utilities import parse_obj_as
 from ..core.request_options import RequestOptions
 from ..errors.not_found_error import NotFoundError
 from ..errors.not_implemented_error import NotImplementedError
 from ..errors.unauthorized_error import UnauthorizedError
+from .types.companies_active_investors_response import CompaniesActiveInvestorsResponse
+from .types.companies_bio_response import CompaniesBioResponse
+from .types.companies_deals_response import CompaniesDealsResponse
+from .types.companies_debt_financing_recent_response import CompaniesDebtFinancingRecentResponse
+from .types.companies_financials_recent_response import CompaniesFinancialsRecentResponse
+from .types.companies_financials_response import CompaniesFinancialsResponse
+from .types.companies_financing_recent_response import CompaniesFinancingRecentResponse
+from .types.companies_full_response import CompaniesFullResponse
+from .types.companies_search_response import CompaniesSearchResponse
+from .types.companies_service_providers_deal_response import CompaniesServiceProvidersDealResponse
+from .types.companies_service_providers_response import CompaniesServiceProvidersResponse
+from .types.companies_similar_response import CompaniesSimilarResponse
+from pydantic import ValidationError
 
 
 class RawCompaniesClient:
@@ -19,32 +33,55 @@ class RawCompaniesClient:
         self._client_wrapper = client_wrapper
 
     def search(
-        self, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+        self, *, q: str, limit: typing.Optional[int] = None, request_options: typing.Optional[RequestOptions] = None
+    ) -> HttpResponse[CompaniesSearchResponse]:
         """
-        Search for companies by name, industry, or location. Returns matching company profiles with employee count, industry classification, founding date, and headquarters. Use this to find company entity IDs for detailed lookups.
+        Search for companies by name or natural language description.
+
+        ## Search Modes
+
+        - **Direct lookup**: Short queries like `Stripe` or `OpenAI` resolve to a single company match
+        - **Natural language search**: Longer queries like `AI startups in San Francisco raising Series B` return up to 5 matching companies with surface-level data
+
+        The endpoint auto-detects which mode to use based on the query.
+
+        ## Response Fields
+
+        Each result includes: name, website, description, employee_count, industry, location, founded, size, total_funding_raised, latest_funding_stage, tags, and linkedin_url.
+
+        Use the entity_id or company identifier from results to call detail endpoints (bio, financing, investors, full).
 
         Parameters
         ----------
+        q : str
+            Company name, domain, or natural language query (e.g. 'AI startups in San Francisco raising Series B')
+
+        limit : typing.Optional[int]
+            Maximum results (default 5)
+
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[typing.Dict[str, typing.Any]]
+        HttpResponse[CompaniesSearchResponse]
             Successful response
         """
         _response = self._client_wrapper.httpx_client.request(
             "v2/datasets/odyssey/companies/search",
             method="GET",
+            params={
+                "q": q,
+                "limit": limit,
+            },
             request_options=request_options,
         )
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    CompaniesSearchResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=CompaniesSearchResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -63,24 +100,87 @@ class RawCompaniesClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
-    def bio(
+    def full(
         self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Any]:
+    ) -> HttpResponse[CompaniesFullResponse]:
         """
-        Get comprehensive company profile including description, founding date, headquarters location, employee count, industry classification, and social media profiles. This is the primary endpoint for company overview data.
+        Get the complete company record with ALL available data fields.
+
+        Returns everything: base profile, funding details with amounts and investors, employee analytics and growth rates, executive changes, office locations, job postings, industry classifications, subsidiaries, and more.
+
+        Use this after identifying a company via search to get the full picture.
 
         Parameters
         ----------
         company_id : str
+            Company entity ID, website domain, or company name (e.g., 'openai.com', 'OpenAI', or UUID)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[typing.Any]
+        HttpResponse[CompaniesFullResponse]
+            Complete company record
+        """
+        _response = self._client_wrapper.httpx_client.request(
+            f"v2/datasets/odyssey/companies/{jsonable_encoder(company_id)}/full",
+            method="GET",
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    CompaniesFullResponse,
+                    parse_obj_as(
+                        type_=CompaniesFullResponse,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return HttpResponse(response=_response, data=_data)
+            if _response.status_code == 404:
+                raise NotFoundError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Any,
+                        parse_obj_as(
+                            type_=typing.Any,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    def bio(
+        self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> HttpResponse[CompaniesBioResponse]:
+        """
+        Get comprehensive company profile including description, founding date, headquarters location, employee count, industry classification, and social media profiles. This is the primary endpoint for company overview data.
+
+        Parameters
+        ----------
+        company_id : str
+            Company entity ID, website domain, or company name (e.g., 'openai.com', 'OpenAI', or UUID)
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        HttpResponse[CompaniesBioResponse]
             Company bio retrieved successfully
         """
         _response = self._client_wrapper.httpx_client.request(
@@ -89,13 +189,11 @@ class RawCompaniesClient:
             request_options=request_options,
         )
         try:
-            if _response is None or not _response.text.strip():
-                return HttpResponse(response=_response, data=None)
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Any,
+                    CompaniesBioResponse,
                     parse_obj_as(
-                        type_=typing.Any,  # type: ignore
+                        type_=CompaniesBioResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -125,97 +223,52 @@ class RawCompaniesClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
-    def industries(
-        self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
-        """
-        Get industry classifications including NAICS codes, SIC codes, and industry descriptions. Useful for filtering companies by vertical or sector.
-
-        Parameters
-        ----------
-        company_id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        HttpResponse[typing.Dict[str, typing.Any]]
-            Successful response
-        """
-        _response = self._client_wrapper.httpx_client.request(
-            f"v2/datasets/odyssey/companies/{jsonable_encoder(company_id)}/industries",
-            method="GET",
-            request_options=request_options,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    typing.Dict[str, typing.Any],
-                    parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return HttpResponse(response=_response, data=_data)
-            if _response.status_code == 401:
-                raise UnauthorizedError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            if _response.status_code == 404:
-                raise NotFoundError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     def financials(
-        self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+        self,
+        company_id: str,
+        *,
+        fiscal_year: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> HttpResponse[CompaniesFinancialsResponse]:
         """
         Get financial statements for public companies including revenue, net income, assets, and liabilities. Returns most recent fiscal year data or specific year if requested.
 
         Parameters
         ----------
         company_id : str
+            Company entity ID, website domain, or company name (e.g., 'openai.com', 'OpenAI', or UUID)
+
+        fiscal_year : typing.Optional[int]
+            Fiscal year (default: most recent)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[typing.Dict[str, typing.Any]]
+        HttpResponse[CompaniesFinancialsResponse]
             Successful response
         """
         _response = self._client_wrapper.httpx_client.request(
             f"v2/datasets/odyssey/companies/{jsonable_encoder(company_id)}/financials",
             method="GET",
+            params={
+                "fiscal_year": fiscal_year,
+            },
             request_options=request_options,
         )
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    CompaniesFinancialsResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=CompaniesFinancialsResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -245,24 +298,29 @@ class RawCompaniesClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     def financials_recent(
         self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> HttpResponse[CompaniesFinancialsRecentResponse]:
         """
         Get most recent financial statements for public companies. Convenience endpoint that automatically returns the latest available fiscal year data.
 
         Parameters
         ----------
         company_id : str
+            Company entity ID, website domain, or company name (e.g., 'openai.com', 'OpenAI', or UUID)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[typing.Dict[str, typing.Any]]
+        HttpResponse[CompaniesFinancialsRecentResponse]
             Successful response
         """
         _response = self._client_wrapper.httpx_client.request(
@@ -273,9 +331,9 @@ class RawCompaniesClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    CompaniesFinancialsRecentResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=CompaniesFinancialsRecentResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -305,24 +363,29 @@ class RawCompaniesClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     def financing_recent(
         self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> HttpResponse[CompaniesFinancingRecentResponse]:
         """
         Get most recent funding rounds including round type, amount raised, investors, and valuation. Returns detailed information about the latest equity financing event.
 
         Parameters
         ----------
         company_id : str
+            Company entity ID, website domain, or company name (e.g., 'openai.com', 'OpenAI', or UUID)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[typing.Dict[str, typing.Any]]
+        HttpResponse[CompaniesFinancingRecentResponse]
             Successful response
         """
         _response = self._client_wrapper.httpx_client.request(
@@ -333,9 +396,9 @@ class RawCompaniesClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    CompaniesFinancingRecentResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=CompaniesFinancingRecentResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -376,24 +439,29 @@ class RawCompaniesClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     def active_investors(
         self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Any]:
+    ) -> HttpResponse[CompaniesActiveInvestorsResponse]:
         """
         Get current investors in the company from recent funding rounds. Returns investor names, types, and contact information.
 
         Parameters
         ----------
         company_id : str
+            Company entity ID, website domain, or company name (e.g., 'openai.com', 'OpenAI', or UUID)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[typing.Any]
+        HttpResponse[CompaniesActiveInvestorsResponse]
             Active investors retrieved successfully
         """
         _response = self._client_wrapper.httpx_client.request(
@@ -402,13 +470,11 @@ class RawCompaniesClient:
             request_options=request_options,
         )
         try:
-            if _response is None or not _response.text.strip():
-                return HttpResponse(response=_response, data=None)
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Any,
+                    CompaniesActiveInvestorsResponse,
                     parse_obj_as(
-                        type_=typing.Any,  # type: ignore
+                        type_=CompaniesActiveInvestorsResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -438,84 +504,29 @@ class RawCompaniesClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
-    def all_investors(
-        self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
-        """
-        Get complete investor history including historical investors from all funding rounds. Returns comprehensive list of all investors who have participated in company financing.
-
-        Parameters
-        ----------
-        company_id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        HttpResponse[typing.Dict[str, typing.Any]]
-            Successful response
-        """
-        _response = self._client_wrapper.httpx_client.request(
-            f"v2/datasets/odyssey/companies/{jsonable_encoder(company_id)}/all-investors",
-            method="GET",
-            request_options=request_options,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    typing.Dict[str, typing.Any],
-                    parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return HttpResponse(response=_response, data=_data)
-            if _response.status_code == 401:
-                raise UnauthorizedError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            if _response.status_code == 404:
-                raise NotFoundError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     def deals(
         self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Any]:
+    ) -> HttpResponse[CompaniesDealsResponse]:
         """
         Get all deals for a company including funding rounds and acquisitions. Each deal includes the deal type, round name, investors involved, amount raised, and status. Funding rounds are sourced from investor data, while acquisitions are sourced from M&A records.
 
         Parameters
         ----------
         company_id : str
+            Company entity ID, website domain, or company name (e.g., 'openai.com', 'OpenAI', or UUID)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[typing.Any]
+        HttpResponse[CompaniesDealsResponse]
             Company deals retrieved successfully
         """
         _response = self._client_wrapper.httpx_client.request(
@@ -524,13 +535,11 @@ class RawCompaniesClient:
             request_options=request_options,
         )
         try:
-            if _response is None or not _response.text.strip():
-                return HttpResponse(response=_response, data=None)
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Any,
+                    CompaniesDealsResponse,
                     parse_obj_as(
-                        type_=typing.Any,  # type: ignore
+                        type_=CompaniesDealsResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -560,24 +569,29 @@ class RawCompaniesClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     def service_providers(
         self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> HttpResponse[CompaniesServiceProvidersResponse]:
         """
         Get service providers working with the company including legal counsel, accounting firms, and consultants. Returns firm names, service types, and engagement information.
 
         Parameters
         ----------
         company_id : str
+            Company entity ID, website domain, or company name (e.g., 'openai.com', 'OpenAI', or UUID)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[typing.Dict[str, typing.Any]]
+        HttpResponse[CompaniesServiceProvidersResponse]
             Successful response
         """
         _response = self._client_wrapper.httpx_client.request(
@@ -588,9 +602,9 @@ class RawCompaniesClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    CompaniesServiceProvidersResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=CompaniesServiceProvidersResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -631,24 +645,29 @@ class RawCompaniesClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     def service_providers_deal(
         self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> HttpResponse[CompaniesServiceProvidersDealResponse]:
         """
         Get service providers involved in specific financing deals including investment bankers, legal advisors, and financial consultants. Returns provider details specific to fundraising transactions.
 
         Parameters
         ----------
         company_id : str
+            Company entity ID, website domain, or company name (e.g., 'openai.com', 'OpenAI', or UUID)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[typing.Dict[str, typing.Any]]
+        HttpResponse[CompaniesServiceProvidersDealResponse]
             Successful response
         """
         _response = self._client_wrapper.httpx_client.request(
@@ -659,9 +678,9 @@ class RawCompaniesClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    CompaniesServiceProvidersDealResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=CompaniesServiceProvidersDealResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -702,24 +721,29 @@ class RawCompaniesClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     def debt_financing_recent(
         self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> HttpResponse[CompaniesDebtFinancingRecentResponse]:
         """
         Get most recent debt financing rounds including venture debt, credit lines, and loans. Returns lender information, amounts, and terms.
 
         Parameters
         ----------
         company_id : str
+            Company entity ID, website domain, or company name (e.g., 'openai.com', 'OpenAI', or UUID)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[typing.Dict[str, typing.Any]]
+        HttpResponse[CompaniesDebtFinancingRecentResponse]
             Successful response
         """
         _response = self._client_wrapper.httpx_client.request(
@@ -730,9 +754,9 @@ class RawCompaniesClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    CompaniesDebtFinancingRecentResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=CompaniesDebtFinancingRecentResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -773,37 +797,52 @@ class RawCompaniesClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     def similar(
-        self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+        self,
+        company_id: str,
+        *,
+        limit: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> HttpResponse[CompaniesSimilarResponse]:
         """
         Get companies similar to this one based on industry, size, and business model. Returns competitor and peer company information with similarity scores.
 
         Parameters
         ----------
         company_id : str
+            Company entity ID, website domain, or company name (e.g., 'openai.com', 'OpenAI', or UUID)
+
+        limit : typing.Optional[int]
+            Maximum number of results to return (1-100, default: 10)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[typing.Dict[str, typing.Any]]
+        HttpResponse[CompaniesSimilarResponse]
             Successful response
         """
         _response = self._client_wrapper.httpx_client.request(
             f"v2/datasets/odyssey/companies/{jsonable_encoder(company_id)}/similar",
             method="GET",
+            params={
+                "limit": limit,
+            },
             request_options=request_options,
         )
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    CompaniesSimilarResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=CompaniesSimilarResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -844,85 +883,29 @@ class RawCompaniesClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
-    def social_analytics(
-        self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
-        """
-        Get social media metrics including LinkedIn followers, Twitter engagement, and Facebook presence. Useful for measuring company online visibility and growth.
-
-        Parameters
-        ----------
-        company_id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        HttpResponse[typing.Dict[str, typing.Any]]
-            Successful response
-        """
-        _response = self._client_wrapper.httpx_client.request(
-            f"v2/datasets/odyssey/companies/{jsonable_encoder(company_id)}/social-analytics",
-            method="GET",
-            request_options=request_options,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    typing.Dict[str, typing.Any],
-                    parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return HttpResponse(response=_response, data=_data)
-            if _response.status_code == 401:
-                raise UnauthorizedError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            if _response.status_code == 404:
-                raise NotFoundError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     def vc_exit_predictions(
         self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> HttpResponse[None]:
         """
-        Coming Soon: Get predicted likelihood and timeline for company exit events (IPO or acquisition). Will return ML-based exit probability scores and estimated exit valuation ranges when implemented.
+        **Coming Soon** - Get predicted likelihood and timeline for company exit events (IPO or acquisition).
 
         Parameters
         ----------
         company_id : str
+            Company entity ID, website domain, or company name (e.g., 'openai.com', 'OpenAI', or UUID)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[typing.Dict[str, typing.Any]]
-            Successful response
+        HttpResponse[None]
         """
         _response = self._client_wrapper.httpx_client.request(
             f"v2/datasets/odyssey/companies/{jsonable_encoder(company_id)}/vc-exit-predictions",
@@ -931,14 +914,7 @@ class RawCompaniesClient:
         )
         try:
             if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    typing.Dict[str, typing.Any],
-                    parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return HttpResponse(response=_response, data=_data)
+                return HttpResponse(response=_response, data=None)
             if _response.status_code == 401:
                 raise UnauthorizedError(
                     headers=dict(_response.headers),
@@ -975,66 +951,10 @@ class RawCompaniesClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
-    def updates(
-        self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
-        """
-        Get changelog of updates to company profile data. Returns history of changes to company information with timestamps and modified fields.
-
-        Parameters
-        ----------
-        company_id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        HttpResponse[typing.Dict[str, typing.Any]]
-            Successful response
-        """
-        _response = self._client_wrapper.httpx_client.request(
-            f"v2/datasets/odyssey/companies/{jsonable_encoder(company_id)}/updates",
-            method="GET",
-            request_options=request_options,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    typing.Dict[str, typing.Any],
-                    parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return HttpResponse(response=_response, data=_data)
-            if _response.status_code == 401:
-                raise UnauthorizedError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            if _response.status_code == 404:
-                raise NotFoundError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
 
@@ -1043,32 +963,55 @@ class AsyncRawCompaniesClient:
         self._client_wrapper = client_wrapper
 
     async def search(
-        self, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+        self, *, q: str, limit: typing.Optional[int] = None, request_options: typing.Optional[RequestOptions] = None
+    ) -> AsyncHttpResponse[CompaniesSearchResponse]:
         """
-        Search for companies by name, industry, or location. Returns matching company profiles with employee count, industry classification, founding date, and headquarters. Use this to find company entity IDs for detailed lookups.
+        Search for companies by name or natural language description.
+
+        ## Search Modes
+
+        - **Direct lookup**: Short queries like `Stripe` or `OpenAI` resolve to a single company match
+        - **Natural language search**: Longer queries like `AI startups in San Francisco raising Series B` return up to 5 matching companies with surface-level data
+
+        The endpoint auto-detects which mode to use based on the query.
+
+        ## Response Fields
+
+        Each result includes: name, website, description, employee_count, industry, location, founded, size, total_funding_raised, latest_funding_stage, tags, and linkedin_url.
+
+        Use the entity_id or company identifier from results to call detail endpoints (bio, financing, investors, full).
 
         Parameters
         ----------
+        q : str
+            Company name, domain, or natural language query (e.g. 'AI startups in San Francisco raising Series B')
+
+        limit : typing.Optional[int]
+            Maximum results (default 5)
+
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+        AsyncHttpResponse[CompaniesSearchResponse]
             Successful response
         """
         _response = await self._client_wrapper.httpx_client.request(
             "v2/datasets/odyssey/companies/search",
             method="GET",
+            params={
+                "q": q,
+                "limit": limit,
+            },
             request_options=request_options,
         )
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    CompaniesSearchResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=CompaniesSearchResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -1087,24 +1030,87 @@ class AsyncRawCompaniesClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
-    async def bio(
+    async def full(
         self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Any]:
+    ) -> AsyncHttpResponse[CompaniesFullResponse]:
         """
-        Get comprehensive company profile including description, founding date, headquarters location, employee count, industry classification, and social media profiles. This is the primary endpoint for company overview data.
+        Get the complete company record with ALL available data fields.
+
+        Returns everything: base profile, funding details with amounts and investors, employee analytics and growth rates, executive changes, office locations, job postings, industry classifications, subsidiaries, and more.
+
+        Use this after identifying a company via search to get the full picture.
 
         Parameters
         ----------
         company_id : str
+            Company entity ID, website domain, or company name (e.g., 'openai.com', 'OpenAI', or UUID)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        AsyncHttpResponse[typing.Any]
+        AsyncHttpResponse[CompaniesFullResponse]
+            Complete company record
+        """
+        _response = await self._client_wrapper.httpx_client.request(
+            f"v2/datasets/odyssey/companies/{jsonable_encoder(company_id)}/full",
+            method="GET",
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    CompaniesFullResponse,
+                    parse_obj_as(
+                        type_=CompaniesFullResponse,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return AsyncHttpResponse(response=_response, data=_data)
+            if _response.status_code == 404:
+                raise NotFoundError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Any,
+                        parse_obj_as(
+                            type_=typing.Any,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    async def bio(
+        self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> AsyncHttpResponse[CompaniesBioResponse]:
+        """
+        Get comprehensive company profile including description, founding date, headquarters location, employee count, industry classification, and social media profiles. This is the primary endpoint for company overview data.
+
+        Parameters
+        ----------
+        company_id : str
+            Company entity ID, website domain, or company name (e.g., 'openai.com', 'OpenAI', or UUID)
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AsyncHttpResponse[CompaniesBioResponse]
             Company bio retrieved successfully
         """
         _response = await self._client_wrapper.httpx_client.request(
@@ -1113,13 +1119,11 @@ class AsyncRawCompaniesClient:
             request_options=request_options,
         )
         try:
-            if _response is None or not _response.text.strip():
-                return AsyncHttpResponse(response=_response, data=None)
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Any,
+                    CompaniesBioResponse,
                     parse_obj_as(
-                        type_=typing.Any,  # type: ignore
+                        type_=CompaniesBioResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -1149,97 +1153,52 @@ class AsyncRawCompaniesClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
-    async def industries(
-        self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
-        """
-        Get industry classifications including NAICS codes, SIC codes, and industry descriptions. Useful for filtering companies by vertical or sector.
-
-        Parameters
-        ----------
-        company_id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
-            Successful response
-        """
-        _response = await self._client_wrapper.httpx_client.request(
-            f"v2/datasets/odyssey/companies/{jsonable_encoder(company_id)}/industries",
-            method="GET",
-            request_options=request_options,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    typing.Dict[str, typing.Any],
-                    parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return AsyncHttpResponse(response=_response, data=_data)
-            if _response.status_code == 401:
-                raise UnauthorizedError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            if _response.status_code == 404:
-                raise NotFoundError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def financials(
-        self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+        self,
+        company_id: str,
+        *,
+        fiscal_year: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> AsyncHttpResponse[CompaniesFinancialsResponse]:
         """
         Get financial statements for public companies including revenue, net income, assets, and liabilities. Returns most recent fiscal year data or specific year if requested.
 
         Parameters
         ----------
         company_id : str
+            Company entity ID, website domain, or company name (e.g., 'openai.com', 'OpenAI', or UUID)
+
+        fiscal_year : typing.Optional[int]
+            Fiscal year (default: most recent)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+        AsyncHttpResponse[CompaniesFinancialsResponse]
             Successful response
         """
         _response = await self._client_wrapper.httpx_client.request(
             f"v2/datasets/odyssey/companies/{jsonable_encoder(company_id)}/financials",
             method="GET",
+            params={
+                "fiscal_year": fiscal_year,
+            },
             request_options=request_options,
         )
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    CompaniesFinancialsResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=CompaniesFinancialsResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -1269,24 +1228,29 @@ class AsyncRawCompaniesClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def financials_recent(
         self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> AsyncHttpResponse[CompaniesFinancialsRecentResponse]:
         """
         Get most recent financial statements for public companies. Convenience endpoint that automatically returns the latest available fiscal year data.
 
         Parameters
         ----------
         company_id : str
+            Company entity ID, website domain, or company name (e.g., 'openai.com', 'OpenAI', or UUID)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+        AsyncHttpResponse[CompaniesFinancialsRecentResponse]
             Successful response
         """
         _response = await self._client_wrapper.httpx_client.request(
@@ -1297,9 +1261,9 @@ class AsyncRawCompaniesClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    CompaniesFinancialsRecentResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=CompaniesFinancialsRecentResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -1329,24 +1293,29 @@ class AsyncRawCompaniesClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def financing_recent(
         self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> AsyncHttpResponse[CompaniesFinancingRecentResponse]:
         """
         Get most recent funding rounds including round type, amount raised, investors, and valuation. Returns detailed information about the latest equity financing event.
 
         Parameters
         ----------
         company_id : str
+            Company entity ID, website domain, or company name (e.g., 'openai.com', 'OpenAI', or UUID)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+        AsyncHttpResponse[CompaniesFinancingRecentResponse]
             Successful response
         """
         _response = await self._client_wrapper.httpx_client.request(
@@ -1357,9 +1326,9 @@ class AsyncRawCompaniesClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    CompaniesFinancingRecentResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=CompaniesFinancingRecentResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -1400,24 +1369,29 @@ class AsyncRawCompaniesClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def active_investors(
         self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Any]:
+    ) -> AsyncHttpResponse[CompaniesActiveInvestorsResponse]:
         """
         Get current investors in the company from recent funding rounds. Returns investor names, types, and contact information.
 
         Parameters
         ----------
         company_id : str
+            Company entity ID, website domain, or company name (e.g., 'openai.com', 'OpenAI', or UUID)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        AsyncHttpResponse[typing.Any]
+        AsyncHttpResponse[CompaniesActiveInvestorsResponse]
             Active investors retrieved successfully
         """
         _response = await self._client_wrapper.httpx_client.request(
@@ -1426,13 +1400,11 @@ class AsyncRawCompaniesClient:
             request_options=request_options,
         )
         try:
-            if _response is None or not _response.text.strip():
-                return AsyncHttpResponse(response=_response, data=None)
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Any,
+                    CompaniesActiveInvestorsResponse,
                     parse_obj_as(
-                        type_=typing.Any,  # type: ignore
+                        type_=CompaniesActiveInvestorsResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -1462,84 +1434,29 @@ class AsyncRawCompaniesClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
-    async def all_investors(
-        self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
-        """
-        Get complete investor history including historical investors from all funding rounds. Returns comprehensive list of all investors who have participated in company financing.
-
-        Parameters
-        ----------
-        company_id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
-            Successful response
-        """
-        _response = await self._client_wrapper.httpx_client.request(
-            f"v2/datasets/odyssey/companies/{jsonable_encoder(company_id)}/all-investors",
-            method="GET",
-            request_options=request_options,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    typing.Dict[str, typing.Any],
-                    parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return AsyncHttpResponse(response=_response, data=_data)
-            if _response.status_code == 401:
-                raise UnauthorizedError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            if _response.status_code == 404:
-                raise NotFoundError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def deals(
         self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Any]:
+    ) -> AsyncHttpResponse[CompaniesDealsResponse]:
         """
         Get all deals for a company including funding rounds and acquisitions. Each deal includes the deal type, round name, investors involved, amount raised, and status. Funding rounds are sourced from investor data, while acquisitions are sourced from M&A records.
 
         Parameters
         ----------
         company_id : str
+            Company entity ID, website domain, or company name (e.g., 'openai.com', 'OpenAI', or UUID)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        AsyncHttpResponse[typing.Any]
+        AsyncHttpResponse[CompaniesDealsResponse]
             Company deals retrieved successfully
         """
         _response = await self._client_wrapper.httpx_client.request(
@@ -1548,13 +1465,11 @@ class AsyncRawCompaniesClient:
             request_options=request_options,
         )
         try:
-            if _response is None or not _response.text.strip():
-                return AsyncHttpResponse(response=_response, data=None)
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Any,
+                    CompaniesDealsResponse,
                     parse_obj_as(
-                        type_=typing.Any,  # type: ignore
+                        type_=CompaniesDealsResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -1584,24 +1499,29 @@ class AsyncRawCompaniesClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def service_providers(
         self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> AsyncHttpResponse[CompaniesServiceProvidersResponse]:
         """
         Get service providers working with the company including legal counsel, accounting firms, and consultants. Returns firm names, service types, and engagement information.
 
         Parameters
         ----------
         company_id : str
+            Company entity ID, website domain, or company name (e.g., 'openai.com', 'OpenAI', or UUID)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+        AsyncHttpResponse[CompaniesServiceProvidersResponse]
             Successful response
         """
         _response = await self._client_wrapper.httpx_client.request(
@@ -1612,9 +1532,9 @@ class AsyncRawCompaniesClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    CompaniesServiceProvidersResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=CompaniesServiceProvidersResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -1655,24 +1575,29 @@ class AsyncRawCompaniesClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def service_providers_deal(
         self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> AsyncHttpResponse[CompaniesServiceProvidersDealResponse]:
         """
         Get service providers involved in specific financing deals including investment bankers, legal advisors, and financial consultants. Returns provider details specific to fundraising transactions.
 
         Parameters
         ----------
         company_id : str
+            Company entity ID, website domain, or company name (e.g., 'openai.com', 'OpenAI', or UUID)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+        AsyncHttpResponse[CompaniesServiceProvidersDealResponse]
             Successful response
         """
         _response = await self._client_wrapper.httpx_client.request(
@@ -1683,9 +1608,9 @@ class AsyncRawCompaniesClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    CompaniesServiceProvidersDealResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=CompaniesServiceProvidersDealResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -1726,24 +1651,29 @@ class AsyncRawCompaniesClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def debt_financing_recent(
         self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> AsyncHttpResponse[CompaniesDebtFinancingRecentResponse]:
         """
         Get most recent debt financing rounds including venture debt, credit lines, and loans. Returns lender information, amounts, and terms.
 
         Parameters
         ----------
         company_id : str
+            Company entity ID, website domain, or company name (e.g., 'openai.com', 'OpenAI', or UUID)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+        AsyncHttpResponse[CompaniesDebtFinancingRecentResponse]
             Successful response
         """
         _response = await self._client_wrapper.httpx_client.request(
@@ -1754,9 +1684,9 @@ class AsyncRawCompaniesClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    CompaniesDebtFinancingRecentResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=CompaniesDebtFinancingRecentResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -1797,37 +1727,52 @@ class AsyncRawCompaniesClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def similar(
-        self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+        self,
+        company_id: str,
+        *,
+        limit: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> AsyncHttpResponse[CompaniesSimilarResponse]:
         """
         Get companies similar to this one based on industry, size, and business model. Returns competitor and peer company information with similarity scores.
 
         Parameters
         ----------
         company_id : str
+            Company entity ID, website domain, or company name (e.g., 'openai.com', 'OpenAI', or UUID)
+
+        limit : typing.Optional[int]
+            Maximum number of results to return (1-100, default: 10)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+        AsyncHttpResponse[CompaniesSimilarResponse]
             Successful response
         """
         _response = await self._client_wrapper.httpx_client.request(
             f"v2/datasets/odyssey/companies/{jsonable_encoder(company_id)}/similar",
             method="GET",
+            params={
+                "limit": limit,
+            },
             request_options=request_options,
         )
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    CompaniesSimilarResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=CompaniesSimilarResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -1868,85 +1813,29 @@ class AsyncRawCompaniesClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
-    async def social_analytics(
-        self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
-        """
-        Get social media metrics including LinkedIn followers, Twitter engagement, and Facebook presence. Useful for measuring company online visibility and growth.
-
-        Parameters
-        ----------
-        company_id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
-            Successful response
-        """
-        _response = await self._client_wrapper.httpx_client.request(
-            f"v2/datasets/odyssey/companies/{jsonable_encoder(company_id)}/social-analytics",
-            method="GET",
-            request_options=request_options,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    typing.Dict[str, typing.Any],
-                    parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return AsyncHttpResponse(response=_response, data=_data)
-            if _response.status_code == 401:
-                raise UnauthorizedError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            if _response.status_code == 404:
-                raise NotFoundError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def vc_exit_predictions(
         self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> AsyncHttpResponse[None]:
         """
-        Coming Soon: Get predicted likelihood and timeline for company exit events (IPO or acquisition). Will return ML-based exit probability scores and estimated exit valuation ranges when implemented.
+        **Coming Soon** - Get predicted likelihood and timeline for company exit events (IPO or acquisition).
 
         Parameters
         ----------
         company_id : str
+            Company entity ID, website domain, or company name (e.g., 'openai.com', 'OpenAI', or UUID)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
-            Successful response
+        AsyncHttpResponse[None]
         """
         _response = await self._client_wrapper.httpx_client.request(
             f"v2/datasets/odyssey/companies/{jsonable_encoder(company_id)}/vc-exit-predictions",
@@ -1955,14 +1844,7 @@ class AsyncRawCompaniesClient:
         )
         try:
             if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    typing.Dict[str, typing.Any],
-                    parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return AsyncHttpResponse(response=_response, data=_data)
+                return AsyncHttpResponse(response=_response, data=None)
             if _response.status_code == 401:
                 raise UnauthorizedError(
                     headers=dict(_response.headers),
@@ -1999,64 +1881,8 @@ class AsyncRawCompaniesClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
-    async def updates(
-        self, company_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
-        """
-        Get changelog of updates to company profile data. Returns history of changes to company information with timestamps and modified fields.
-
-        Parameters
-        ----------
-        company_id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
-            Successful response
-        """
-        _response = await self._client_wrapper.httpx_client.request(
-            f"v2/datasets/odyssey/companies/{jsonable_encoder(company_id)}/updates",
-            method="GET",
-            request_options=request_options,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    typing.Dict[str, typing.Any],
-                    parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return AsyncHttpResponse(response=_response, data=_data)
-            if _response.status_code == 401:
-                raise UnauthorizedError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            if _response.status_code == 404:
-                raise NotFoundError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)

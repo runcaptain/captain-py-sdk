@@ -5,6 +5,15 @@ import typing
 from ..core.client_wrapper import AsyncClientWrapper, SyncClientWrapper
 from ..core.request_options import RequestOptions
 from .raw_client import AsyncRawInvestorsClient, RawInvestorsClient
+from .types.investors_active_investments_response import InvestorsActiveInvestmentsResponse
+from .types.investors_bio_response import InvestorsBioResponse
+from .types.investors_board_seats_response import InvestorsBoardSeatsResponse
+from .types.investors_funds_latest_response import InvestorsFundsLatestResponse
+from .types.investors_funds_response import InvestorsFundsResponse
+from .types.investors_preferences_response import InvestorsPreferencesResponse
+from .types.investors_search_response import InvestorsSearchResponse
+from .types.investors_service_providers_deal_response import InvestorsServiceProvidersDealResponse
+from .types.investors_service_providers_response import InvestorsServiceProvidersResponse
 
 
 class InvestorsClient:
@@ -25,15 +34,23 @@ class InvestorsClient:
     def search(
         self,
         *,
+        q: typing.Optional[str] = None,
+        investor_type: typing.Optional[str] = None,
         page: typing.Optional[int] = None,
         page_size: typing.Optional[int] = None,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> InvestorsSearchResponse:
         """
         Search for venture capital firms, angel investors, and institutional investors by name. Returns matching investor profiles with investment focus, portfolio size, and notable investments. Use this to find investor entity IDs for detailed lookups.
 
         Parameters
         ----------
+        q : typing.Optional[str]
+            Investor name or keyword (e.g., 'Sequoia Capital')
+
+        investor_type : typing.Optional[str]
+            Filter by investor type
+
         page : typing.Optional[int]
             Page number
 
@@ -45,7 +62,7 @@ class InvestorsClient:
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        InvestorsSearchResponse
             Successful response
 
         Examples
@@ -58,23 +75,26 @@ class InvestorsClient:
         )
         client.investors.search()
         """
-        _response = self._raw_client.search(page=page, page_size=page_size, request_options=request_options)
+        _response = self._raw_client.search(
+            q=q, investor_type=investor_type, page=page, page_size=page_size, request_options=request_options
+        )
         return _response.data
 
-    def bio(self, id: str, *, request_options: typing.Optional[RequestOptions] = None) -> typing.Dict[str, typing.Any]:
+    def bio(self, id: str, *, request_options: typing.Optional[RequestOptions] = None) -> InvestorsBioResponse:
         """
         Get comprehensive investor profile including description, investment thesis, stage focus, sector focus, and notable portfolio companies. This is the primary endpoint for investor overview data.
 
         Parameters
         ----------
         id : str
+            Investor name (e.g., 'Sequoia Capital') or entity ID from /investors/search
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        InvestorsBioResponse
             Successful response
 
         Examples
@@ -93,21 +113,35 @@ class InvestorsClient:
         return _response.data
 
     def active_investments(
-        self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+        self,
+        id: str,
+        *,
+        page: typing.Optional[int] = None,
+        page_size: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> InvestorsActiveInvestmentsResponse:
         """
         Get current portfolio companies that the investor has active positions in. Returns company names, investment dates, and current status.
+
+        Supports pagination via `page` and `page_size` query parameters. Response includes `total_in_database` for the full count across all pages.
 
         Parameters
         ----------
         id : str
+            Investor name (e.g., 'Sequoia Capital') or entity ID from /investors/search
+
+        page : typing.Optional[int]
+            Page number for pagination (default: 1)
+
+        page_size : typing.Optional[int]
+            Results per page (default: 50, max: 1000)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        InvestorsActiveInvestmentsResponse
             Successful response
 
         Examples
@@ -122,58 +156,28 @@ class InvestorsClient:
             id="deal_openai_0",
         )
         """
-        _response = self._raw_client.active_investments(id, request_options=request_options)
-        return _response.data
-
-    def all_investments(
-        self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
-        """
-        Get complete investment history including current portfolio and exited positions. Returns all companies the investor has backed with investment details and outcomes.
-
-        Parameters
-        ----------
-        id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        typing.Dict[str, typing.Any]
-            Successful response
-
-        Examples
-        --------
-        from runcaptain import Captain
-
-        client = Captain(
-            organization_id="YOUR_ORGANIZATION_ID",
-            key="YOUR_KEY",
+        _response = self._raw_client.active_investments(
+            id, page=page, page_size=page_size, request_options=request_options
         )
-        client.investors.all_investments(
-            id="deal_openai_0",
-        )
-        """
-        _response = self._raw_client.all_investments(id, request_options=request_options)
         return _response.data
 
     def preferences(
         self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> InvestorsPreferencesResponse:
         """
         Get investment preferences including stage focus, sector preferences, geography, and typical check size. Useful for determining investment fit.
 
         Parameters
         ----------
         id : str
+            Investor name (e.g., 'Sequoia Capital') or entity ID from /investors/search
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        InvestorsPreferencesResponse
             Successful response
 
         Examples
@@ -191,22 +195,21 @@ class InvestorsClient:
         _response = self._raw_client.preferences(id, request_options=request_options)
         return _response.data
 
-    def funds(
-        self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    def funds(self, id: str, *, request_options: typing.Optional[RequestOptions] = None) -> InvestorsFundsResponse:
         """
         Get all funds managed by the investor including fund names, sizes, vintage years, and status. Returns complete fund portfolio for multi-fund investors.
 
         Parameters
         ----------
         id : str
+            Investor name (e.g., 'Sequoia Capital') or entity ID from /investors/search
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        InvestorsFundsResponse
             Successful response
 
         Examples
@@ -226,20 +229,21 @@ class InvestorsClient:
 
     def funds_latest(
         self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> InvestorsFundsLatestResponse:
         """
         Get information about the investor's most recent fund including size, vintage year, and deployment status. Useful for understanding current investment capacity.
 
         Parameters
         ----------
         id : str
+            Investor name (e.g., 'Sequoia Capital') or entity ID from /investors/search
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        InvestorsFundsLatestResponse
             Successful response
 
         Examples
@@ -259,20 +263,21 @@ class InvestorsClient:
 
     def board_seats(
         self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> InvestorsBoardSeatsResponse:
         """
         Get board seats held by the investor's team members. Returns companies where investor partners serve on the board of directors.
 
         Parameters
         ----------
         id : str
+            Investor name (e.g., 'Sequoia Capital') or entity ID from /investors/search
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        InvestorsBoardSeatsResponse
             Successful response
 
         Examples
@@ -292,20 +297,21 @@ class InvestorsClient:
 
     def service_providers(
         self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> InvestorsServiceProvidersResponse:
         """
         Get service providers used by the investor including legal counsel, fund administrators, and consultants. Returns firm names and service types.
 
         Parameters
         ----------
         id : str
+            Investor name (e.g., 'Sequoia Capital') or entity ID from /investors/search
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        InvestorsServiceProvidersResponse
             Successful response
 
         Examples
@@ -325,20 +331,21 @@ class InvestorsClient:
 
     def service_providers_deal(
         self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> InvestorsServiceProvidersDealResponse:
         """
         Get service providers involved in the investor's deal flow including transaction advisors and due diligence firms. Returns provider details specific to deal execution.
 
         Parameters
         ----------
         id : str
+            Investor name (e.g., 'Sequoia Capital') or entity ID from /investors/search
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        InvestorsServiceProvidersDealResponse
             Successful response
 
         Examples
@@ -354,39 +361,6 @@ class InvestorsClient:
         )
         """
         _response = self._raw_client.service_providers_deal(id, request_options=request_options)
-        return _response.data
-
-    def updates(
-        self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
-        """
-        Get changelog of updates to investor profile data. Returns history of changes including new investments, fund raises, and team changes with timestamps.
-
-        Parameters
-        ----------
-        id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        typing.Dict[str, typing.Any]
-            Successful response
-
-        Examples
-        --------
-        from runcaptain import Captain
-
-        client = Captain(
-            organization_id="YOUR_ORGANIZATION_ID",
-            key="YOUR_KEY",
-        )
-        client.investors.updates(
-            id="deal_openai_0",
-        )
-        """
-        _response = self._raw_client.updates(id, request_options=request_options)
         return _response.data
 
 
@@ -408,15 +382,23 @@ class AsyncInvestorsClient:
     async def search(
         self,
         *,
+        q: typing.Optional[str] = None,
+        investor_type: typing.Optional[str] = None,
         page: typing.Optional[int] = None,
         page_size: typing.Optional[int] = None,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> InvestorsSearchResponse:
         """
         Search for venture capital firms, angel investors, and institutional investors by name. Returns matching investor profiles with investment focus, portfolio size, and notable investments. Use this to find investor entity IDs for detailed lookups.
 
         Parameters
         ----------
+        q : typing.Optional[str]
+            Investor name or keyword (e.g., 'Sequoia Capital')
+
+        investor_type : typing.Optional[str]
+            Filter by investor type
+
         page : typing.Optional[int]
             Page number
 
@@ -428,7 +410,7 @@ class AsyncInvestorsClient:
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        InvestorsSearchResponse
             Successful response
 
         Examples
@@ -449,25 +431,26 @@ class AsyncInvestorsClient:
 
         asyncio.run(main())
         """
-        _response = await self._raw_client.search(page=page, page_size=page_size, request_options=request_options)
+        _response = await self._raw_client.search(
+            q=q, investor_type=investor_type, page=page, page_size=page_size, request_options=request_options
+        )
         return _response.data
 
-    async def bio(
-        self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    async def bio(self, id: str, *, request_options: typing.Optional[RequestOptions] = None) -> InvestorsBioResponse:
         """
         Get comprehensive investor profile including description, investment thesis, stage focus, sector focus, and notable portfolio companies. This is the primary endpoint for investor overview data.
 
         Parameters
         ----------
         id : str
+            Investor name (e.g., 'Sequoia Capital') or entity ID from /investors/search
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        InvestorsBioResponse
             Successful response
 
         Examples
@@ -494,21 +477,35 @@ class AsyncInvestorsClient:
         return _response.data
 
     async def active_investments(
-        self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+        self,
+        id: str,
+        *,
+        page: typing.Optional[int] = None,
+        page_size: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> InvestorsActiveInvestmentsResponse:
         """
         Get current portfolio companies that the investor has active positions in. Returns company names, investment dates, and current status.
+
+        Supports pagination via `page` and `page_size` query parameters. Response includes `total_in_database` for the full count across all pages.
 
         Parameters
         ----------
         id : str
+            Investor name (e.g., 'Sequoia Capital') or entity ID from /investors/search
+
+        page : typing.Optional[int]
+            Page number for pagination (default: 1)
+
+        page_size : typing.Optional[int]
+            Results per page (default: 50, max: 1000)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        InvestorsActiveInvestmentsResponse
             Successful response
 
         Examples
@@ -531,66 +528,28 @@ class AsyncInvestorsClient:
 
         asyncio.run(main())
         """
-        _response = await self._raw_client.active_investments(id, request_options=request_options)
-        return _response.data
-
-    async def all_investments(
-        self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
-        """
-        Get complete investment history including current portfolio and exited positions. Returns all companies the investor has backed with investment details and outcomes.
-
-        Parameters
-        ----------
-        id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        typing.Dict[str, typing.Any]
-            Successful response
-
-        Examples
-        --------
-        import asyncio
-
-        from runcaptain import AsyncCaptain
-
-        client = AsyncCaptain(
-            organization_id="YOUR_ORGANIZATION_ID",
-            key="YOUR_KEY",
+        _response = await self._raw_client.active_investments(
+            id, page=page, page_size=page_size, request_options=request_options
         )
-
-
-        async def main() -> None:
-            await client.investors.all_investments(
-                id="deal_openai_0",
-            )
-
-
-        asyncio.run(main())
-        """
-        _response = await self._raw_client.all_investments(id, request_options=request_options)
         return _response.data
 
     async def preferences(
         self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> InvestorsPreferencesResponse:
         """
         Get investment preferences including stage focus, sector preferences, geography, and typical check size. Useful for determining investment fit.
 
         Parameters
         ----------
         id : str
+            Investor name (e.g., 'Sequoia Capital') or entity ID from /investors/search
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        InvestorsPreferencesResponse
             Successful response
 
         Examples
@@ -618,20 +577,21 @@ class AsyncInvestorsClient:
 
     async def funds(
         self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> InvestorsFundsResponse:
         """
         Get all funds managed by the investor including fund names, sizes, vintage years, and status. Returns complete fund portfolio for multi-fund investors.
 
         Parameters
         ----------
         id : str
+            Investor name (e.g., 'Sequoia Capital') or entity ID from /investors/search
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        InvestorsFundsResponse
             Successful response
 
         Examples
@@ -659,20 +619,21 @@ class AsyncInvestorsClient:
 
     async def funds_latest(
         self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> InvestorsFundsLatestResponse:
         """
         Get information about the investor's most recent fund including size, vintage year, and deployment status. Useful for understanding current investment capacity.
 
         Parameters
         ----------
         id : str
+            Investor name (e.g., 'Sequoia Capital') or entity ID from /investors/search
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        InvestorsFundsLatestResponse
             Successful response
 
         Examples
@@ -700,20 +661,21 @@ class AsyncInvestorsClient:
 
     async def board_seats(
         self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> InvestorsBoardSeatsResponse:
         """
         Get board seats held by the investor's team members. Returns companies where investor partners serve on the board of directors.
 
         Parameters
         ----------
         id : str
+            Investor name (e.g., 'Sequoia Capital') or entity ID from /investors/search
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        InvestorsBoardSeatsResponse
             Successful response
 
         Examples
@@ -741,20 +703,21 @@ class AsyncInvestorsClient:
 
     async def service_providers(
         self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> InvestorsServiceProvidersResponse:
         """
         Get service providers used by the investor including legal counsel, fund administrators, and consultants. Returns firm names and service types.
 
         Parameters
         ----------
         id : str
+            Investor name (e.g., 'Sequoia Capital') or entity ID from /investors/search
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        InvestorsServiceProvidersResponse
             Successful response
 
         Examples
@@ -782,20 +745,21 @@ class AsyncInvestorsClient:
 
     async def service_providers_deal(
         self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> InvestorsServiceProvidersDealResponse:
         """
         Get service providers involved in the investor's deal flow including transaction advisors and due diligence firms. Returns provider details specific to deal execution.
 
         Parameters
         ----------
         id : str
+            Investor name (e.g., 'Sequoia Capital') or entity ID from /investors/search
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        InvestorsServiceProvidersDealResponse
             Successful response
 
         Examples
@@ -819,45 +783,4 @@ class AsyncInvestorsClient:
         asyncio.run(main())
         """
         _response = await self._raw_client.service_providers_deal(id, request_options=request_options)
-        return _response.data
-
-    async def updates(
-        self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
-        """
-        Get changelog of updates to investor profile data. Returns history of changes including new investments, fund raises, and team changes with timestamps.
-
-        Parameters
-        ----------
-        id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        typing.Dict[str, typing.Any]
-            Successful response
-
-        Examples
-        --------
-        import asyncio
-
-        from runcaptain import AsyncCaptain
-
-        client = AsyncCaptain(
-            organization_id="YOUR_ORGANIZATION_ID",
-            key="YOUR_KEY",
-        )
-
-
-        async def main() -> None:
-            await client.investors.updates(
-                id="deal_openai_0",
-            )
-
-
-        asyncio.run(main())
-        """
-        _response = await self._raw_client.updates(id, request_options=request_options)
         return _response.data

@@ -7,11 +7,16 @@ from ..core.api_error import ApiError
 from ..core.client_wrapper import AsyncClientWrapper, SyncClientWrapper
 from ..core.http_response import AsyncHttpResponse, HttpResponse
 from ..core.jsonable_encoder import jsonable_encoder
+from ..core.parse_error import ParsingError
 from ..core.pydantic_utilities import parse_obj_as
 from ..core.request_options import RequestOptions
 from ..errors.not_found_error import NotFoundError
 from ..errors.not_implemented_error import NotImplementedError
 from ..errors.unauthorized_error import UnauthorizedError
+from .types.patents_get_by_id_response import PatentsGetByIdResponse
+from .types.patents_get_file_response import PatentsGetFileResponse
+from .types.patents_search_response import PatentsSearchResponse
+from pydantic import ValidationError
 
 
 class RawPatentsClient:
@@ -19,28 +24,41 @@ class RawPatentsClient:
         self._client_wrapper = client_wrapper
 
     def search(
-        self, *, limit: typing.Optional[int] = None, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+        self,
+        *,
+        q: str,
+        assignee: typing.Optional[str] = None,
+        limit: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> HttpResponse[PatentsSearchResponse]:
         """
         Search for patents by title, inventor, assignee, or classification. Returns matching patents with patent numbers, titles, filing dates, and status.
 
         Parameters
         ----------
+        q : str
+            Patent keyword, assignee, or inventor name
+
+        assignee : typing.Optional[str]
+            Filter by assignee (company)
+
         limit : typing.Optional[int]
-            Maximum results
+            Maximum number of results to return (1-100, default: 10)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[typing.Dict[str, typing.Any]]
+        HttpResponse[PatentsSearchResponse]
             Successful response
         """
         _response = self._client_wrapper.httpx_client.request(
             "v2/datasets/odyssey/patents/search",
             method="GET",
             params={
+                "q": q,
+                "assignee": assignee,
                 "limit": limit,
             },
             request_options=request_options,
@@ -48,9 +66,9 @@ class RawPatentsClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    PatentsSearchResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=PatentsSearchResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -69,24 +87,33 @@ class RawPatentsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     def get_by_id(
         self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> HttpResponse[PatentsGetByIdResponse]:
         """
-        Get detailed patent information including abstract, claims, inventors, citations, and prosecution history. Returns comprehensive patent profile.
+        Get patent details by patent number.
+
+        Uses Google Patents search engine to find structured patent data including title, abstract, assignee, inventors, filing date, and publication date.
+
+        Returns a direct link to the patent on Google Patents.
 
         Parameters
         ----------
         id : str
+            Patent ID or number
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[typing.Dict[str, typing.Any]]
+        HttpResponse[PatentsGetByIdResponse]
             Successful response
         """
         _response = self._client_wrapper.httpx_client.request(
@@ -97,9 +124,9 @@ class RawPatentsClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    PatentsGetByIdResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=PatentsGetByIdResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -129,24 +156,29 @@ class RawPatentsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     def get_file(
         self, entity_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> HttpResponse[PatentsGetFileResponse]:
         """
         Download patent file wrapper or PDF document. Returns patent documentation and prosecution history files.
 
         Parameters
         ----------
         entity_id : str
+            Patent entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[typing.Dict[str, typing.Any]]
+        HttpResponse[PatentsGetFileResponse]
             Successful response
         """
         _response = self._client_wrapper.httpx_client.request(
@@ -157,9 +189,9 @@ class RawPatentsClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    PatentsGetFileResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=PatentsGetFileResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -200,6 +232,10 @@ class RawPatentsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
 
@@ -208,28 +244,41 @@ class AsyncRawPatentsClient:
         self._client_wrapper = client_wrapper
 
     async def search(
-        self, *, limit: typing.Optional[int] = None, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+        self,
+        *,
+        q: str,
+        assignee: typing.Optional[str] = None,
+        limit: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> AsyncHttpResponse[PatentsSearchResponse]:
         """
         Search for patents by title, inventor, assignee, or classification. Returns matching patents with patent numbers, titles, filing dates, and status.
 
         Parameters
         ----------
+        q : str
+            Patent keyword, assignee, or inventor name
+
+        assignee : typing.Optional[str]
+            Filter by assignee (company)
+
         limit : typing.Optional[int]
-            Maximum results
+            Maximum number of results to return (1-100, default: 10)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+        AsyncHttpResponse[PatentsSearchResponse]
             Successful response
         """
         _response = await self._client_wrapper.httpx_client.request(
             "v2/datasets/odyssey/patents/search",
             method="GET",
             params={
+                "q": q,
+                "assignee": assignee,
                 "limit": limit,
             },
             request_options=request_options,
@@ -237,9 +286,9 @@ class AsyncRawPatentsClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    PatentsSearchResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=PatentsSearchResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -258,24 +307,33 @@ class AsyncRawPatentsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def get_by_id(
         self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> AsyncHttpResponse[PatentsGetByIdResponse]:
         """
-        Get detailed patent information including abstract, claims, inventors, citations, and prosecution history. Returns comprehensive patent profile.
+        Get patent details by patent number.
+
+        Uses Google Patents search engine to find structured patent data including title, abstract, assignee, inventors, filing date, and publication date.
+
+        Returns a direct link to the patent on Google Patents.
 
         Parameters
         ----------
         id : str
+            Patent ID or number
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+        AsyncHttpResponse[PatentsGetByIdResponse]
             Successful response
         """
         _response = await self._client_wrapper.httpx_client.request(
@@ -286,9 +344,9 @@ class AsyncRawPatentsClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    PatentsGetByIdResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=PatentsGetByIdResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -318,24 +376,29 @@ class AsyncRawPatentsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def get_file(
         self, entity_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> AsyncHttpResponse[PatentsGetFileResponse]:
         """
         Download patent file wrapper or PDF document. Returns patent documentation and prosecution history files.
 
         Parameters
         ----------
         entity_id : str
+            Patent entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+        AsyncHttpResponse[PatentsGetFileResponse]
             Successful response
         """
         _response = await self._client_wrapper.httpx_client.request(
@@ -346,9 +409,9 @@ class AsyncRawPatentsClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    PatentsGetFileResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=PatentsGetFileResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -389,4 +452,8 @@ class AsyncRawPatentsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)

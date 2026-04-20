@@ -5,6 +5,13 @@ import typing
 from ..core.client_wrapper import AsyncClientWrapper, SyncClientWrapper
 from ..core.request_options import RequestOptions
 from .raw_client import AsyncRawDealsClient, RawDealsClient
+from .types.deals_bio_response import DealsBioResponse
+from .types.deals_debt_lenders_response import DealsDebtLendersResponse
+from .types.deals_investors_response import DealsInvestorsResponse
+from .types.deals_search_response import DealsSearchResponse
+from .types.deals_service_providers_response import DealsServiceProvidersResponse
+from .types.deals_stock_info_response import DealsStockInfoResponse
+from .types.deals_valuation_response import DealsValuationResponse
 
 
 class DealsClient:
@@ -25,6 +32,8 @@ class DealsClient:
     def search(
         self,
         *,
+        q: typing.Optional[str] = None,
+        company: typing.Optional[str] = None,
         deal_type: typing.Optional[str] = None,
         min_amount: typing.Optional[float] = None,
         max_amount: typing.Optional[float] = None,
@@ -33,14 +42,20 @@ class DealsClient:
         page: typing.Optional[int] = None,
         page_size: typing.Optional[int] = None,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> DealsSearchResponse:
         """
         Search for funding rounds and deals by company, deal type, amount range, or date. Returns matching transactions with deal type, amount, date, and participants. Use this to find deal entity IDs for detailed lookups.
 
         Parameters
         ----------
+        q : typing.Optional[str]
+            Company name or deal keyword (e.g., 'OpenAI Series B')
+
+        company : typing.Optional[str]
+            Filter by company name or domain (e.g., 'OpenAI')
+
         deal_type : typing.Optional[str]
-            Filter by deal type
+            Filter by deal type (e.g., 'series_a', 'series_b', 'seed', 'ipo', 'acquisition', 'debt')
 
         min_amount : typing.Optional[float]
             Minimum deal amount
@@ -65,7 +80,7 @@ class DealsClient:
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        DealsSearchResponse
             Successful response
 
         Examples
@@ -79,6 +94,8 @@ class DealsClient:
         client.deals.search()
         """
         _response = self._raw_client.search(
+            q=q,
+            company=company,
             deal_type=deal_type,
             min_amount=min_amount,
             max_amount=max_amount,
@@ -90,20 +107,21 @@ class DealsClient:
         )
         return _response.data
 
-    def bio(self, id: str, *, request_options: typing.Optional[RequestOptions] = None) -> typing.Dict[str, typing.Any]:
+    def bio(self, id: str, *, request_options: typing.Optional[RequestOptions] = None) -> DealsBioResponse:
         """
         Get comprehensive deal information including amount, type, date, company, and investor participants. This is the primary endpoint for deal overview data.
 
         Parameters
         ----------
         id : str
+            Deal entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        DealsBioResponse
             Successful response
 
         Examples
@@ -121,55 +139,21 @@ class DealsClient:
         _response = self._raw_client.bio(id, request_options=request_options)
         return _response.data
 
-    def detailed(
-        self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
-        """
-        Get comprehensive deal data combining bio, investors, valuation, and terms in a single response. Use this for complete deal intelligence without multiple API calls.
-
-        Parameters
-        ----------
-        id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        typing.Dict[str, typing.Any]
-            Successful response
-
-        Examples
-        --------
-        from runcaptain import Captain
-
-        client = Captain(
-            organization_id="YOUR_ORGANIZATION_ID",
-            key="YOUR_KEY",
-        )
-        client.deals.detailed(
-            id="deal_openai_0",
-        )
-        """
-        _response = self._raw_client.detailed(id, request_options=request_options)
-        return _response.data
-
-    def investors(
-        self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    def investors(self, id: str, *, request_options: typing.Optional[RequestOptions] = None) -> DealsInvestorsResponse:
         """
         Get all investors participating in the deal including lead and follow-on investors. Returns investor names, roles, and investment amounts.
 
         Parameters
         ----------
         id : str
+            Deal entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        DealsInvestorsResponse
             Successful response
 
         Examples
@@ -189,20 +173,21 @@ class DealsClient:
 
     def service_providers(
         self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> DealsServiceProvidersResponse:
         """
         Get service providers involved in the deal including legal counsel, investment bankers, and financial advisors. Returns firm names and service types.
 
         Parameters
         ----------
         id : str
+            Deal entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        DealsServiceProvidersResponse
             Successful response
 
         Examples
@@ -220,22 +205,21 @@ class DealsClient:
         _response = self._raw_client.service_providers(id, request_options=request_options)
         return _response.data
 
-    def valuation(
-        self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    def valuation(self, id: str, *, request_options: typing.Optional[RequestOptions] = None) -> DealsValuationResponse:
         """
         Get valuation information including pre-money and post-money valuations, equity percentage, and pricing details. Useful for understanding deal economics.
 
         Parameters
         ----------
         id : str
+            Deal entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        DealsValuationResponse
             Successful response
 
         Examples
@@ -253,22 +237,21 @@ class DealsClient:
         _response = self._raw_client.valuation(id, request_options=request_options)
         return _response.data
 
-    def stock_info(
-        self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    def stock_info(self, id: str, *, request_options: typing.Optional[RequestOptions] = None) -> DealsStockInfoResponse:
         """
         Get current stock price and market data for the company involved in this deal. Only applicable for public companies. Returns real-time stock quotes and market metrics.
 
         Parameters
         ----------
         id : str
+            Deal entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        DealsStockInfoResponse
             Successful response
 
         Examples
@@ -286,23 +269,21 @@ class DealsClient:
         _response = self._raw_client.stock_info(id, request_options=request_options)
         return _response.data
 
-    def cap_table(
-        self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    def cap_table(self, id: str, *, request_options: typing.Optional[RequestOptions] = None) -> None:
         """
-        Coming Soon: Get capitalization table showing ownership breakdown after the deal. Will return equity ownership percentages, share counts, and investor stakes when implemented.
+        **Coming Soon** - Get capitalization table showing ownership breakdown after the deal.
 
         Parameters
         ----------
         id : str
+            Deal entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
-            Successful response
+        None
 
         Examples
         --------
@@ -319,23 +300,21 @@ class DealsClient:
         _response = self._raw_client.cap_table(id, request_options=request_options)
         return _response.data
 
-    def tranche(
-        self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    def tranche(self, id: str, *, request_options: typing.Optional[RequestOptions] = None) -> None:
         """
-        Coming Soon: Get information about deal tranches and payment schedules for structured financing. Will return tranche amounts, dates, and conditions when implemented.
+        **Coming Soon** - Get information about deal tranches and payment schedules for structured financing.
 
         Parameters
         ----------
         id : str
+            Deal entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
-            Successful response
+        None
 
         Examples
         --------
@@ -354,20 +333,21 @@ class DealsClient:
 
     def debt_lenders(
         self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> DealsDebtLendersResponse:
         """
         Get lenders participating in debt financing deals. Returns lender names, amounts, and terms for venture debt and credit facilities.
 
         Parameters
         ----------
         id : str
+            Deal entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        DealsDebtLendersResponse
             Successful response
 
         Examples
@@ -385,23 +365,21 @@ class DealsClient:
         _response = self._raw_client.debt_lenders(id, request_options=request_options)
         return _response.data
 
-    def multiples(
-        self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    def multiples(self, id: str, *, request_options: typing.Optional[RequestOptions] = None) -> None:
         """
-        Coming Soon: Get valuation multiples for the deal including revenue multiple, EBITDA multiple, and comparable transaction metrics. Will return detailed valuation analysis when implemented.
+        **Coming Soon** - Get valuation multiples for the deal including revenue multiple, EBITDA multiple, and comparable transaction metrics.
 
         Parameters
         ----------
         id : str
+            Deal entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
-            Successful response
+        None
 
         Examples
         --------
@@ -416,39 +394,6 @@ class DealsClient:
         )
         """
         _response = self._raw_client.multiples(id, request_options=request_options)
-        return _response.data
-
-    def updates(
-        self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
-        """
-        Get changelog of updates to deal information. Returns history of changes to deal data with timestamps and modified fields.
-
-        Parameters
-        ----------
-        id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        typing.Dict[str, typing.Any]
-            Successful response
-
-        Examples
-        --------
-        from runcaptain import Captain
-
-        client = Captain(
-            organization_id="YOUR_ORGANIZATION_ID",
-            key="YOUR_KEY",
-        )
-        client.deals.updates(
-            id="deal_openai_0",
-        )
-        """
-        _response = self._raw_client.updates(id, request_options=request_options)
         return _response.data
 
 
@@ -470,6 +415,8 @@ class AsyncDealsClient:
     async def search(
         self,
         *,
+        q: typing.Optional[str] = None,
+        company: typing.Optional[str] = None,
         deal_type: typing.Optional[str] = None,
         min_amount: typing.Optional[float] = None,
         max_amount: typing.Optional[float] = None,
@@ -478,14 +425,20 @@ class AsyncDealsClient:
         page: typing.Optional[int] = None,
         page_size: typing.Optional[int] = None,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> DealsSearchResponse:
         """
         Search for funding rounds and deals by company, deal type, amount range, or date. Returns matching transactions with deal type, amount, date, and participants. Use this to find deal entity IDs for detailed lookups.
 
         Parameters
         ----------
+        q : typing.Optional[str]
+            Company name or deal keyword (e.g., 'OpenAI Series B')
+
+        company : typing.Optional[str]
+            Filter by company name or domain (e.g., 'OpenAI')
+
         deal_type : typing.Optional[str]
-            Filter by deal type
+            Filter by deal type (e.g., 'series_a', 'series_b', 'seed', 'ipo', 'acquisition', 'debt')
 
         min_amount : typing.Optional[float]
             Minimum deal amount
@@ -510,7 +463,7 @@ class AsyncDealsClient:
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        DealsSearchResponse
             Successful response
 
         Examples
@@ -532,6 +485,8 @@ class AsyncDealsClient:
         asyncio.run(main())
         """
         _response = await self._raw_client.search(
+            q=q,
+            company=company,
             deal_type=deal_type,
             min_amount=min_amount,
             max_amount=max_amount,
@@ -543,22 +498,21 @@ class AsyncDealsClient:
         )
         return _response.data
 
-    async def bio(
-        self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    async def bio(self, id: str, *, request_options: typing.Optional[RequestOptions] = None) -> DealsBioResponse:
         """
         Get comprehensive deal information including amount, type, date, company, and investor participants. This is the primary endpoint for deal overview data.
 
         Parameters
         ----------
         id : str
+            Deal entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        DealsBioResponse
             Successful response
 
         Examples
@@ -584,63 +538,23 @@ class AsyncDealsClient:
         _response = await self._raw_client.bio(id, request_options=request_options)
         return _response.data
 
-    async def detailed(
-        self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
-        """
-        Get comprehensive deal data combining bio, investors, valuation, and terms in a single response. Use this for complete deal intelligence without multiple API calls.
-
-        Parameters
-        ----------
-        id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        typing.Dict[str, typing.Any]
-            Successful response
-
-        Examples
-        --------
-        import asyncio
-
-        from runcaptain import AsyncCaptain
-
-        client = AsyncCaptain(
-            organization_id="YOUR_ORGANIZATION_ID",
-            key="YOUR_KEY",
-        )
-
-
-        async def main() -> None:
-            await client.deals.detailed(
-                id="deal_openai_0",
-            )
-
-
-        asyncio.run(main())
-        """
-        _response = await self._raw_client.detailed(id, request_options=request_options)
-        return _response.data
-
     async def investors(
         self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> DealsInvestorsResponse:
         """
         Get all investors participating in the deal including lead and follow-on investors. Returns investor names, roles, and investment amounts.
 
         Parameters
         ----------
         id : str
+            Deal entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        DealsInvestorsResponse
             Successful response
 
         Examples
@@ -668,20 +582,21 @@ class AsyncDealsClient:
 
     async def service_providers(
         self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> DealsServiceProvidersResponse:
         """
         Get service providers involved in the deal including legal counsel, investment bankers, and financial advisors. Returns firm names and service types.
 
         Parameters
         ----------
         id : str
+            Deal entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        DealsServiceProvidersResponse
             Successful response
 
         Examples
@@ -709,20 +624,21 @@ class AsyncDealsClient:
 
     async def valuation(
         self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> DealsValuationResponse:
         """
         Get valuation information including pre-money and post-money valuations, equity percentage, and pricing details. Useful for understanding deal economics.
 
         Parameters
         ----------
         id : str
+            Deal entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        DealsValuationResponse
             Successful response
 
         Examples
@@ -750,20 +666,21 @@ class AsyncDealsClient:
 
     async def stock_info(
         self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> DealsStockInfoResponse:
         """
         Get current stock price and market data for the company involved in this deal. Only applicable for public companies. Returns real-time stock quotes and market metrics.
 
         Parameters
         ----------
         id : str
+            Deal entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        DealsStockInfoResponse
             Successful response
 
         Examples
@@ -789,23 +706,21 @@ class AsyncDealsClient:
         _response = await self._raw_client.stock_info(id, request_options=request_options)
         return _response.data
 
-    async def cap_table(
-        self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    async def cap_table(self, id: str, *, request_options: typing.Optional[RequestOptions] = None) -> None:
         """
-        Coming Soon: Get capitalization table showing ownership breakdown after the deal. Will return equity ownership percentages, share counts, and investor stakes when implemented.
+        **Coming Soon** - Get capitalization table showing ownership breakdown after the deal.
 
         Parameters
         ----------
         id : str
+            Deal entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
-            Successful response
+        None
 
         Examples
         --------
@@ -830,23 +745,21 @@ class AsyncDealsClient:
         _response = await self._raw_client.cap_table(id, request_options=request_options)
         return _response.data
 
-    async def tranche(
-        self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    async def tranche(self, id: str, *, request_options: typing.Optional[RequestOptions] = None) -> None:
         """
-        Coming Soon: Get information about deal tranches and payment schedules for structured financing. Will return tranche amounts, dates, and conditions when implemented.
+        **Coming Soon** - Get information about deal tranches and payment schedules for structured financing.
 
         Parameters
         ----------
         id : str
+            Deal entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
-            Successful response
+        None
 
         Examples
         --------
@@ -873,20 +786,21 @@ class AsyncDealsClient:
 
     async def debt_lenders(
         self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> DealsDebtLendersResponse:
         """
         Get lenders participating in debt financing deals. Returns lender names, amounts, and terms for venture debt and credit facilities.
 
         Parameters
         ----------
         id : str
+            Deal entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        DealsDebtLendersResponse
             Successful response
 
         Examples
@@ -912,23 +826,21 @@ class AsyncDealsClient:
         _response = await self._raw_client.debt_lenders(id, request_options=request_options)
         return _response.data
 
-    async def multiples(
-        self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    async def multiples(self, id: str, *, request_options: typing.Optional[RequestOptions] = None) -> None:
         """
-        Coming Soon: Get valuation multiples for the deal including revenue multiple, EBITDA multiple, and comparable transaction metrics. Will return detailed valuation analysis when implemented.
+        **Coming Soon** - Get valuation multiples for the deal including revenue multiple, EBITDA multiple, and comparable transaction metrics.
 
         Parameters
         ----------
         id : str
+            Deal entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
-            Successful response
+        None
 
         Examples
         --------
@@ -951,45 +863,4 @@ class AsyncDealsClient:
         asyncio.run(main())
         """
         _response = await self._raw_client.multiples(id, request_options=request_options)
-        return _response.data
-
-    async def updates(
-        self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
-        """
-        Get changelog of updates to deal information. Returns history of changes to deal data with timestamps and modified fields.
-
-        Parameters
-        ----------
-        id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        typing.Dict[str, typing.Any]
-            Successful response
-
-        Examples
-        --------
-        import asyncio
-
-        from runcaptain import AsyncCaptain
-
-        client = AsyncCaptain(
-            organization_id="YOUR_ORGANIZATION_ID",
-            key="YOUR_KEY",
-        )
-
-
-        async def main() -> None:
-            await client.deals.updates(
-                id="deal_openai_0",
-            )
-
-
-        asyncio.run(main())
-        """
-        _response = await self._raw_client.updates(id, request_options=request_options)
         return _response.data

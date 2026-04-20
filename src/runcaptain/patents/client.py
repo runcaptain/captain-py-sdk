@@ -5,6 +5,9 @@ import typing
 from ..core.client_wrapper import AsyncClientWrapper, SyncClientWrapper
 from ..core.request_options import RequestOptions
 from .raw_client import AsyncRawPatentsClient, RawPatentsClient
+from .types.patents_get_by_id_response import PatentsGetByIdResponse
+from .types.patents_get_file_response import PatentsGetFileResponse
+from .types.patents_search_response import PatentsSearchResponse
 
 
 class PatentsClient:
@@ -23,22 +26,33 @@ class PatentsClient:
         return self._raw_client
 
     def search(
-        self, *, limit: typing.Optional[int] = None, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+        self,
+        *,
+        q: str,
+        assignee: typing.Optional[str] = None,
+        limit: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> PatentsSearchResponse:
         """
         Search for patents by title, inventor, assignee, or classification. Returns matching patents with patent numbers, titles, filing dates, and status.
 
         Parameters
         ----------
+        q : str
+            Patent keyword, assignee, or inventor name
+
+        assignee : typing.Optional[str]
+            Filter by assignee (company)
+
         limit : typing.Optional[int]
-            Maximum results
+            Maximum number of results to return (1-100, default: 10)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        PatentsSearchResponse
             Successful response
 
         Examples
@@ -49,27 +63,33 @@ class PatentsClient:
             organization_id="YOUR_ORGANIZATION_ID",
             key="YOUR_KEY",
         )
-        client.patents.search()
+        client.patents.search(
+            q="machine learning",
+            limit=10,
+        )
         """
-        _response = self._raw_client.search(limit=limit, request_options=request_options)
+        _response = self._raw_client.search(q=q, assignee=assignee, limit=limit, request_options=request_options)
         return _response.data
 
-    def get_by_id(
-        self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    def get_by_id(self, id: str, *, request_options: typing.Optional[RequestOptions] = None) -> PatentsGetByIdResponse:
         """
-        Get detailed patent information including abstract, claims, inventors, citations, and prosecution history. Returns comprehensive patent profile.
+        Get patent details by patent number.
+
+        Uses Google Patents search engine to find structured patent data including title, abstract, assignee, inventors, filing date, and publication date.
+
+        Returns a direct link to the patent on Google Patents.
 
         Parameters
         ----------
         id : str
+            Patent ID or number
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        PatentsGetByIdResponse
             Successful response
 
         Examples
@@ -89,20 +109,21 @@ class PatentsClient:
 
     def get_file(
         self, entity_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> PatentsGetFileResponse:
         """
         Download patent file wrapper or PDF document. Returns patent documentation and prosecution history files.
 
         Parameters
         ----------
         entity_id : str
+            Patent entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        PatentsGetFileResponse
             Successful response
 
         Examples
@@ -137,22 +158,33 @@ class AsyncPatentsClient:
         return self._raw_client
 
     async def search(
-        self, *, limit: typing.Optional[int] = None, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+        self,
+        *,
+        q: str,
+        assignee: typing.Optional[str] = None,
+        limit: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> PatentsSearchResponse:
         """
         Search for patents by title, inventor, assignee, or classification. Returns matching patents with patent numbers, titles, filing dates, and status.
 
         Parameters
         ----------
+        q : str
+            Patent keyword, assignee, or inventor name
+
+        assignee : typing.Optional[str]
+            Filter by assignee (company)
+
         limit : typing.Optional[int]
-            Maximum results
+            Maximum number of results to return (1-100, default: 10)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        PatentsSearchResponse
             Successful response
 
         Examples
@@ -168,30 +200,38 @@ class AsyncPatentsClient:
 
 
         async def main() -> None:
-            await client.patents.search()
+            await client.patents.search(
+                q="machine learning",
+                limit=10,
+            )
 
 
         asyncio.run(main())
         """
-        _response = await self._raw_client.search(limit=limit, request_options=request_options)
+        _response = await self._raw_client.search(q=q, assignee=assignee, limit=limit, request_options=request_options)
         return _response.data
 
     async def get_by_id(
         self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> PatentsGetByIdResponse:
         """
-        Get detailed patent information including abstract, claims, inventors, citations, and prosecution history. Returns comprehensive patent profile.
+        Get patent details by patent number.
+
+        Uses Google Patents search engine to find structured patent data including title, abstract, assignee, inventors, filing date, and publication date.
+
+        Returns a direct link to the patent on Google Patents.
 
         Parameters
         ----------
         id : str
+            Patent ID or number
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        PatentsGetByIdResponse
             Successful response
 
         Examples
@@ -219,20 +259,21 @@ class AsyncPatentsClient:
 
     async def get_file(
         self, entity_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> PatentsGetFileResponse:
         """
         Download patent file wrapper or PDF document. Returns patent documentation and prosecution history files.
 
         Parameters
         ----------
         entity_id : str
+            Patent entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        PatentsGetFileResponse
             Successful response
 
         Examples

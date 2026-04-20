@@ -7,11 +7,20 @@ from ..core.api_error import ApiError
 from ..core.client_wrapper import AsyncClientWrapper, SyncClientWrapper
 from ..core.http_response import AsyncHttpResponse, HttpResponse
 from ..core.jsonable_encoder import jsonable_encoder
+from ..core.parse_error import ParsingError
 from ..core.pydantic_utilities import parse_obj_as
 from ..core.request_options import RequestOptions
 from ..errors.not_found_error import NotFoundError
 from ..errors.not_implemented_error import NotImplementedError
 from ..errors.unauthorized_error import UnauthorizedError
+from .types.credit_analysis_bdc_search_request_seniority import CreditAnalysisBdcSearchRequestSeniority
+from .types.credit_analysis_funds_search_request_strategy import CreditAnalysisFundsSearchRequestStrategy
+from .types.credit_analysis_news_bulk_response import CreditAnalysisNewsBulkResponse
+from .types.credit_analysis_news_detail_response import CreditAnalysisNewsDetailResponse
+from .types.credit_analysis_news_recent_response import CreditAnalysisNewsRecentResponse
+from .types.credit_analysis_news_search_response import CreditAnalysisNewsSearchResponse
+from .types.credit_analysis_sba_search_request_status import CreditAnalysisSbaSearchRequestStatus
+from pydantic import ValidationError
 
 # this is used as the default value for optional parameters
 OMIT = typing.cast(typing.Any, ...)
@@ -24,16 +33,28 @@ class RawCreditAnalysisClient:
     def news_search(
         self,
         *,
+        q: str,
+        category: typing.Optional[str] = None,
+        regions: typing.Optional[str] = None,
         start_date: typing.Optional[str] = None,
         end_date: typing.Optional[str] = None,
         limit: typing.Optional[int] = None,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> HttpResponse[CreditAnalysisNewsSearchResponse]:
         """
         Search for credit-related news and filings including bond issuances, credit rating changes, and default events. Returns matching news with dates, sources, and content.
 
         Parameters
         ----------
+        q : str
+            Search query for credit news (e.g., 'Tesla bond issuance')
+
+        category : typing.Optional[str]
+            Filter by news category (e.g., 'bond_issuance', 'rating_change', 'default', 'restructuring')
+
+        regions : typing.Optional[str]
+            Filter by region (e.g., 'north_america', 'europe', 'asia')
+
         start_date : typing.Optional[str]
             Start date (YYYY-MM-DD)
 
@@ -41,20 +62,23 @@ class RawCreditAnalysisClient:
             End date (YYYY-MM-DD)
 
         limit : typing.Optional[int]
-            Maximum results
+            Maximum number of results to return (1-100, default: 20)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[typing.Dict[str, typing.Any]]
+        HttpResponse[CreditAnalysisNewsSearchResponse]
             Successful response
         """
         _response = self._client_wrapper.httpx_client.request(
             "v2/datasets/odyssey/credit-analysis/news/search",
             method="GET",
             params={
+                "q": q,
+                "category": category,
+                "regions": regions,
                 "start_date": start_date,
                 "end_date": end_date,
                 "limit": limit,
@@ -64,9 +88,9 @@ class RawCreditAnalysisClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    CreditAnalysisNewsSearchResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=CreditAnalysisNewsSearchResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -85,35 +109,45 @@ class RawCreditAnalysisClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     def news_recent(
-        self, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+        self, *, limit: typing.Optional[int] = None, request_options: typing.Optional[RequestOptions] = None
+    ) -> HttpResponse[CreditAnalysisNewsRecentResponse]:
         """
         Get most recent credit news and filings. Returns latest credit events, ratings, and bond issuances from the past 30 days.
 
         Parameters
         ----------
+        limit : typing.Optional[int]
+            Maximum number of results to return (1-100, default: 20)
+
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[typing.Dict[str, typing.Any]]
+        HttpResponse[CreditAnalysisNewsRecentResponse]
             Successful response
         """
         _response = self._client_wrapper.httpx_client.request(
             "v2/datasets/odyssey/credit-analysis/news/recent",
             method="GET",
+            params={
+                "limit": limit,
+            },
             request_options=request_options,
         )
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    CreditAnalysisNewsRecentResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=CreditAnalysisNewsRecentResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -132,24 +166,29 @@ class RawCreditAnalysisClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     def news_detail(
         self, news_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> HttpResponse[CreditAnalysisNewsDetailResponse]:
         """
         Get detailed credit news article or filing including full text, metadata, and related entities. Returns comprehensive news item with analysis.
 
         Parameters
         ----------
         news_id : str
+            News article ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[typing.Dict[str, typing.Any]]
+        HttpResponse[CreditAnalysisNewsDetailResponse]
             Successful response
         """
         _response = self._client_wrapper.httpx_client.request(
@@ -160,9 +199,9 @@ class RawCreditAnalysisClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    CreditAnalysisNewsDetailResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=CreditAnalysisNewsDetailResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -192,25 +231,29 @@ class RawCreditAnalysisClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     def news_attachment(
         self, news_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> HttpResponse[None]:
         """
-        Download attachment files associated with credit news including prospectuses, indentures, and rating reports. Returns document files.
+        **Coming Soon** - Download attachment files associated with credit news including prospectuses, indentures, and rating reports. Returns document files.
 
         Parameters
         ----------
         news_id : str
+            News article ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[typing.Dict[str, typing.Any]]
-            Successful response
+        HttpResponse[None]
         """
         _response = self._client_wrapper.httpx_client.request(
             f"v2/datasets/odyssey/credit-analysis/news/{jsonable_encoder(news_id)}/attachment",
@@ -219,14 +262,7 @@ class RawCreditAnalysisClient:
         )
         try:
             if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    typing.Dict[str, typing.Any],
-                    parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return HttpResponse(response=_response, data=_data)
+                return HttpResponse(response=_response, data=None)
             if _response.status_code == 401:
                 raise UnauthorizedError(
                     headers=dict(_response.headers),
@@ -263,6 +299,10 @@ class RawCreditAnalysisClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     def news_bulk(
@@ -270,7 +310,7 @@ class RawCreditAnalysisClient:
         *,
         queries: typing.Optional[typing.Sequence[str]] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> HttpResponse[CreditAnalysisNewsBulkResponse]:
         """
         Retrieve multiple credit news articles by ID in a single request. Returns batch results with article details for each requested ID.
 
@@ -284,7 +324,7 @@ class RawCreditAnalysisClient:
 
         Returns
         -------
-        HttpResponse[typing.Dict[str, typing.Any]]
+        HttpResponse[CreditAnalysisNewsBulkResponse]
             Successful response
         """
         _response = self._client_wrapper.httpx_client.request(
@@ -302,9 +342,9 @@ class RawCreditAnalysisClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    CreditAnalysisNewsBulkResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=CreditAnalysisNewsBulkResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -323,6 +363,1060 @@ class RawCreditAnalysisClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    def list_bdcs(
+        self, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+        """
+        List all tracked Business Development Companies (BDCs). BDCs are publicly traded private credit funds that disclose every loan quarterly in SEC 10-Q/10-K filings.
+
+        Parameters
+        ----------
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        HttpResponse[typing.Dict[str, typing.Any]]
+            List of tracked BDCs
+        """
+        _response = self._client_wrapper.httpx_client.request(
+            "v2/datasets/odyssey/credit-analysis/bdc",
+            method="GET",
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    typing.Dict[str, typing.Any],
+                    parse_obj_as(
+                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return HttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    def bdc_search(
+        self,
+        *,
+        q: str,
+        seniority: typing.Optional[CreditAnalysisBdcSearchRequestSeniority] = None,
+        non_accrual_only: typing.Optional[bool] = None,
+        limit: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+        """
+        Search across all indexed BDC portfolios for a borrower, industry, or keyword.
+
+        Searches loan-level data from ~50 BDC quarterly filings covering $150B+ in direct loans. Returns matching investments with terms (spread, seniority, maturity, fair value).
+
+        Parameters
+        ----------
+        q : str
+            Search query  -  borrower name, industry, or keyword
+
+        seniority : typing.Optional[CreditAnalysisBdcSearchRequestSeniority]
+            Filter by loan seniority
+
+        non_accrual_only : typing.Optional[bool]
+            Only return defaulted (non-accrual) investments
+
+        limit : typing.Optional[int]
+            Maximum results
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        HttpResponse[typing.Dict[str, typing.Any]]
+            Matching BDC investments
+        """
+        _response = self._client_wrapper.httpx_client.request(
+            "v2/datasets/odyssey/credit-analysis/bdc/search",
+            method="GET",
+            params={
+                "q": q,
+                "seniority": seniority,
+                "non_accrual_only": non_accrual_only,
+                "limit": limit,
+            },
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    typing.Dict[str, typing.Any],
+                    parse_obj_as(
+                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return HttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    def bdc_portfolio(
+        self,
+        ticker: str,
+        *,
+        quarter: typing.Optional[str] = None,
+        limit: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+        """
+        Full Schedule of Investments for a specific BDC, parsed from SEC 10-Q/10-K filings.
+
+        Each investment includes: borrower name, industry, investment type, seniority, coupon, spread, reference rate, maturity, principal, fair value, and non-accrual status.
+
+        Parameters
+        ----------
+        ticker : str
+            BDC ticker symbol (e.g., ARCC, BXSL, FSK)
+
+        quarter : typing.Optional[str]
+            Quarter like '2025-Q1'  -  defaults to latest filing
+
+        limit : typing.Optional[int]
+            Maximum investments to return
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        HttpResponse[typing.Dict[str, typing.Any]]
+            BDC portfolio holdings
+        """
+        _response = self._client_wrapper.httpx_client.request(
+            f"v2/datasets/odyssey/credit-analysis/bdc/{jsonable_encoder(ticker)}/portfolio",
+            method="GET",
+            params={
+                "quarter": quarter,
+                "limit": limit,
+            },
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    typing.Dict[str, typing.Any],
+                    parse_obj_as(
+                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return HttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    def bdc_stats(
+        self, ticker: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+        """
+        Aggregate portfolio statistics for a BDC. Returns weighted average spread, non-accrual rate, seniority breakdown, and top industries.
+
+        Parameters
+        ----------
+        ticker : str
+            BDC ticker symbol
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        HttpResponse[typing.Dict[str, typing.Any]]
+            BDC aggregate statistics
+        """
+        _response = self._client_wrapper.httpx_client.request(
+            f"v2/datasets/odyssey/credit-analysis/bdc/{jsonable_encoder(ticker)}/stats",
+            method="GET",
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    typing.Dict[str, typing.Any],
+                    parse_obj_as(
+                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return HttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    def borrower_lookup(
+        self, name: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+        """
+        Cross-BDC borrower lookup  -  find a company across all BDC portfolios.
+
+        Returns every BDC that holds this borrower's debt, with position sizes, spreads, and valuations. Reveals syndication patterns and allows cross-lender credit deterioration monitoring.
+
+        Parameters
+        ----------
+        name : str
+            Borrower/company name
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        HttpResponse[typing.Dict[str, typing.Any]]
+            Borrower positions across BDCs
+        """
+        _response = self._client_wrapper.httpx_client.request(
+            f"v2/datasets/odyssey/credit-analysis/borrowers/{jsonable_encoder(name)}",
+            method="GET",
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    typing.Dict[str, typing.Any],
+                    parse_obj_as(
+                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return HttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    def market_overview(
+        self, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+        """
+        Comprehensive private credit market snapshot from free public sources.
+
+        Returns:
+        - **Lending standards** (SLOOS): Net % of banks tightening C&I loan standards
+        - **Credit spreads**: ICE BofA High Yield, BBB, BB, CCC spreads
+        - **Bank lending**: Total C&I loans outstanding
+        - **Interest rates**: 10Y Treasury, SOFR
+        - **Financial conditions**: St. Louis Financial Stress Index, Chicago NFCI
+
+        Data sourced from Federal Reserve (FRED API), updated daily/weekly/quarterly.
+
+        Parameters
+        ----------
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        HttpResponse[typing.Dict[str, typing.Any]]
+            Market data snapshot
+        """
+        _response = self._client_wrapper.httpx_client.request(
+            "v2/datasets/odyssey/credit-analysis/market/overview",
+            method="GET",
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    typing.Dict[str, typing.Any],
+                    parse_obj_as(
+                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return HttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    def market_spreads(
+        self, *, history: typing.Optional[int] = None, request_options: typing.Optional[RequestOptions] = None
+    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+        """
+        Current and historical credit spread data from ICE BofA indices. Returns High Yield, BBB, BB, and CCC spreads with historical trend.
+
+        Parameters
+        ----------
+        history : typing.Optional[int]
+            Number of historical data points
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        HttpResponse[typing.Dict[str, typing.Any]]
+            Credit spread data
+        """
+        _response = self._client_wrapper.httpx_client.request(
+            "v2/datasets/odyssey/credit-analysis/market/spreads",
+            method="GET",
+            params={
+                "history": history,
+            },
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    typing.Dict[str, typing.Any],
+                    parse_obj_as(
+                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return HttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    def lending_standards(
+        self, *, history: typing.Optional[int] = None, request_options: typing.Optional[RequestOptions] = None
+    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+        """
+        Federal Reserve Senior Loan Officer Opinion Survey (SLOOS) data. Shows net % of banks tightening or easing C&I loan standards. Leading indicator for private credit market conditions.
+
+        Parameters
+        ----------
+        history : typing.Optional[int]
+            Number of quarterly data points
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        HttpResponse[typing.Dict[str, typing.Any]]
+            SLOOS lending standards data
+        """
+        _response = self._client_wrapper.httpx_client.request(
+            "v2/datasets/odyssey/credit-analysis/market/lending-standards",
+            method="GET",
+            params={
+                "history": history,
+            },
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    typing.Dict[str, typing.Any],
+                    parse_obj_as(
+                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return HttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    def funds_search(
+        self,
+        *,
+        q: str,
+        strategy: typing.Optional[CreditAnalysisFundsSearchRequestStrategy] = None,
+        limit: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+        """
+        Search private credit funds via SEC Form D filings. Form D is filed when private funds raise capital under Regulation D. Covers fund formations, managers, and capital raised.
+
+        Parameters
+        ----------
+        q : str
+            Fund name, manager name, or keyword
+
+        strategy : typing.Optional[CreditAnalysisFundsSearchRequestStrategy]
+            Filter by strategy
+
+        limit : typing.Optional[int]
+            Maximum results
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        HttpResponse[typing.Dict[str, typing.Any]]
+            Matching funds
+        """
+        _response = self._client_wrapper.httpx_client.request(
+            "v2/datasets/odyssey/credit-analysis/funds/search",
+            method="GET",
+            params={
+                "q": q,
+                "strategy": strategy,
+                "limit": limit,
+            },
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    typing.Dict[str, typing.Any],
+                    parse_obj_as(
+                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return HttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    def fund_formations(
+        self,
+        *,
+        days_back: typing.Optional[int] = None,
+        limit: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+        """
+        Recent private credit fund formations from SEC Form D filings. Shows new funds launching in the private credit space.
+
+        Parameters
+        ----------
+        days_back : typing.Optional[int]
+            Look back period in days
+
+        limit : typing.Optional[int]
+            Maximum results
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        HttpResponse[typing.Dict[str, typing.Any]]
+            Recent fund formations
+        """
+        _response = self._client_wrapper.httpx_client.request(
+            "v2/datasets/odyssey/credit-analysis/funds/formations",
+            method="GET",
+            params={
+                "days_back": days_back,
+                "limit": limit,
+            },
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    typing.Dict[str, typing.Any],
+                    parse_obj_as(
+                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return HttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    def list_managers(
+        self, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+        """
+        List known private credit fund managers with their strategies and SEC CIK numbers.
+
+        Parameters
+        ----------
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        HttpResponse[typing.Dict[str, typing.Any]]
+            List of credit managers
+        """
+        _response = self._client_wrapper.httpx_client.request(
+            "v2/datasets/odyssey/credit-analysis/funds/managers",
+            method="GET",
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    typing.Dict[str, typing.Any],
+                    parse_obj_as(
+                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return HttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    def manager_detail(
+        self, name: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+        """
+        Detailed information about a private credit fund manager. Combines SEC filing data with known manager intelligence. Returns filing history, fund count, strategy, and recent Form D filings.
+
+        Parameters
+        ----------
+        name : str
+            Manager name (e.g., 'Ares Management')
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        HttpResponse[typing.Dict[str, typing.Any]]
+            Manager details
+        """
+        _response = self._client_wrapper.httpx_client.request(
+            f"v2/datasets/odyssey/credit-analysis/funds/managers/{jsonable_encoder(name)}",
+            method="GET",
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    typing.Dict[str, typing.Any],
+                    parse_obj_as(
+                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return HttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    def sba_search(
+        self,
+        *,
+        borrower: typing.Optional[str] = None,
+        lender: typing.Optional[str] = None,
+        state: typing.Optional[str] = None,
+        naics: typing.Optional[str] = None,
+        status: typing.Optional[CreditAnalysisSbaSearchRequestStatus] = None,
+        min_amount: typing.Optional[float] = None,
+        limit: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+        """
+        Search SBA 7(a) loan data. Contains loan-level data with borrower, lender, terms, and performance for 100,000+ loans (FY2020-present).
+
+        Parameters
+        ----------
+        borrower : typing.Optional[str]
+            Borrower name (partial match)
+
+        lender : typing.Optional[str]
+            Bank/lender name (partial match)
+
+        state : typing.Optional[str]
+            State code (e.g., CA, NY, TX)
+
+        naics : typing.Optional[str]
+            NAICS code prefix (e.g., 5112 for software)
+
+        status : typing.Optional[CreditAnalysisSbaSearchRequestStatus]
+            Loan status: CHGOFF (charged off), PIF (paid in full)
+
+        min_amount : typing.Optional[float]
+            Minimum gross approval amount ($)
+
+        limit : typing.Optional[int]
+            Maximum results
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        HttpResponse[typing.Dict[str, typing.Any]]
+            Matching SBA loans
+        """
+        _response = self._client_wrapper.httpx_client.request(
+            "v2/datasets/odyssey/credit-analysis/sba/search",
+            method="GET",
+            params={
+                "borrower": borrower,
+                "lender": lender,
+                "state": state,
+                "naics": naics,
+                "status": status,
+                "min_amount": min_amount,
+                "limit": limit,
+            },
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    typing.Dict[str, typing.Any],
+                    parse_obj_as(
+                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return HttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    def sba_stats(
+        self, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+        """
+        Aggregate SBA 7(a) loan statistics. Returns default rates, average loan size, top states, and top industries from 100,000+ indexed loans.
+
+        Parameters
+        ----------
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        HttpResponse[typing.Dict[str, typing.Any]]
+            SBA aggregate statistics
+        """
+        _response = self._client_wrapper.httpx_client.request(
+            "v2/datasets/odyssey/credit-analysis/sba/stats",
+            method="GET",
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    typing.Dict[str, typing.Any],
+                    parse_obj_as(
+                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return HttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    def agreements_search(
+        self,
+        *,
+        borrower: typing.Optional[str] = None,
+        lender: typing.Optional[str] = None,
+        date_from: typing.Optional[str] = None,
+        limit: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+        """
+        Search SEC 8-K filings for credit agreements. When public companies enter material credit facilities, they file the agreement as an exhibit to an 8-K.
+
+        Parameters
+        ----------
+        borrower : typing.Optional[str]
+            Borrower/company name
+
+        lender : typing.Optional[str]
+            Lender/agent name
+
+        date_from : typing.Optional[str]
+            Start date (YYYY-MM-DD)
+
+        limit : typing.Optional[int]
+            Maximum results
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        HttpResponse[typing.Dict[str, typing.Any]]
+            Matching credit agreement filings
+        """
+        _response = self._client_wrapper.httpx_client.request(
+            "v2/datasets/odyssey/credit-analysis/agreements/search",
+            method="GET",
+            params={
+                "borrower": borrower,
+                "lender": lender,
+                "date_from": date_from,
+                "limit": limit,
+            },
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    typing.Dict[str, typing.Any],
+                    parse_obj_as(
+                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return HttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    def agreement_detail(
+        self, company: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+        """
+        Get the most recent credit agreement filing for a company. Locates the 8-K filing containing the credit agreement.
+
+        Parameters
+        ----------
+        company : str
+            Company name
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        HttpResponse[typing.Dict[str, typing.Any]]
+            Credit agreement detail
+        """
+        _response = self._client_wrapper.httpx_client.request(
+            f"v2/datasets/odyssey/credit-analysis/agreements/{jsonable_encoder(company)}",
+            method="GET",
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    typing.Dict[str, typing.Any],
+                    parse_obj_as(
+                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return HttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    def nport_funds(
+        self, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+        """
+        List tracked private credit interval funds that file N-PORT. These filings contain loan-by-loan holdings.
+
+        Parameters
+        ----------
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        HttpResponse[typing.Dict[str, typing.Any]]
+            List of tracked funds
+        """
+        _response = self._client_wrapper.httpx_client.request(
+            "v2/datasets/odyssey/credit-analysis/nport/funds",
+            method="GET",
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    typing.Dict[str, typing.Any],
+                    parse_obj_as(
+                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return HttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    def nport_search(
+        self, *, q: str, limit: typing.Optional[int] = None, request_options: typing.Optional[RequestOptions] = None
+    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+        """
+        Search N-PORT filings for private credit holdings matching a borrower name or keyword.
+
+        Parameters
+        ----------
+        q : str
+            Borrower name or keyword
+
+        limit : typing.Optional[int]
+            Maximum results
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        HttpResponse[typing.Dict[str, typing.Any]]
+            Matching N-PORT holdings
+        """
+        _response = self._client_wrapper.httpx_client.request(
+            "v2/datasets/odyssey/credit-analysis/nport/search",
+            method="GET",
+            params={
+                "q": q,
+                "limit": limit,
+            },
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    typing.Dict[str, typing.Any],
+                    parse_obj_as(
+                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return HttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    def nport_fund_filings(
+        self, ticker: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+        """
+        Get N-PORT filing list for a specific private credit interval fund.
+
+        Parameters
+        ----------
+        ticker : str
+            Fund ticker (e.g., CCLFX, AFT)
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        HttpResponse[typing.Dict[str, typing.Any]]
+            Fund N-PORT filings
+        """
+        _response = self._client_wrapper.httpx_client.request(
+            f"v2/datasets/odyssey/credit-analysis/nport/{jsonable_encoder(ticker)}/filings",
+            method="GET",
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    typing.Dict[str, typing.Any],
+                    parse_obj_as(
+                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return HttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    def relationships_search(
+        self,
+        *,
+        lender: typing.Optional[str] = None,
+        borrower: typing.Optional[str] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+        """
+        Search lender-borrower relationships across BDC portfolios. Provide either `lender` (to find their borrowers) or `borrower` (to find their lenders).
+
+        Parameters
+        ----------
+        lender : typing.Optional[str]
+            Lender name  -  find their borrowers
+
+        borrower : typing.Optional[str]
+            Borrower name  -  find their lenders
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        HttpResponse[typing.Dict[str, typing.Any]]
+            Matching relationships
+        """
+        _response = self._client_wrapper.httpx_client.request(
+            "v2/datasets/odyssey/credit-analysis/relationships/search",
+            method="GET",
+            params={
+                "lender": lender,
+                "borrower": borrower,
+            },
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    typing.Dict[str, typing.Any],
+                    parse_obj_as(
+                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return HttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    def ucc_portals(
+        self, *, state: typing.Optional[str] = None, request_options: typing.Optional[RequestOptions] = None
+    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+        """
+        Get UCC filing search portal information for free state-level databases. Returns URLs for CA, NY, TX, FL, IL portals and a list of known major private credit lenders.
+
+        Parameters
+        ----------
+        state : typing.Optional[str]
+            State code (e.g., CA, NY). Omit for all states.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        HttpResponse[typing.Dict[str, typing.Any]]
+            UCC portal information
+        """
+        _response = self._client_wrapper.httpx_client.request(
+            "v2/datasets/odyssey/credit-analysis/relationships/portals",
+            method="GET",
+            params={
+                "state": state,
+            },
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    typing.Dict[str, typing.Any],
+                    parse_obj_as(
+                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return HttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
 
@@ -333,16 +1427,28 @@ class AsyncRawCreditAnalysisClient:
     async def news_search(
         self,
         *,
+        q: str,
+        category: typing.Optional[str] = None,
+        regions: typing.Optional[str] = None,
         start_date: typing.Optional[str] = None,
         end_date: typing.Optional[str] = None,
         limit: typing.Optional[int] = None,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> AsyncHttpResponse[CreditAnalysisNewsSearchResponse]:
         """
         Search for credit-related news and filings including bond issuances, credit rating changes, and default events. Returns matching news with dates, sources, and content.
 
         Parameters
         ----------
+        q : str
+            Search query for credit news (e.g., 'Tesla bond issuance')
+
+        category : typing.Optional[str]
+            Filter by news category (e.g., 'bond_issuance', 'rating_change', 'default', 'restructuring')
+
+        regions : typing.Optional[str]
+            Filter by region (e.g., 'north_america', 'europe', 'asia')
+
         start_date : typing.Optional[str]
             Start date (YYYY-MM-DD)
 
@@ -350,20 +1456,23 @@ class AsyncRawCreditAnalysisClient:
             End date (YYYY-MM-DD)
 
         limit : typing.Optional[int]
-            Maximum results
+            Maximum number of results to return (1-100, default: 20)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+        AsyncHttpResponse[CreditAnalysisNewsSearchResponse]
             Successful response
         """
         _response = await self._client_wrapper.httpx_client.request(
             "v2/datasets/odyssey/credit-analysis/news/search",
             method="GET",
             params={
+                "q": q,
+                "category": category,
+                "regions": regions,
                 "start_date": start_date,
                 "end_date": end_date,
                 "limit": limit,
@@ -373,9 +1482,9 @@ class AsyncRawCreditAnalysisClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    CreditAnalysisNewsSearchResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=CreditAnalysisNewsSearchResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -394,35 +1503,45 @@ class AsyncRawCreditAnalysisClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def news_recent(
-        self, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+        self, *, limit: typing.Optional[int] = None, request_options: typing.Optional[RequestOptions] = None
+    ) -> AsyncHttpResponse[CreditAnalysisNewsRecentResponse]:
         """
         Get most recent credit news and filings. Returns latest credit events, ratings, and bond issuances from the past 30 days.
 
         Parameters
         ----------
+        limit : typing.Optional[int]
+            Maximum number of results to return (1-100, default: 20)
+
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+        AsyncHttpResponse[CreditAnalysisNewsRecentResponse]
             Successful response
         """
         _response = await self._client_wrapper.httpx_client.request(
             "v2/datasets/odyssey/credit-analysis/news/recent",
             method="GET",
+            params={
+                "limit": limit,
+            },
             request_options=request_options,
         )
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    CreditAnalysisNewsRecentResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=CreditAnalysisNewsRecentResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -441,24 +1560,29 @@ class AsyncRawCreditAnalysisClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def news_detail(
         self, news_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> AsyncHttpResponse[CreditAnalysisNewsDetailResponse]:
         """
         Get detailed credit news article or filing including full text, metadata, and related entities. Returns comprehensive news item with analysis.
 
         Parameters
         ----------
         news_id : str
+            News article ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+        AsyncHttpResponse[CreditAnalysisNewsDetailResponse]
             Successful response
         """
         _response = await self._client_wrapper.httpx_client.request(
@@ -469,9 +1593,9 @@ class AsyncRawCreditAnalysisClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    CreditAnalysisNewsDetailResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=CreditAnalysisNewsDetailResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -501,25 +1625,29 @@ class AsyncRawCreditAnalysisClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def news_attachment(
         self, news_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> AsyncHttpResponse[None]:
         """
-        Download attachment files associated with credit news including prospectuses, indentures, and rating reports. Returns document files.
+        **Coming Soon** - Download attachment files associated with credit news including prospectuses, indentures, and rating reports. Returns document files.
 
         Parameters
         ----------
         news_id : str
+            News article ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
-            Successful response
+        AsyncHttpResponse[None]
         """
         _response = await self._client_wrapper.httpx_client.request(
             f"v2/datasets/odyssey/credit-analysis/news/{jsonable_encoder(news_id)}/attachment",
@@ -528,14 +1656,7 @@ class AsyncRawCreditAnalysisClient:
         )
         try:
             if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    typing.Dict[str, typing.Any],
-                    parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return AsyncHttpResponse(response=_response, data=_data)
+                return AsyncHttpResponse(response=_response, data=None)
             if _response.status_code == 401:
                 raise UnauthorizedError(
                     headers=dict(_response.headers),
@@ -572,6 +1693,10 @@ class AsyncRawCreditAnalysisClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def news_bulk(
@@ -579,7 +1704,7 @@ class AsyncRawCreditAnalysisClient:
         *,
         queries: typing.Optional[typing.Sequence[str]] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> AsyncHttpResponse[CreditAnalysisNewsBulkResponse]:
         """
         Retrieve multiple credit news articles by ID in a single request. Returns batch results with article details for each requested ID.
 
@@ -593,7 +1718,7 @@ class AsyncRawCreditAnalysisClient:
 
         Returns
         -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+        AsyncHttpResponse[CreditAnalysisNewsBulkResponse]
             Successful response
         """
         _response = await self._client_wrapper.httpx_client.request(
@@ -611,9 +1736,9 @@ class AsyncRawCreditAnalysisClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    CreditAnalysisNewsBulkResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=CreditAnalysisNewsBulkResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -632,4 +1757,1058 @@ class AsyncRawCreditAnalysisClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    async def list_bdcs(
+        self, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+        """
+        List all tracked Business Development Companies (BDCs). BDCs are publicly traded private credit funds that disclose every loan quarterly in SEC 10-Q/10-K filings.
+
+        Parameters
+        ----------
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+            List of tracked BDCs
+        """
+        _response = await self._client_wrapper.httpx_client.request(
+            "v2/datasets/odyssey/credit-analysis/bdc",
+            method="GET",
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    typing.Dict[str, typing.Any],
+                    parse_obj_as(
+                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return AsyncHttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    async def bdc_search(
+        self,
+        *,
+        q: str,
+        seniority: typing.Optional[CreditAnalysisBdcSearchRequestSeniority] = None,
+        non_accrual_only: typing.Optional[bool] = None,
+        limit: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+        """
+        Search across all indexed BDC portfolios for a borrower, industry, or keyword.
+
+        Searches loan-level data from ~50 BDC quarterly filings covering $150B+ in direct loans. Returns matching investments with terms (spread, seniority, maturity, fair value).
+
+        Parameters
+        ----------
+        q : str
+            Search query  -  borrower name, industry, or keyword
+
+        seniority : typing.Optional[CreditAnalysisBdcSearchRequestSeniority]
+            Filter by loan seniority
+
+        non_accrual_only : typing.Optional[bool]
+            Only return defaulted (non-accrual) investments
+
+        limit : typing.Optional[int]
+            Maximum results
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+            Matching BDC investments
+        """
+        _response = await self._client_wrapper.httpx_client.request(
+            "v2/datasets/odyssey/credit-analysis/bdc/search",
+            method="GET",
+            params={
+                "q": q,
+                "seniority": seniority,
+                "non_accrual_only": non_accrual_only,
+                "limit": limit,
+            },
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    typing.Dict[str, typing.Any],
+                    parse_obj_as(
+                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return AsyncHttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    async def bdc_portfolio(
+        self,
+        ticker: str,
+        *,
+        quarter: typing.Optional[str] = None,
+        limit: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+        """
+        Full Schedule of Investments for a specific BDC, parsed from SEC 10-Q/10-K filings.
+
+        Each investment includes: borrower name, industry, investment type, seniority, coupon, spread, reference rate, maturity, principal, fair value, and non-accrual status.
+
+        Parameters
+        ----------
+        ticker : str
+            BDC ticker symbol (e.g., ARCC, BXSL, FSK)
+
+        quarter : typing.Optional[str]
+            Quarter like '2025-Q1'  -  defaults to latest filing
+
+        limit : typing.Optional[int]
+            Maximum investments to return
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+            BDC portfolio holdings
+        """
+        _response = await self._client_wrapper.httpx_client.request(
+            f"v2/datasets/odyssey/credit-analysis/bdc/{jsonable_encoder(ticker)}/portfolio",
+            method="GET",
+            params={
+                "quarter": quarter,
+                "limit": limit,
+            },
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    typing.Dict[str, typing.Any],
+                    parse_obj_as(
+                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return AsyncHttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    async def bdc_stats(
+        self, ticker: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+        """
+        Aggregate portfolio statistics for a BDC. Returns weighted average spread, non-accrual rate, seniority breakdown, and top industries.
+
+        Parameters
+        ----------
+        ticker : str
+            BDC ticker symbol
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+            BDC aggregate statistics
+        """
+        _response = await self._client_wrapper.httpx_client.request(
+            f"v2/datasets/odyssey/credit-analysis/bdc/{jsonable_encoder(ticker)}/stats",
+            method="GET",
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    typing.Dict[str, typing.Any],
+                    parse_obj_as(
+                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return AsyncHttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    async def borrower_lookup(
+        self, name: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+        """
+        Cross-BDC borrower lookup  -  find a company across all BDC portfolios.
+
+        Returns every BDC that holds this borrower's debt, with position sizes, spreads, and valuations. Reveals syndication patterns and allows cross-lender credit deterioration monitoring.
+
+        Parameters
+        ----------
+        name : str
+            Borrower/company name
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+            Borrower positions across BDCs
+        """
+        _response = await self._client_wrapper.httpx_client.request(
+            f"v2/datasets/odyssey/credit-analysis/borrowers/{jsonable_encoder(name)}",
+            method="GET",
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    typing.Dict[str, typing.Any],
+                    parse_obj_as(
+                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return AsyncHttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    async def market_overview(
+        self, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+        """
+        Comprehensive private credit market snapshot from free public sources.
+
+        Returns:
+        - **Lending standards** (SLOOS): Net % of banks tightening C&I loan standards
+        - **Credit spreads**: ICE BofA High Yield, BBB, BB, CCC spreads
+        - **Bank lending**: Total C&I loans outstanding
+        - **Interest rates**: 10Y Treasury, SOFR
+        - **Financial conditions**: St. Louis Financial Stress Index, Chicago NFCI
+
+        Data sourced from Federal Reserve (FRED API), updated daily/weekly/quarterly.
+
+        Parameters
+        ----------
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+            Market data snapshot
+        """
+        _response = await self._client_wrapper.httpx_client.request(
+            "v2/datasets/odyssey/credit-analysis/market/overview",
+            method="GET",
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    typing.Dict[str, typing.Any],
+                    parse_obj_as(
+                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return AsyncHttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    async def market_spreads(
+        self, *, history: typing.Optional[int] = None, request_options: typing.Optional[RequestOptions] = None
+    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+        """
+        Current and historical credit spread data from ICE BofA indices. Returns High Yield, BBB, BB, and CCC spreads with historical trend.
+
+        Parameters
+        ----------
+        history : typing.Optional[int]
+            Number of historical data points
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+            Credit spread data
+        """
+        _response = await self._client_wrapper.httpx_client.request(
+            "v2/datasets/odyssey/credit-analysis/market/spreads",
+            method="GET",
+            params={
+                "history": history,
+            },
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    typing.Dict[str, typing.Any],
+                    parse_obj_as(
+                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return AsyncHttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    async def lending_standards(
+        self, *, history: typing.Optional[int] = None, request_options: typing.Optional[RequestOptions] = None
+    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+        """
+        Federal Reserve Senior Loan Officer Opinion Survey (SLOOS) data. Shows net % of banks tightening or easing C&I loan standards. Leading indicator for private credit market conditions.
+
+        Parameters
+        ----------
+        history : typing.Optional[int]
+            Number of quarterly data points
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+            SLOOS lending standards data
+        """
+        _response = await self._client_wrapper.httpx_client.request(
+            "v2/datasets/odyssey/credit-analysis/market/lending-standards",
+            method="GET",
+            params={
+                "history": history,
+            },
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    typing.Dict[str, typing.Any],
+                    parse_obj_as(
+                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return AsyncHttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    async def funds_search(
+        self,
+        *,
+        q: str,
+        strategy: typing.Optional[CreditAnalysisFundsSearchRequestStrategy] = None,
+        limit: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+        """
+        Search private credit funds via SEC Form D filings. Form D is filed when private funds raise capital under Regulation D. Covers fund formations, managers, and capital raised.
+
+        Parameters
+        ----------
+        q : str
+            Fund name, manager name, or keyword
+
+        strategy : typing.Optional[CreditAnalysisFundsSearchRequestStrategy]
+            Filter by strategy
+
+        limit : typing.Optional[int]
+            Maximum results
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+            Matching funds
+        """
+        _response = await self._client_wrapper.httpx_client.request(
+            "v2/datasets/odyssey/credit-analysis/funds/search",
+            method="GET",
+            params={
+                "q": q,
+                "strategy": strategy,
+                "limit": limit,
+            },
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    typing.Dict[str, typing.Any],
+                    parse_obj_as(
+                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return AsyncHttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    async def fund_formations(
+        self,
+        *,
+        days_back: typing.Optional[int] = None,
+        limit: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+        """
+        Recent private credit fund formations from SEC Form D filings. Shows new funds launching in the private credit space.
+
+        Parameters
+        ----------
+        days_back : typing.Optional[int]
+            Look back period in days
+
+        limit : typing.Optional[int]
+            Maximum results
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+            Recent fund formations
+        """
+        _response = await self._client_wrapper.httpx_client.request(
+            "v2/datasets/odyssey/credit-analysis/funds/formations",
+            method="GET",
+            params={
+                "days_back": days_back,
+                "limit": limit,
+            },
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    typing.Dict[str, typing.Any],
+                    parse_obj_as(
+                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return AsyncHttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    async def list_managers(
+        self, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+        """
+        List known private credit fund managers with their strategies and SEC CIK numbers.
+
+        Parameters
+        ----------
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+            List of credit managers
+        """
+        _response = await self._client_wrapper.httpx_client.request(
+            "v2/datasets/odyssey/credit-analysis/funds/managers",
+            method="GET",
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    typing.Dict[str, typing.Any],
+                    parse_obj_as(
+                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return AsyncHttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    async def manager_detail(
+        self, name: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+        """
+        Detailed information about a private credit fund manager. Combines SEC filing data with known manager intelligence. Returns filing history, fund count, strategy, and recent Form D filings.
+
+        Parameters
+        ----------
+        name : str
+            Manager name (e.g., 'Ares Management')
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+            Manager details
+        """
+        _response = await self._client_wrapper.httpx_client.request(
+            f"v2/datasets/odyssey/credit-analysis/funds/managers/{jsonable_encoder(name)}",
+            method="GET",
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    typing.Dict[str, typing.Any],
+                    parse_obj_as(
+                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return AsyncHttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    async def sba_search(
+        self,
+        *,
+        borrower: typing.Optional[str] = None,
+        lender: typing.Optional[str] = None,
+        state: typing.Optional[str] = None,
+        naics: typing.Optional[str] = None,
+        status: typing.Optional[CreditAnalysisSbaSearchRequestStatus] = None,
+        min_amount: typing.Optional[float] = None,
+        limit: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+        """
+        Search SBA 7(a) loan data. Contains loan-level data with borrower, lender, terms, and performance for 100,000+ loans (FY2020-present).
+
+        Parameters
+        ----------
+        borrower : typing.Optional[str]
+            Borrower name (partial match)
+
+        lender : typing.Optional[str]
+            Bank/lender name (partial match)
+
+        state : typing.Optional[str]
+            State code (e.g., CA, NY, TX)
+
+        naics : typing.Optional[str]
+            NAICS code prefix (e.g., 5112 for software)
+
+        status : typing.Optional[CreditAnalysisSbaSearchRequestStatus]
+            Loan status: CHGOFF (charged off), PIF (paid in full)
+
+        min_amount : typing.Optional[float]
+            Minimum gross approval amount ($)
+
+        limit : typing.Optional[int]
+            Maximum results
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+            Matching SBA loans
+        """
+        _response = await self._client_wrapper.httpx_client.request(
+            "v2/datasets/odyssey/credit-analysis/sba/search",
+            method="GET",
+            params={
+                "borrower": borrower,
+                "lender": lender,
+                "state": state,
+                "naics": naics,
+                "status": status,
+                "min_amount": min_amount,
+                "limit": limit,
+            },
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    typing.Dict[str, typing.Any],
+                    parse_obj_as(
+                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return AsyncHttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    async def sba_stats(
+        self, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+        """
+        Aggregate SBA 7(a) loan statistics. Returns default rates, average loan size, top states, and top industries from 100,000+ indexed loans.
+
+        Parameters
+        ----------
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+            SBA aggregate statistics
+        """
+        _response = await self._client_wrapper.httpx_client.request(
+            "v2/datasets/odyssey/credit-analysis/sba/stats",
+            method="GET",
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    typing.Dict[str, typing.Any],
+                    parse_obj_as(
+                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return AsyncHttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    async def agreements_search(
+        self,
+        *,
+        borrower: typing.Optional[str] = None,
+        lender: typing.Optional[str] = None,
+        date_from: typing.Optional[str] = None,
+        limit: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+        """
+        Search SEC 8-K filings for credit agreements. When public companies enter material credit facilities, they file the agreement as an exhibit to an 8-K.
+
+        Parameters
+        ----------
+        borrower : typing.Optional[str]
+            Borrower/company name
+
+        lender : typing.Optional[str]
+            Lender/agent name
+
+        date_from : typing.Optional[str]
+            Start date (YYYY-MM-DD)
+
+        limit : typing.Optional[int]
+            Maximum results
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+            Matching credit agreement filings
+        """
+        _response = await self._client_wrapper.httpx_client.request(
+            "v2/datasets/odyssey/credit-analysis/agreements/search",
+            method="GET",
+            params={
+                "borrower": borrower,
+                "lender": lender,
+                "date_from": date_from,
+                "limit": limit,
+            },
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    typing.Dict[str, typing.Any],
+                    parse_obj_as(
+                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return AsyncHttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    async def agreement_detail(
+        self, company: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+        """
+        Get the most recent credit agreement filing for a company. Locates the 8-K filing containing the credit agreement.
+
+        Parameters
+        ----------
+        company : str
+            Company name
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+            Credit agreement detail
+        """
+        _response = await self._client_wrapper.httpx_client.request(
+            f"v2/datasets/odyssey/credit-analysis/agreements/{jsonable_encoder(company)}",
+            method="GET",
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    typing.Dict[str, typing.Any],
+                    parse_obj_as(
+                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return AsyncHttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    async def nport_funds(
+        self, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+        """
+        List tracked private credit interval funds that file N-PORT. These filings contain loan-by-loan holdings.
+
+        Parameters
+        ----------
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+            List of tracked funds
+        """
+        _response = await self._client_wrapper.httpx_client.request(
+            "v2/datasets/odyssey/credit-analysis/nport/funds",
+            method="GET",
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    typing.Dict[str, typing.Any],
+                    parse_obj_as(
+                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return AsyncHttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    async def nport_search(
+        self, *, q: str, limit: typing.Optional[int] = None, request_options: typing.Optional[RequestOptions] = None
+    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+        """
+        Search N-PORT filings for private credit holdings matching a borrower name or keyword.
+
+        Parameters
+        ----------
+        q : str
+            Borrower name or keyword
+
+        limit : typing.Optional[int]
+            Maximum results
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+            Matching N-PORT holdings
+        """
+        _response = await self._client_wrapper.httpx_client.request(
+            "v2/datasets/odyssey/credit-analysis/nport/search",
+            method="GET",
+            params={
+                "q": q,
+                "limit": limit,
+            },
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    typing.Dict[str, typing.Any],
+                    parse_obj_as(
+                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return AsyncHttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    async def nport_fund_filings(
+        self, ticker: str, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+        """
+        Get N-PORT filing list for a specific private credit interval fund.
+
+        Parameters
+        ----------
+        ticker : str
+            Fund ticker (e.g., CCLFX, AFT)
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+            Fund N-PORT filings
+        """
+        _response = await self._client_wrapper.httpx_client.request(
+            f"v2/datasets/odyssey/credit-analysis/nport/{jsonable_encoder(ticker)}/filings",
+            method="GET",
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    typing.Dict[str, typing.Any],
+                    parse_obj_as(
+                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return AsyncHttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    async def relationships_search(
+        self,
+        *,
+        lender: typing.Optional[str] = None,
+        borrower: typing.Optional[str] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+        """
+        Search lender-borrower relationships across BDC portfolios. Provide either `lender` (to find their borrowers) or `borrower` (to find their lenders).
+
+        Parameters
+        ----------
+        lender : typing.Optional[str]
+            Lender name  -  find their borrowers
+
+        borrower : typing.Optional[str]
+            Borrower name  -  find their lenders
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+            Matching relationships
+        """
+        _response = await self._client_wrapper.httpx_client.request(
+            "v2/datasets/odyssey/credit-analysis/relationships/search",
+            method="GET",
+            params={
+                "lender": lender,
+                "borrower": borrower,
+            },
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    typing.Dict[str, typing.Any],
+                    parse_obj_as(
+                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return AsyncHttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    async def ucc_portals(
+        self, *, state: typing.Optional[str] = None, request_options: typing.Optional[RequestOptions] = None
+    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+        """
+        Get UCC filing search portal information for free state-level databases. Returns URLs for CA, NY, TX, FL, IL portals and a list of known major private credit lenders.
+
+        Parameters
+        ----------
+        state : typing.Optional[str]
+            State code (e.g., CA, NY). Omit for all states.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+            UCC portal information
+        """
+        _response = await self._client_wrapper.httpx_client.request(
+            "v2/datasets/odyssey/credit-analysis/relationships/portals",
+            method="GET",
+            params={
+                "state": state,
+            },
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    typing.Dict[str, typing.Any],
+                    parse_obj_as(
+                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return AsyncHttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
