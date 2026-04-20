@@ -7,15 +7,20 @@ from ..core.api_error import ApiError
 from ..core.client_wrapper import AsyncClientWrapper, SyncClientWrapper
 from ..core.http_response import AsyncHttpResponse, HttpResponse
 from ..core.jsonable_encoder import jsonable_encoder
+from ..core.parse_error import ParsingError
 from ..core.pydantic_utilities import parse_obj_as
 from ..core.request_options import RequestOptions
 from ..errors.bad_request_error import BadRequestError
 from ..errors.forbidden_error import ForbiddenError
 from ..errors.service_unavailable_error import ServiceUnavailableError
 from ..errors.unauthorized_error import UnauthorizedError
+from ..errors.unprocessable_entity_error import UnprocessableEntityError
 from ..types.dataset_article_response import DatasetArticleResponse
 from ..types.dataset_search_response import DatasetSearchResponse
+from ..types.http_validation_error import HttpValidationError
+from ..types.scientific_ask_response import ScientificAskResponse
 from .types.batch_search_datasets_response import BatchSearchDatasetsResponse
+from pydantic import ValidationError
 
 # this is used as the default value for optional parameters
 OMIT = typing.cast(typing.Any, ...)
@@ -31,6 +36,7 @@ class RawDatasetsClient:
         *,
         q: str,
         limit: typing.Optional[int] = None,
+        author: typing.Optional[str] = None,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[DatasetSearchResponse]:
         """
@@ -52,6 +58,9 @@ class RawDatasetsClient:
         limit : typing.Optional[int]
             Maximum number of results to return (default: 10, max: 100)
 
+        author : typing.Optional[str]
+            Filter results by author/byline name. Used as an AND condition with `q` â€” returns only articles matching BOTH the query topic AND the specified author. For all articles by an author regardless of topic, use a broad query like `q=*` with `author`.
+
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
@@ -66,6 +75,7 @@ class RawDatasetsClient:
             params={
                 "q": q,
                 "limit": limit,
+                "author": author,
             },
             request_options=request_options,
         )
@@ -126,6 +136,10 @@ class RawDatasetsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     def batch_search_datasets(
@@ -134,6 +148,7 @@ class RawDatasetsClient:
         q: str,
         datasets: typing.Optional[typing.Sequence[str]] = OMIT,
         limit: typing.Optional[int] = OMIT,
+        author: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[BatchSearchDatasetsResponse]:
         """
@@ -141,19 +156,10 @@ class RawDatasetsClient:
 
         Searches the same query across all specified datasets simultaneously. If no datasets are specified, searches all available datasets.
 
-        ## Supported Datasets
-        - `nytimes` - New York Times
-        - `washpost` - Washington Post
-        - `sfstandard` - SF Standard
-        - `sacbee` - Sacramento Bee
-        - `sfchronicle` - San Francisco Chronicle
-        - `newyorker` - The New Yorker
-        - `theatlantic` - The Atlantic
-        - `sjmercury` - San Jose Mercury News
-        - `latimes` - Los Angeles Times
+        Contact your Account Executive for available datasets.
 
         ## Response
-        Returns results grouped by dataset source, with title, URL, snippet, and date for each article.
+        Returns results grouped by dataset source, with title, URL, snippet, author, and date for each article.
 
         Parameters
         ----------
@@ -165,6 +171,9 @@ class RawDatasetsClient:
 
         limit : typing.Optional[int]
             Maximum number of results to return (default: 10, max: 100)
+
+        author : typing.Optional[str]
+            Filter results by author/byline name. Used as an AND condition with `q`  -  returns only articles matching BOTH the query topic AND the specified author. For all articles by an author regardless of topic, use a broad query like `q=*` with `author`.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -181,6 +190,7 @@ class RawDatasetsClient:
                 "q": q,
                 "datasets": datasets,
                 "limit": limit,
+                "author": author,
             },
             headers={
                 "content-type": "application/json",
@@ -234,6 +244,10 @@ class RawDatasetsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     def get_dataset_article(
@@ -327,6 +341,132 @@ class RawDatasetsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    def search_medical_papers(
+        self,
+        *,
+        question: str,
+        max_sources: typing.Optional[int] = OMIT,
+        include_trials: typing.Optional[bool] = OMIT,
+        recency_years: typing.Optional[int] = OMIT,
+        stream: typing.Optional[bool] = OMIT,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> HttpResponse[ScientificAskResponse]:
+        """
+        Search medical and biomedical papers with a natural-language question.
+        Federates PubMed, PMC full-text, ClinicalTrials.gov, and Semantic Scholar,
+        then synthesizes a cited answer.
+
+        `stream=true` returns text/event-stream with `tool_use`, `tool_result_summary`,
+        `text_delta`, and `done` event types.
+
+        Parameters
+        ----------
+        question : str
+            Natural-language question.
+
+        max_sources : typing.Optional[int]
+            Target number of cited sources in the final answer.
+
+        include_trials : typing.Optional[bool]
+            Whether the agent may call ClinicalTrials.gov.
+
+        recency_years : typing.Optional[int]
+            Prefer evidence within the last N years where the question allows.
+
+        stream : typing.Optional[bool]
+            If true, response is text/event-stream; otherwise JSON.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        HttpResponse[ScientificAskResponse]
+            Synthesized answer with cited sources. Returns JSON by default; when `stream=true` the response is `text/event-stream` with `tool_use`, `tool_result_summary`, `text_delta`, and `done` events.
+        """
+        _response = self._client_wrapper.httpx_client.request(
+            "v2/datasets/scientific/medical/ask",
+            method="POST",
+            json={
+                "question": question,
+                "max_sources": max_sources,
+                "include_trials": include_trials,
+                "recency_years": recency_years,
+                "stream": stream,
+            },
+            headers={
+                "content-type": "application/json",
+            },
+            request_options=request_options,
+            omit=OMIT,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    ScientificAskResponse,
+                    parse_obj_as(
+                        type_=ScientificAskResponse,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return HttpResponse(response=_response, data=_data)
+            if _response.status_code == 400:
+                raise BadRequestError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Any,
+                        parse_obj_as(
+                            type_=typing.Any,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 401:
+                raise UnauthorizedError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Any,
+                        parse_obj_as(
+                            type_=typing.Any,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 403:
+                raise ForbiddenError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Any,
+                        parse_obj_as(
+                            type_=typing.Any,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 422:
+                raise UnprocessableEntityError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        HttpValidationError,
+                        parse_obj_as(
+                            type_=HttpValidationError,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
 
@@ -340,6 +480,7 @@ class AsyncRawDatasetsClient:
         *,
         q: str,
         limit: typing.Optional[int] = None,
+        author: typing.Optional[str] = None,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[DatasetSearchResponse]:
         """
@@ -361,6 +502,9 @@ class AsyncRawDatasetsClient:
         limit : typing.Optional[int]
             Maximum number of results to return (default: 10, max: 100)
 
+        author : typing.Optional[str]
+            Filter results by author/byline name. Used as an AND condition with `q` â€” returns only articles matching BOTH the query topic AND the specified author. For all articles by an author regardless of topic, use a broad query like `q=*` with `author`.
+
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
@@ -375,6 +519,7 @@ class AsyncRawDatasetsClient:
             params={
                 "q": q,
                 "limit": limit,
+                "author": author,
             },
             request_options=request_options,
         )
@@ -435,6 +580,10 @@ class AsyncRawDatasetsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def batch_search_datasets(
@@ -443,6 +592,7 @@ class AsyncRawDatasetsClient:
         q: str,
         datasets: typing.Optional[typing.Sequence[str]] = OMIT,
         limit: typing.Optional[int] = OMIT,
+        author: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[BatchSearchDatasetsResponse]:
         """
@@ -450,19 +600,10 @@ class AsyncRawDatasetsClient:
 
         Searches the same query across all specified datasets simultaneously. If no datasets are specified, searches all available datasets.
 
-        ## Supported Datasets
-        - `nytimes` - New York Times
-        - `washpost` - Washington Post
-        - `sfstandard` - SF Standard
-        - `sacbee` - Sacramento Bee
-        - `sfchronicle` - San Francisco Chronicle
-        - `newyorker` - The New Yorker
-        - `theatlantic` - The Atlantic
-        - `sjmercury` - San Jose Mercury News
-        - `latimes` - Los Angeles Times
+        Contact your Account Executive for available datasets.
 
         ## Response
-        Returns results grouped by dataset source, with title, URL, snippet, and date for each article.
+        Returns results grouped by dataset source, with title, URL, snippet, author, and date for each article.
 
         Parameters
         ----------
@@ -474,6 +615,9 @@ class AsyncRawDatasetsClient:
 
         limit : typing.Optional[int]
             Maximum number of results to return (default: 10, max: 100)
+
+        author : typing.Optional[str]
+            Filter results by author/byline name. Used as an AND condition with `q`  -  returns only articles matching BOTH the query topic AND the specified author. For all articles by an author regardless of topic, use a broad query like `q=*` with `author`.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -490,6 +634,7 @@ class AsyncRawDatasetsClient:
                 "q": q,
                 "datasets": datasets,
                 "limit": limit,
+                "author": author,
             },
             headers={
                 "content-type": "application/json",
@@ -543,6 +688,10 @@ class AsyncRawDatasetsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def get_dataset_article(
@@ -636,4 +785,130 @@ class AsyncRawDatasetsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    async def search_medical_papers(
+        self,
+        *,
+        question: str,
+        max_sources: typing.Optional[int] = OMIT,
+        include_trials: typing.Optional[bool] = OMIT,
+        recency_years: typing.Optional[int] = OMIT,
+        stream: typing.Optional[bool] = OMIT,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> AsyncHttpResponse[ScientificAskResponse]:
+        """
+        Search medical and biomedical papers with a natural-language question.
+        Federates PubMed, PMC full-text, ClinicalTrials.gov, and Semantic Scholar,
+        then synthesizes a cited answer.
+
+        `stream=true` returns text/event-stream with `tool_use`, `tool_result_summary`,
+        `text_delta`, and `done` event types.
+
+        Parameters
+        ----------
+        question : str
+            Natural-language question.
+
+        max_sources : typing.Optional[int]
+            Target number of cited sources in the final answer.
+
+        include_trials : typing.Optional[bool]
+            Whether the agent may call ClinicalTrials.gov.
+
+        recency_years : typing.Optional[int]
+            Prefer evidence within the last N years where the question allows.
+
+        stream : typing.Optional[bool]
+            If true, response is text/event-stream; otherwise JSON.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AsyncHttpResponse[ScientificAskResponse]
+            Synthesized answer with cited sources. Returns JSON by default; when `stream=true` the response is `text/event-stream` with `tool_use`, `tool_result_summary`, `text_delta`, and `done` events.
+        """
+        _response = await self._client_wrapper.httpx_client.request(
+            "v2/datasets/scientific/medical/ask",
+            method="POST",
+            json={
+                "question": question,
+                "max_sources": max_sources,
+                "include_trials": include_trials,
+                "recency_years": recency_years,
+                "stream": stream,
+            },
+            headers={
+                "content-type": "application/json",
+            },
+            request_options=request_options,
+            omit=OMIT,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    ScientificAskResponse,
+                    parse_obj_as(
+                        type_=ScientificAskResponse,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return AsyncHttpResponse(response=_response, data=_data)
+            if _response.status_code == 400:
+                raise BadRequestError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Any,
+                        parse_obj_as(
+                            type_=typing.Any,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 401:
+                raise UnauthorizedError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Any,
+                        parse_obj_as(
+                            type_=typing.Any,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 403:
+                raise ForbiddenError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Any,
+                        parse_obj_as(
+                            type_=typing.Any,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 422:
+                raise UnprocessableEntityError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        HttpValidationError,
+                        parse_obj_as(
+                            type_=HttpValidationError,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)

@@ -4,25 +4,30 @@ import typing
 
 from ..core.client_wrapper import AsyncClientWrapper, SyncClientWrapper
 from ..core.request_options import RequestOptions
-from .raw_client import AsyncRawFundamentalsClient, RawFundamentalsClient
+from .raw_client import AsyncRawSandboxDataClient, RawSandboxDataClient
+from .types.fundamentals_lookup_table_values_response import FundamentalsLookupTableValuesResponse
+from .types.fundamentals_lookup_tables_response import FundamentalsLookupTablesResponse
+from .types.fundamentals_sandbox_response import FundamentalsSandboxResponse
 
 
-class FundamentalsClient:
+class SandboxDataClient:
     def __init__(self, *, client_wrapper: SyncClientWrapper):
-        self._raw_client = RawFundamentalsClient(client_wrapper=client_wrapper)
+        self._raw_client = RawSandboxDataClient(client_wrapper=client_wrapper)
 
     @property
-    def with_raw_response(self) -> RawFundamentalsClient:
+    def with_raw_response(self) -> RawSandboxDataClient:
         """
         Retrieves a raw implementation of this client that returns raw responses.
 
         Returns
         -------
-        RawFundamentalsClient
+        RawSandboxDataClient
         """
         return self._raw_client
 
-    def sandbox(self, *, request_options: typing.Optional[RequestOptions] = None) -> typing.Dict[str, typing.Any]:
+    def fundamentals_sandbox(
+        self, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> FundamentalsSandboxResponse:
         """
         Get sample entities for testing and development. Returns mock company, person, investor, and fund data for sandbox environment testing.
 
@@ -33,7 +38,7 @@ class FundamentalsClient:
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        FundamentalsSandboxResponse
             Successful response
 
         Examples
@@ -44,12 +49,14 @@ class FundamentalsClient:
             organization_id="YOUR_ORGANIZATION_ID",
             key="YOUR_KEY",
         )
-        client.fundamentals.sandbox()
+        client.sandbox_data.fundamentals_sandbox()
         """
-        _response = self._raw_client.sandbox(request_options=request_options)
+        _response = self._raw_client.fundamentals_sandbox(request_options=request_options)
         return _response.data
 
-    def lookup_tables(self, *, request_options: typing.Optional[RequestOptions] = None) -> typing.Dict[str, typing.Any]:
+    def fundamentals_lookup_tables(
+        self, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> FundamentalsLookupTablesResponse:
         """
         Get available reference lookup tables including industry codes, country codes, and entity type classifications. Returns list of available tables with descriptions.
 
@@ -60,7 +67,7 @@ class FundamentalsClient:
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        FundamentalsLookupTablesResponse
             Successful response
 
         Examples
@@ -71,27 +78,28 @@ class FundamentalsClient:
             organization_id="YOUR_ORGANIZATION_ID",
             key="YOUR_KEY",
         )
-        client.fundamentals.lookup_tables()
+        client.sandbox_data.fundamentals_lookup_tables()
         """
-        _response = self._raw_client.lookup_tables(request_options=request_options)
+        _response = self._raw_client.fundamentals_lookup_tables(request_options=request_options)
         return _response.data
 
-    def lookup_table_values(
+    def fundamentals_lookup_table_values(
         self, table_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> FundamentalsLookupTableValuesResponse:
         """
         Get values from a specific lookup table. Returns table data with codes, descriptions, and hierarchical relationships for reference data.
 
         Parameters
         ----------
         table_id : str
+            Lookup table ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        FundamentalsLookupTableValuesResponse
             Successful response
 
         Examples
@@ -102,30 +110,32 @@ class FundamentalsClient:
             organization_id="YOUR_ORGANIZATION_ID",
             key="YOUR_KEY",
         )
-        client.fundamentals.lookup_table_values(
+        client.sandbox_data.fundamentals_lookup_table_values(
             table_id="sectors",
         )
         """
-        _response = self._raw_client.lookup_table_values(table_id, request_options=request_options)
+        _response = self._raw_client.fundamentals_lookup_table_values(table_id, request_options=request_options)
         return _response.data
 
 
-class AsyncFundamentalsClient:
+class AsyncSandboxDataClient:
     def __init__(self, *, client_wrapper: AsyncClientWrapper):
-        self._raw_client = AsyncRawFundamentalsClient(client_wrapper=client_wrapper)
+        self._raw_client = AsyncRawSandboxDataClient(client_wrapper=client_wrapper)
 
     @property
-    def with_raw_response(self) -> AsyncRawFundamentalsClient:
+    def with_raw_response(self) -> AsyncRawSandboxDataClient:
         """
         Retrieves a raw implementation of this client that returns raw responses.
 
         Returns
         -------
-        AsyncRawFundamentalsClient
+        AsyncRawSandboxDataClient
         """
         return self._raw_client
 
-    async def sandbox(self, *, request_options: typing.Optional[RequestOptions] = None) -> typing.Dict[str, typing.Any]:
+    async def fundamentals_sandbox(
+        self, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> FundamentalsSandboxResponse:
         """
         Get sample entities for testing and development. Returns mock company, person, investor, and fund data for sandbox environment testing.
 
@@ -136,7 +146,7 @@ class AsyncFundamentalsClient:
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        FundamentalsSandboxResponse
             Successful response
 
         Examples
@@ -152,17 +162,17 @@ class AsyncFundamentalsClient:
 
 
         async def main() -> None:
-            await client.fundamentals.sandbox()
+            await client.sandbox_data.fundamentals_sandbox()
 
 
         asyncio.run(main())
         """
-        _response = await self._raw_client.sandbox(request_options=request_options)
+        _response = await self._raw_client.fundamentals_sandbox(request_options=request_options)
         return _response.data
 
-    async def lookup_tables(
+    async def fundamentals_lookup_tables(
         self, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> FundamentalsLookupTablesResponse:
         """
         Get available reference lookup tables including industry codes, country codes, and entity type classifications. Returns list of available tables with descriptions.
 
@@ -173,7 +183,7 @@ class AsyncFundamentalsClient:
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        FundamentalsLookupTablesResponse
             Successful response
 
         Examples
@@ -189,30 +199,31 @@ class AsyncFundamentalsClient:
 
 
         async def main() -> None:
-            await client.fundamentals.lookup_tables()
+            await client.sandbox_data.fundamentals_lookup_tables()
 
 
         asyncio.run(main())
         """
-        _response = await self._raw_client.lookup_tables(request_options=request_options)
+        _response = await self._raw_client.fundamentals_lookup_tables(request_options=request_options)
         return _response.data
 
-    async def lookup_table_values(
+    async def fundamentals_lookup_table_values(
         self, table_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> FundamentalsLookupTableValuesResponse:
         """
         Get values from a specific lookup table. Returns table data with codes, descriptions, and hierarchical relationships for reference data.
 
         Parameters
         ----------
         table_id : str
+            Lookup table ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        FundamentalsLookupTableValuesResponse
             Successful response
 
         Examples
@@ -228,12 +239,12 @@ class AsyncFundamentalsClient:
 
 
         async def main() -> None:
-            await client.fundamentals.lookup_table_values(
+            await client.sandbox_data.fundamentals_lookup_table_values(
                 table_id="sectors",
             )
 
 
         asyncio.run(main())
         """
-        _response = await self._raw_client.lookup_table_values(table_id, request_options=request_options)
+        _response = await self._raw_client.fundamentals_lookup_table_values(table_id, request_options=request_options)
         return _response.data

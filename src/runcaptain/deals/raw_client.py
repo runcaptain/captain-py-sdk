@@ -7,11 +7,20 @@ from ..core.api_error import ApiError
 from ..core.client_wrapper import AsyncClientWrapper, SyncClientWrapper
 from ..core.http_response import AsyncHttpResponse, HttpResponse
 from ..core.jsonable_encoder import jsonable_encoder
+from ..core.parse_error import ParsingError
 from ..core.pydantic_utilities import parse_obj_as
 from ..core.request_options import RequestOptions
 from ..errors.not_found_error import NotFoundError
 from ..errors.not_implemented_error import NotImplementedError
 from ..errors.unauthorized_error import UnauthorizedError
+from .types.deals_bio_response import DealsBioResponse
+from .types.deals_debt_lenders_response import DealsDebtLendersResponse
+from .types.deals_investors_response import DealsInvestorsResponse
+from .types.deals_search_response import DealsSearchResponse
+from .types.deals_service_providers_response import DealsServiceProvidersResponse
+from .types.deals_stock_info_response import DealsStockInfoResponse
+from .types.deals_valuation_response import DealsValuationResponse
+from pydantic import ValidationError
 
 
 class RawDealsClient:
@@ -21,6 +30,8 @@ class RawDealsClient:
     def search(
         self,
         *,
+        q: typing.Optional[str] = None,
+        company: typing.Optional[str] = None,
         deal_type: typing.Optional[str] = None,
         min_amount: typing.Optional[float] = None,
         max_amount: typing.Optional[float] = None,
@@ -29,14 +40,20 @@ class RawDealsClient:
         page: typing.Optional[int] = None,
         page_size: typing.Optional[int] = None,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> HttpResponse[DealsSearchResponse]:
         """
         Search for funding rounds and deals by company, deal type, amount range, or date. Returns matching transactions with deal type, amount, date, and participants. Use this to find deal entity IDs for detailed lookups.
 
         Parameters
         ----------
+        q : typing.Optional[str]
+            Company name or deal keyword (e.g., 'OpenAI Series B')
+
+        company : typing.Optional[str]
+            Filter by company name or domain (e.g., 'OpenAI')
+
         deal_type : typing.Optional[str]
-            Filter by deal type
+            Filter by deal type (e.g., 'series_a', 'series_b', 'seed', 'ipo', 'acquisition', 'debt')
 
         min_amount : typing.Optional[float]
             Minimum deal amount
@@ -61,13 +78,15 @@ class RawDealsClient:
 
         Returns
         -------
-        HttpResponse[typing.Dict[str, typing.Any]]
+        HttpResponse[DealsSearchResponse]
             Successful response
         """
         _response = self._client_wrapper.httpx_client.request(
             "v2/datasets/odyssey/deals/search",
             method="GET",
             params={
+                "q": q,
+                "company": company,
                 "deal_type": deal_type,
                 "min_amount": min_amount,
                 "max_amount": max_amount,
@@ -81,9 +100,9 @@ class RawDealsClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    DealsSearchResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=DealsSearchResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -102,24 +121,29 @@ class RawDealsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     def bio(
         self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> HttpResponse[DealsBioResponse]:
         """
         Get comprehensive deal information including amount, type, date, company, and investor participants. This is the primary endpoint for deal overview data.
 
         Parameters
         ----------
         id : str
+            Deal entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[typing.Dict[str, typing.Any]]
+        HttpResponse[DealsBioResponse]
             Successful response
         """
         _response = self._client_wrapper.httpx_client.request(
@@ -130,9 +154,9 @@ class RawDealsClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    DealsBioResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=DealsBioResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -162,84 +186,29 @@ class RawDealsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
-    def detailed(
-        self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
-        """
-        Get comprehensive deal data combining bio, investors, valuation, and terms in a single response. Use this for complete deal intelligence without multiple API calls.
-
-        Parameters
-        ----------
-        id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        HttpResponse[typing.Dict[str, typing.Any]]
-            Successful response
-        """
-        _response = self._client_wrapper.httpx_client.request(
-            f"v2/datasets/odyssey/deals/{jsonable_encoder(id)}/detailed",
-            method="GET",
-            request_options=request_options,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    typing.Dict[str, typing.Any],
-                    parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return HttpResponse(response=_response, data=_data)
-            if _response.status_code == 401:
-                raise UnauthorizedError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            if _response.status_code == 404:
-                raise NotFoundError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     def investors(
         self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> HttpResponse[DealsInvestorsResponse]:
         """
         Get all investors participating in the deal including lead and follow-on investors. Returns investor names, roles, and investment amounts.
 
         Parameters
         ----------
         id : str
+            Deal entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[typing.Dict[str, typing.Any]]
+        HttpResponse[DealsInvestorsResponse]
             Successful response
         """
         _response = self._client_wrapper.httpx_client.request(
@@ -250,9 +219,9 @@ class RawDealsClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    DealsInvestorsResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=DealsInvestorsResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -282,24 +251,29 @@ class RawDealsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     def service_providers(
         self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> HttpResponse[DealsServiceProvidersResponse]:
         """
         Get service providers involved in the deal including legal counsel, investment bankers, and financial advisors. Returns firm names and service types.
 
         Parameters
         ----------
         id : str
+            Deal entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[typing.Dict[str, typing.Any]]
+        HttpResponse[DealsServiceProvidersResponse]
             Successful response
         """
         _response = self._client_wrapper.httpx_client.request(
@@ -310,9 +284,9 @@ class RawDealsClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    DealsServiceProvidersResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=DealsServiceProvidersResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -353,24 +327,29 @@ class RawDealsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     def valuation(
         self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> HttpResponse[DealsValuationResponse]:
         """
         Get valuation information including pre-money and post-money valuations, equity percentage, and pricing details. Useful for understanding deal economics.
 
         Parameters
         ----------
         id : str
+            Deal entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[typing.Dict[str, typing.Any]]
+        HttpResponse[DealsValuationResponse]
             Successful response
         """
         _response = self._client_wrapper.httpx_client.request(
@@ -381,9 +360,9 @@ class RawDealsClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    DealsValuationResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=DealsValuationResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -413,24 +392,29 @@ class RawDealsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     def stock_info(
         self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> HttpResponse[DealsStockInfoResponse]:
         """
         Get current stock price and market data for the company involved in this deal. Only applicable for public companies. Returns real-time stock quotes and market metrics.
 
         Parameters
         ----------
         id : str
+            Deal entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[typing.Dict[str, typing.Any]]
+        HttpResponse[DealsStockInfoResponse]
             Successful response
         """
         _response = self._client_wrapper.httpx_client.request(
@@ -441,9 +425,9 @@ class RawDealsClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    DealsStockInfoResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=DealsStockInfoResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -484,25 +468,27 @@ class RawDealsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
-    def cap_table(
-        self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+    def cap_table(self, id: str, *, request_options: typing.Optional[RequestOptions] = None) -> HttpResponse[None]:
         """
-        Coming Soon: Get capitalization table showing ownership breakdown after the deal. Will return equity ownership percentages, share counts, and investor stakes when implemented.
+        **Coming Soon** - Get capitalization table showing ownership breakdown after the deal.
 
         Parameters
         ----------
         id : str
+            Deal entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[typing.Dict[str, typing.Any]]
-            Successful response
+        HttpResponse[None]
         """
         _response = self._client_wrapper.httpx_client.request(
             f"v2/datasets/odyssey/deals/{jsonable_encoder(id)}/cap-table",
@@ -511,14 +497,7 @@ class RawDealsClient:
         )
         try:
             if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    typing.Dict[str, typing.Any],
-                    parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return HttpResponse(response=_response, data=_data)
+                return HttpResponse(response=_response, data=None)
             if _response.status_code == 401:
                 raise UnauthorizedError(
                     headers=dict(_response.headers),
@@ -555,25 +534,27 @@ class RawDealsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
-    def tranche(
-        self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+    def tranche(self, id: str, *, request_options: typing.Optional[RequestOptions] = None) -> HttpResponse[None]:
         """
-        Coming Soon: Get information about deal tranches and payment schedules for structured financing. Will return tranche amounts, dates, and conditions when implemented.
+        **Coming Soon** - Get information about deal tranches and payment schedules for structured financing.
 
         Parameters
         ----------
         id : str
+            Deal entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[typing.Dict[str, typing.Any]]
-            Successful response
+        HttpResponse[None]
         """
         _response = self._client_wrapper.httpx_client.request(
             f"v2/datasets/odyssey/deals/{jsonable_encoder(id)}/tranche",
@@ -582,14 +563,7 @@ class RawDealsClient:
         )
         try:
             if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    typing.Dict[str, typing.Any],
-                    parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return HttpResponse(response=_response, data=_data)
+                return HttpResponse(response=_response, data=None)
             if _response.status_code == 401:
                 raise UnauthorizedError(
                     headers=dict(_response.headers),
@@ -626,24 +600,29 @@ class RawDealsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     def debt_lenders(
         self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> HttpResponse[DealsDebtLendersResponse]:
         """
         Get lenders participating in debt financing deals. Returns lender names, amounts, and terms for venture debt and credit facilities.
 
         Parameters
         ----------
         id : str
+            Deal entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[typing.Dict[str, typing.Any]]
+        HttpResponse[DealsDebtLendersResponse]
             Successful response
         """
         _response = self._client_wrapper.httpx_client.request(
@@ -654,9 +633,9 @@ class RawDealsClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    DealsDebtLendersResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=DealsDebtLendersResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -686,25 +665,27 @@ class RawDealsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
-    def multiples(
-        self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+    def multiples(self, id: str, *, request_options: typing.Optional[RequestOptions] = None) -> HttpResponse[None]:
         """
-        Coming Soon: Get valuation multiples for the deal including revenue multiple, EBITDA multiple, and comparable transaction metrics. Will return detailed valuation analysis when implemented.
+        **Coming Soon** - Get valuation multiples for the deal including revenue multiple, EBITDA multiple, and comparable transaction metrics.
 
         Parameters
         ----------
         id : str
+            Deal entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[typing.Dict[str, typing.Any]]
-            Successful response
+        HttpResponse[None]
         """
         _response = self._client_wrapper.httpx_client.request(
             f"v2/datasets/odyssey/deals/{jsonable_encoder(id)}/multiples",
@@ -713,14 +694,7 @@ class RawDealsClient:
         )
         try:
             if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    typing.Dict[str, typing.Any],
-                    parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return HttpResponse(response=_response, data=_data)
+                return HttpResponse(response=_response, data=None)
             if _response.status_code == 401:
                 raise UnauthorizedError(
                     headers=dict(_response.headers),
@@ -757,66 +731,10 @@ class RawDealsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
-    def updates(
-        self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
-        """
-        Get changelog of updates to deal information. Returns history of changes to deal data with timestamps and modified fields.
-
-        Parameters
-        ----------
-        id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        HttpResponse[typing.Dict[str, typing.Any]]
-            Successful response
-        """
-        _response = self._client_wrapper.httpx_client.request(
-            f"v2/datasets/odyssey/deals/{jsonable_encoder(id)}/updates",
-            method="GET",
-            request_options=request_options,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    typing.Dict[str, typing.Any],
-                    parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return HttpResponse(response=_response, data=_data)
-            if _response.status_code == 401:
-                raise UnauthorizedError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            if _response.status_code == 404:
-                raise NotFoundError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
 
@@ -827,6 +745,8 @@ class AsyncRawDealsClient:
     async def search(
         self,
         *,
+        q: typing.Optional[str] = None,
+        company: typing.Optional[str] = None,
         deal_type: typing.Optional[str] = None,
         min_amount: typing.Optional[float] = None,
         max_amount: typing.Optional[float] = None,
@@ -835,14 +755,20 @@ class AsyncRawDealsClient:
         page: typing.Optional[int] = None,
         page_size: typing.Optional[int] = None,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> AsyncHttpResponse[DealsSearchResponse]:
         """
         Search for funding rounds and deals by company, deal type, amount range, or date. Returns matching transactions with deal type, amount, date, and participants. Use this to find deal entity IDs for detailed lookups.
 
         Parameters
         ----------
+        q : typing.Optional[str]
+            Company name or deal keyword (e.g., 'OpenAI Series B')
+
+        company : typing.Optional[str]
+            Filter by company name or domain (e.g., 'OpenAI')
+
         deal_type : typing.Optional[str]
-            Filter by deal type
+            Filter by deal type (e.g., 'series_a', 'series_b', 'seed', 'ipo', 'acquisition', 'debt')
 
         min_amount : typing.Optional[float]
             Minimum deal amount
@@ -867,13 +793,15 @@ class AsyncRawDealsClient:
 
         Returns
         -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+        AsyncHttpResponse[DealsSearchResponse]
             Successful response
         """
         _response = await self._client_wrapper.httpx_client.request(
             "v2/datasets/odyssey/deals/search",
             method="GET",
             params={
+                "q": q,
+                "company": company,
                 "deal_type": deal_type,
                 "min_amount": min_amount,
                 "max_amount": max_amount,
@@ -887,9 +815,9 @@ class AsyncRawDealsClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    DealsSearchResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=DealsSearchResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -908,24 +836,29 @@ class AsyncRawDealsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def bio(
         self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> AsyncHttpResponse[DealsBioResponse]:
         """
         Get comprehensive deal information including amount, type, date, company, and investor participants. This is the primary endpoint for deal overview data.
 
         Parameters
         ----------
         id : str
+            Deal entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+        AsyncHttpResponse[DealsBioResponse]
             Successful response
         """
         _response = await self._client_wrapper.httpx_client.request(
@@ -936,9 +869,9 @@ class AsyncRawDealsClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    DealsBioResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=DealsBioResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -968,84 +901,29 @@ class AsyncRawDealsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
-    async def detailed(
-        self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
-        """
-        Get comprehensive deal data combining bio, investors, valuation, and terms in a single response. Use this for complete deal intelligence without multiple API calls.
-
-        Parameters
-        ----------
-        id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
-            Successful response
-        """
-        _response = await self._client_wrapper.httpx_client.request(
-            f"v2/datasets/odyssey/deals/{jsonable_encoder(id)}/detailed",
-            method="GET",
-            request_options=request_options,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    typing.Dict[str, typing.Any],
-                    parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return AsyncHttpResponse(response=_response, data=_data)
-            if _response.status_code == 401:
-                raise UnauthorizedError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            if _response.status_code == 404:
-                raise NotFoundError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def investors(
         self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> AsyncHttpResponse[DealsInvestorsResponse]:
         """
         Get all investors participating in the deal including lead and follow-on investors. Returns investor names, roles, and investment amounts.
 
         Parameters
         ----------
         id : str
+            Deal entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+        AsyncHttpResponse[DealsInvestorsResponse]
             Successful response
         """
         _response = await self._client_wrapper.httpx_client.request(
@@ -1056,9 +934,9 @@ class AsyncRawDealsClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    DealsInvestorsResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=DealsInvestorsResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -1088,24 +966,29 @@ class AsyncRawDealsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def service_providers(
         self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> AsyncHttpResponse[DealsServiceProvidersResponse]:
         """
         Get service providers involved in the deal including legal counsel, investment bankers, and financial advisors. Returns firm names and service types.
 
         Parameters
         ----------
         id : str
+            Deal entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+        AsyncHttpResponse[DealsServiceProvidersResponse]
             Successful response
         """
         _response = await self._client_wrapper.httpx_client.request(
@@ -1116,9 +999,9 @@ class AsyncRawDealsClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    DealsServiceProvidersResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=DealsServiceProvidersResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -1159,24 +1042,29 @@ class AsyncRawDealsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def valuation(
         self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> AsyncHttpResponse[DealsValuationResponse]:
         """
         Get valuation information including pre-money and post-money valuations, equity percentage, and pricing details. Useful for understanding deal economics.
 
         Parameters
         ----------
         id : str
+            Deal entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+        AsyncHttpResponse[DealsValuationResponse]
             Successful response
         """
         _response = await self._client_wrapper.httpx_client.request(
@@ -1187,9 +1075,9 @@ class AsyncRawDealsClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    DealsValuationResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=DealsValuationResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -1219,24 +1107,29 @@ class AsyncRawDealsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def stock_info(
         self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> AsyncHttpResponse[DealsStockInfoResponse]:
         """
         Get current stock price and market data for the company involved in this deal. Only applicable for public companies. Returns real-time stock quotes and market metrics.
 
         Parameters
         ----------
         id : str
+            Deal entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+        AsyncHttpResponse[DealsStockInfoResponse]
             Successful response
         """
         _response = await self._client_wrapper.httpx_client.request(
@@ -1247,9 +1140,9 @@ class AsyncRawDealsClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    DealsStockInfoResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=DealsStockInfoResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -1290,25 +1183,29 @@ class AsyncRawDealsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def cap_table(
         self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> AsyncHttpResponse[None]:
         """
-        Coming Soon: Get capitalization table showing ownership breakdown after the deal. Will return equity ownership percentages, share counts, and investor stakes when implemented.
+        **Coming Soon** - Get capitalization table showing ownership breakdown after the deal.
 
         Parameters
         ----------
         id : str
+            Deal entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
-            Successful response
+        AsyncHttpResponse[None]
         """
         _response = await self._client_wrapper.httpx_client.request(
             f"v2/datasets/odyssey/deals/{jsonable_encoder(id)}/cap-table",
@@ -1317,14 +1214,7 @@ class AsyncRawDealsClient:
         )
         try:
             if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    typing.Dict[str, typing.Any],
-                    parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return AsyncHttpResponse(response=_response, data=_data)
+                return AsyncHttpResponse(response=_response, data=None)
             if _response.status_code == 401:
                 raise UnauthorizedError(
                     headers=dict(_response.headers),
@@ -1361,25 +1251,29 @@ class AsyncRawDealsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def tranche(
         self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> AsyncHttpResponse[None]:
         """
-        Coming Soon: Get information about deal tranches and payment schedules for structured financing. Will return tranche amounts, dates, and conditions when implemented.
+        **Coming Soon** - Get information about deal tranches and payment schedules for structured financing.
 
         Parameters
         ----------
         id : str
+            Deal entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
-            Successful response
+        AsyncHttpResponse[None]
         """
         _response = await self._client_wrapper.httpx_client.request(
             f"v2/datasets/odyssey/deals/{jsonable_encoder(id)}/tranche",
@@ -1388,14 +1282,7 @@ class AsyncRawDealsClient:
         )
         try:
             if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    typing.Dict[str, typing.Any],
-                    parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return AsyncHttpResponse(response=_response, data=_data)
+                return AsyncHttpResponse(response=_response, data=None)
             if _response.status_code == 401:
                 raise UnauthorizedError(
                     headers=dict(_response.headers),
@@ -1432,24 +1319,29 @@ class AsyncRawDealsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def debt_lenders(
         self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> AsyncHttpResponse[DealsDebtLendersResponse]:
         """
         Get lenders participating in debt financing deals. Returns lender names, amounts, and terms for venture debt and credit facilities.
 
         Parameters
         ----------
         id : str
+            Deal entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+        AsyncHttpResponse[DealsDebtLendersResponse]
             Successful response
         """
         _response = await self._client_wrapper.httpx_client.request(
@@ -1460,9 +1352,9 @@ class AsyncRawDealsClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    DealsDebtLendersResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=DealsDebtLendersResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -1492,25 +1384,29 @@ class AsyncRawDealsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def multiples(
         self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> AsyncHttpResponse[None]:
         """
-        Coming Soon: Get valuation multiples for the deal including revenue multiple, EBITDA multiple, and comparable transaction metrics. Will return detailed valuation analysis when implemented.
+        **Coming Soon** - Get valuation multiples for the deal including revenue multiple, EBITDA multiple, and comparable transaction metrics.
 
         Parameters
         ----------
         id : str
+            Deal entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
-            Successful response
+        AsyncHttpResponse[None]
         """
         _response = await self._client_wrapper.httpx_client.request(
             f"v2/datasets/odyssey/deals/{jsonable_encoder(id)}/multiples",
@@ -1519,14 +1415,7 @@ class AsyncRawDealsClient:
         )
         try:
             if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    typing.Dict[str, typing.Any],
-                    parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return AsyncHttpResponse(response=_response, data=_data)
+                return AsyncHttpResponse(response=_response, data=None)
             if _response.status_code == 401:
                 raise UnauthorizedError(
                     headers=dict(_response.headers),
@@ -1563,64 +1452,8 @@ class AsyncRawDealsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
-    async def updates(
-        self, id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
-        """
-        Get changelog of updates to deal information. Returns history of changes to deal data with timestamps and modified fields.
-
-        Parameters
-        ----------
-        id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
-            Successful response
-        """
-        _response = await self._client_wrapper.httpx_client.request(
-            f"v2/datasets/odyssey/deals/{jsonable_encoder(id)}/updates",
-            method="GET",
-            request_options=request_options,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    typing.Dict[str, typing.Any],
-                    parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return AsyncHttpResponse(response=_response, data=_data)
-            if _response.status_code == 401:
-                raise UnauthorizedError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            if _response.status_code == 404:
-                raise NotFoundError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)

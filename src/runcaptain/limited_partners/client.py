@@ -5,6 +5,8 @@ import typing
 from ..core.client_wrapper import AsyncClientWrapper, SyncClientWrapper
 from ..core.request_options import RequestOptions
 from .raw_client import AsyncRawLimitedPartnersClient, RawLimitedPartnersClient
+from .types.lps_bio_response import LpsBioResponse
+from .types.lps_search_response import LpsSearchResponse
 
 
 class LimitedPartnersClient:
@@ -23,22 +25,33 @@ class LimitedPartnersClient:
         return self._raw_client
 
     def lps_search(
-        self, *, limit: typing.Optional[int] = None, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+        self,
+        *,
+        q: str,
+        lp_type: typing.Optional[str] = None,
+        limit: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> LpsSearchResponse:
         """
         Search for institutional limited partners including pension funds, endowments, and family offices. Returns matching LP profiles with total commitments and fund relationships.
 
         Parameters
         ----------
+        q : str
+            LP name or keyword (e.g., 'CalPERS')
+
+        lp_type : typing.Optional[str]
+            Filter by LP type (e.g., 'pension_fund', 'endowment', 'family_office', 'sovereign_wealth', 'insurance')
+
         limit : typing.Optional[int]
-            Maximum results
+            Maximum number of results to return (1-100, default: 10)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        LpsSearchResponse
             Successful response
 
         Examples
@@ -49,27 +62,29 @@ class LimitedPartnersClient:
             organization_id="YOUR_ORGANIZATION_ID",
             key="YOUR_KEY",
         )
-        client.limited_partners.lps_search()
+        client.limited_partners.lps_search(
+            q="CalPERS",
+            limit=10,
+        )
         """
-        _response = self._raw_client.lps_search(limit=limit, request_options=request_options)
+        _response = self._raw_client.lps_search(q=q, lp_type=lp_type, limit=limit, request_options=request_options)
         return _response.data
 
-    def lps_bio(
-        self, lp_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    def lps_bio(self, lp_id: str, *, request_options: typing.Optional[RequestOptions] = None) -> LpsBioResponse:
         """
         Get comprehensive limited partner profile including institution type, total assets under management, investment strategy, and notable fund commitments. This is the primary endpoint for LP overview data.
 
         Parameters
         ----------
         lp_id : str
+            LP entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        LpsBioResponse
             Successful response
 
         Examples
@@ -87,23 +102,21 @@ class LimitedPartnersClient:
         _response = self._raw_client.lps_bio(lp_id, request_options=request_options)
         return _response.data
 
-    def lps_commitments_detailed(
-        self, lp_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    def lps_commitments_detailed(self, lp_id: str, *, request_options: typing.Optional[RequestOptions] = None) -> None:
         """
-        Get detailed fund commitments including specific fund names, commitment amounts, vintage years, and commitment status. Returns complete LP portfolio.
+        **Coming Soon** - Get detailed fund commitments including specific fund names, commitment amounts, vintage years, and commitment status. Returns complete LP portfolio.
 
         Parameters
         ----------
         lp_id : str
+            LP entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
-            Successful response
+        None
 
         Examples
         --------
@@ -122,21 +135,21 @@ class LimitedPartnersClient:
 
     def lps_commitments_aggregates(
         self, lp_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> None:
         """
-        Get aggregated commitment statistics including total commitments by vintage year, fund type, and geography. Returns high-level allocation summary.
+        **Coming Soon** - Get aggregated commitment statistics including total commitments by vintage year, fund type, and geography. Returns high-level allocation summary.
 
         Parameters
         ----------
         lp_id : str
+            LP entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
-            Successful response
+        None
 
         Examples
         --------
@@ -153,23 +166,21 @@ class LimitedPartnersClient:
         _response = self._raw_client.lps_commitments_aggregates(lp_id, request_options=request_options)
         return _response.data
 
-    def lps_allocations_target(
-        self, lp_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    def lps_allocations_target(self, lp_id: str, *, request_options: typing.Optional[RequestOptions] = None) -> None:
         """
-        Get target allocation percentages by asset class, geography, and strategy. Returns investment policy guidelines and target portfolio mix.
+        **Coming Soon** - Get target allocation percentages by asset class, geography, and strategy. Returns investment policy guidelines and target portfolio mix.
 
         Parameters
         ----------
         lp_id : str
+            LP entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
-            Successful response
+        None
 
         Examples
         --------
@@ -186,23 +197,21 @@ class LimitedPartnersClient:
         _response = self._raw_client.lps_allocations_target(lp_id, request_options=request_options)
         return _response.data
 
-    def lps_allocations_actual(
-        self, lp_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    def lps_allocations_actual(self, lp_id: str, *, request_options: typing.Optional[RequestOptions] = None) -> None:
         """
-        Get actual current allocation percentages by asset class, geography, and strategy. Returns real portfolio composition and compare to targets.
+        **Coming Soon** - Get actual current allocation percentages by asset class, geography, and strategy. Returns real portfolio composition and compare to targets.
 
         Parameters
         ----------
         lp_id : str
+            LP entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
-            Successful response
+        None
 
         Examples
         --------
@@ -221,21 +230,21 @@ class LimitedPartnersClient:
 
     def lps_commitment_preferences(
         self, lp_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> None:
         """
-        Get commitment preferences including preferred fund sizes, vintage year focus, and investment stage preferences. Useful for GP fundraising targeting.
+        **Coming Soon** - Get commitment preferences including preferred fund sizes, vintage year focus, and investment stage preferences. Useful for GP fundraising targeting.
 
         Parameters
         ----------
         lp_id : str
+            LP entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
-            Successful response
+        None
 
         Examples
         --------
@@ -252,23 +261,21 @@ class LimitedPartnersClient:
         _response = self._raw_client.lps_commitment_preferences(lp_id, request_options=request_options)
         return _response.data
 
-    def lps_service_providers(
-        self, lp_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    def lps_service_providers(self, lp_id: str, *, request_options: typing.Optional[RequestOptions] = None) -> None:
         """
-        Get service providers used by the LP including consultants, custodians, and legal advisors. Returns firm names and service types.
+        **Coming Soon** - Get service providers used by the LP including consultants, custodians, and legal advisors. Returns firm names and service types.
 
         Parameters
         ----------
         lp_id : str
+            LP entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
-            Successful response
+        None
 
         Examples
         --------
@@ -283,39 +290,6 @@ class LimitedPartnersClient:
         )
         """
         _response = self._raw_client.lps_service_providers(lp_id, request_options=request_options)
-        return _response.data
-
-    def lps_updates(
-        self, lp_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
-        """
-        Get changelog of updates to LP profile data. Returns history of changes including new commitments, policy changes, and team updates with timestamps.
-
-        Parameters
-        ----------
-        lp_id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        typing.Dict[str, typing.Any]
-            Successful response
-
-        Examples
-        --------
-        from runcaptain import Captain
-
-        client = Captain(
-            organization_id="YOUR_ORGANIZATION_ID",
-            key="YOUR_KEY",
-        )
-        client.limited_partners.lps_updates(
-            lp_id="calpers",
-        )
-        """
-        _response = self._raw_client.lps_updates(lp_id, request_options=request_options)
         return _response.data
 
 
@@ -335,22 +309,33 @@ class AsyncLimitedPartnersClient:
         return self._raw_client
 
     async def lps_search(
-        self, *, limit: typing.Optional[int] = None, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+        self,
+        *,
+        q: str,
+        lp_type: typing.Optional[str] = None,
+        limit: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> LpsSearchResponse:
         """
         Search for institutional limited partners including pension funds, endowments, and family offices. Returns matching LP profiles with total commitments and fund relationships.
 
         Parameters
         ----------
+        q : str
+            LP name or keyword (e.g., 'CalPERS')
+
+        lp_type : typing.Optional[str]
+            Filter by LP type (e.g., 'pension_fund', 'endowment', 'family_office', 'sovereign_wealth', 'insurance')
+
         limit : typing.Optional[int]
-            Maximum results
+            Maximum number of results to return (1-100, default: 10)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        LpsSearchResponse
             Successful response
 
         Examples
@@ -366,30 +351,34 @@ class AsyncLimitedPartnersClient:
 
 
         async def main() -> None:
-            await client.limited_partners.lps_search()
+            await client.limited_partners.lps_search(
+                q="CalPERS",
+                limit=10,
+            )
 
 
         asyncio.run(main())
         """
-        _response = await self._raw_client.lps_search(limit=limit, request_options=request_options)
+        _response = await self._raw_client.lps_search(
+            q=q, lp_type=lp_type, limit=limit, request_options=request_options
+        )
         return _response.data
 
-    async def lps_bio(
-        self, lp_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    async def lps_bio(self, lp_id: str, *, request_options: typing.Optional[RequestOptions] = None) -> LpsBioResponse:
         """
         Get comprehensive limited partner profile including institution type, total assets under management, investment strategy, and notable fund commitments. This is the primary endpoint for LP overview data.
 
         Parameters
         ----------
         lp_id : str
+            LP entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        LpsBioResponse
             Successful response
 
         Examples
@@ -417,21 +406,21 @@ class AsyncLimitedPartnersClient:
 
     async def lps_commitments_detailed(
         self, lp_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> None:
         """
-        Get detailed fund commitments including specific fund names, commitment amounts, vintage years, and commitment status. Returns complete LP portfolio.
+        **Coming Soon** - Get detailed fund commitments including specific fund names, commitment amounts, vintage years, and commitment status. Returns complete LP portfolio.
 
         Parameters
         ----------
         lp_id : str
+            LP entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
-            Successful response
+        None
 
         Examples
         --------
@@ -458,21 +447,21 @@ class AsyncLimitedPartnersClient:
 
     async def lps_commitments_aggregates(
         self, lp_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> None:
         """
-        Get aggregated commitment statistics including total commitments by vintage year, fund type, and geography. Returns high-level allocation summary.
+        **Coming Soon** - Get aggregated commitment statistics including total commitments by vintage year, fund type, and geography. Returns high-level allocation summary.
 
         Parameters
         ----------
         lp_id : str
+            LP entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
-            Successful response
+        None
 
         Examples
         --------
@@ -499,21 +488,21 @@ class AsyncLimitedPartnersClient:
 
     async def lps_allocations_target(
         self, lp_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> None:
         """
-        Get target allocation percentages by asset class, geography, and strategy. Returns investment policy guidelines and target portfolio mix.
+        **Coming Soon** - Get target allocation percentages by asset class, geography, and strategy. Returns investment policy guidelines and target portfolio mix.
 
         Parameters
         ----------
         lp_id : str
+            LP entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
-            Successful response
+        None
 
         Examples
         --------
@@ -540,21 +529,21 @@ class AsyncLimitedPartnersClient:
 
     async def lps_allocations_actual(
         self, lp_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> None:
         """
-        Get actual current allocation percentages by asset class, geography, and strategy. Returns real portfolio composition and compare to targets.
+        **Coming Soon** - Get actual current allocation percentages by asset class, geography, and strategy. Returns real portfolio composition and compare to targets.
 
         Parameters
         ----------
         lp_id : str
+            LP entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
-            Successful response
+        None
 
         Examples
         --------
@@ -581,21 +570,21 @@ class AsyncLimitedPartnersClient:
 
     async def lps_commitment_preferences(
         self, lp_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> None:
         """
-        Get commitment preferences including preferred fund sizes, vintage year focus, and investment stage preferences. Useful for GP fundraising targeting.
+        **Coming Soon** - Get commitment preferences including preferred fund sizes, vintage year focus, and investment stage preferences. Useful for GP fundraising targeting.
 
         Parameters
         ----------
         lp_id : str
+            LP entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
-            Successful response
+        None
 
         Examples
         --------
@@ -622,21 +611,21 @@ class AsyncLimitedPartnersClient:
 
     async def lps_service_providers(
         self, lp_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> None:
         """
-        Get service providers used by the LP including consultants, custodians, and legal advisors. Returns firm names and service types.
+        **Coming Soon** - Get service providers used by the LP including consultants, custodians, and legal advisors. Returns firm names and service types.
 
         Parameters
         ----------
         lp_id : str
+            LP entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
-            Successful response
+        None
 
         Examples
         --------
@@ -659,45 +648,4 @@ class AsyncLimitedPartnersClient:
         asyncio.run(main())
         """
         _response = await self._raw_client.lps_service_providers(lp_id, request_options=request_options)
-        return _response.data
-
-    async def lps_updates(
-        self, lp_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
-        """
-        Get changelog of updates to LP profile data. Returns history of changes including new commitments, policy changes, and team updates with timestamps.
-
-        Parameters
-        ----------
-        lp_id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        typing.Dict[str, typing.Any]
-            Successful response
-
-        Examples
-        --------
-        import asyncio
-
-        from runcaptain import AsyncCaptain
-
-        client = AsyncCaptain(
-            organization_id="YOUR_ORGANIZATION_ID",
-            key="YOUR_KEY",
-        )
-
-
-        async def main() -> None:
-            await client.limited_partners.lps_updates(
-                lp_id="calpers",
-            )
-
-
-        asyncio.run(main())
-        """
-        _response = await self._raw_client.lps_updates(lp_id, request_options=request_options)
         return _response.data

@@ -5,6 +5,13 @@ import typing
 from ..core.client_wrapper import AsyncClientWrapper, SyncClientWrapper
 from ..core.request_options import RequestOptions
 from .raw_client import AsyncRawGeneralClient, RawGeneralClient
+from .types.general_entity_affiliates_response import GeneralEntityAffiliatesResponse
+from .types.general_entity_locations_response import GeneralEntityLocationsResponse
+from .types.general_entity_news_response import GeneralEntityNewsResponse
+from .types.general_entity_people_response import GeneralEntityPeopleResponse
+from .types.general_search_request_entity_type import GeneralSearchRequestEntityType
+from .types.general_search_response import GeneralSearchResponse
+from .types.general_search_shared_response import GeneralSearchSharedResponse
 
 
 class GeneralClient:
@@ -23,22 +30,37 @@ class GeneralClient:
         return self._raw_client
 
     def search(
-        self, *, limit: typing.Optional[int] = None, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+        self,
+        *,
+        q: str,
+        entity_type: typing.Optional[GeneralSearchRequestEntityType] = None,
+        limit: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> GeneralSearchResponse:
         """
-        Search across all entity types (companies, people, investors, funds, deals, etc.) in a unified query. Returns matching entities with their type and basic information. Use this for broad discovery before drilling into specific entity types.
+        Cross-entity search across companies and people.
+
+        Returns the company match first, then executives (C-suite) at that company, then other employees.
+
+        Supports `limit` parameter to control results count (default: 25, max: 100).
 
         Parameters
         ----------
+        q : str
+            Search query across all entity types (companies, people, investors)
+
+        entity_type : typing.Optional[GeneralSearchRequestEntityType]
+            Filter by entity type
+
         limit : typing.Optional[int]
-            Maximum results
+            Maximum number of results to return (1-100, default: 10)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        GeneralSearchResponse
             Successful response
 
         Examples
@@ -49,23 +71,40 @@ class GeneralClient:
             organization_id="YOUR_ORGANIZATION_ID",
             key="YOUR_KEY",
         )
-        client.general.search()
+        client.general.search(
+            q="AI safety researchers at OpenAI",
+            limit=10,
+        )
         """
-        _response = self._raw_client.search(limit=limit, request_options=request_options)
+        _response = self._raw_client.search(q=q, entity_type=entity_type, limit=limit, request_options=request_options)
         return _response.data
 
-    def search_shared(self, *, request_options: typing.Optional[RequestOptions] = None) -> typing.Dict[str, typing.Any]:
+    def search_shared(
+        self,
+        *,
+        q: typing.Optional[str] = None,
+        limit: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> GeneralSearchSharedResponse:
         """
-        Search for entities shared across your organization. Returns entities that multiple team members have accessed or tagged. Useful for discovering commonly referenced companies, investors, or people within your team.
+        Shared/saved search across entities.
+
+        Same as cross-entity search with shared filter support. Returns companies and people matching the query.
 
         Parameters
         ----------
+        q : typing.Optional[str]
+            Search query (optional)
+
+        limit : typing.Optional[int]
+            Maximum number of results to return (1-100, default: 10)
+
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        GeneralSearchSharedResponse
             Successful response
 
         Examples
@@ -78,25 +117,37 @@ class GeneralClient:
         )
         client.general.search_shared()
         """
-        _response = self._raw_client.search_shared(request_options=request_options)
+        _response = self._raw_client.search_shared(q=q, limit=limit, request_options=request_options)
         return _response.data
 
     def entity_people(
-        self, entity_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+        self,
+        entity_id: str,
+        *,
+        limit: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> GeneralEntityPeopleResponse:
         """
-        Get people associated with any entity (company employees, fund team members, investor partners, etc.). Returns names, titles, and LinkedIn profiles for key people.
+        Get people associated with an entity (company employees/leadership).
+
+        Returns executives first (C-suite, VP, Director), then other employees. Results are deduplicated.
+
+        Supports `limit` parameter (default: 25, max: 100).
 
         Parameters
         ----------
         entity_id : str
+            Entity ID (any type)
+
+        limit : typing.Optional[int]
+            Maximum results to return (default: 25, max: 100)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        GeneralEntityPeopleResponse
             Successful response
 
         Examples
@@ -111,25 +162,26 @@ class GeneralClient:
             entity_id="openai",
         )
         """
-        _response = self._raw_client.entity_people(entity_id, request_options=request_options)
+        _response = self._raw_client.entity_people(entity_id, limit=limit, request_options=request_options)
         return _response.data
 
     def entity_locations(
         self, entity_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> GeneralEntityLocationsResponse:
         """
         Get office locations for any entity. Returns headquarters and branch office addresses with city, state, country, and full address details.
 
         Parameters
         ----------
         entity_id : str
+            Entity ID (any type)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        GeneralEntityLocationsResponse
             Successful response
 
         Examples
@@ -149,20 +201,21 @@ class GeneralClient:
 
     def entity_affiliates(
         self, entity_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> GeneralEntityAffiliatesResponse:
         """
         Get affiliated entities and subsidiaries for any entity. Returns parent companies, subsidiaries, and related entities with ownership information.
 
         Parameters
         ----------
         entity_id : str
+            Entity ID (any type)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        GeneralEntityAffiliatesResponse
             Successful response
 
         Examples
@@ -181,21 +234,29 @@ class GeneralClient:
         return _response.data
 
     def entity_news(
-        self, entity_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+        self,
+        entity_id: str,
+        *,
+        limit: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> GeneralEntityNewsResponse:
         """
         Get recent news articles and mentions for any entity. Returns article titles, URLs, sources, publication dates, and snippets. Useful for tracking announcements, funding news, and company updates.
 
         Parameters
         ----------
         entity_id : str
+            Entity ID (any type)
+
+        limit : typing.Optional[int]
+            Maximum number of results to return (1-100, default: 10)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        GeneralEntityNewsResponse
             Successful response
 
         Examples
@@ -210,40 +271,7 @@ class GeneralClient:
             entity_id="openai",
         )
         """
-        _response = self._raw_client.entity_news(entity_id, request_options=request_options)
-        return _response.data
-
-    def entity_updates(
-        self, entity_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
-        """
-        Get changelog of data updates for any entity. Returns history of changes to the entity's profile, tracking when information was added or modified. Useful for monitoring data freshness.
-
-        Parameters
-        ----------
-        entity_id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        typing.Dict[str, typing.Any]
-            Successful response
-
-        Examples
-        --------
-        from runcaptain import Captain
-
-        client = Captain(
-            organization_id="YOUR_ORGANIZATION_ID",
-            key="YOUR_KEY",
-        )
-        client.general.entity_updates(
-            entity_id="openai",
-        )
-        """
-        _response = self._raw_client.entity_updates(entity_id, request_options=request_options)
+        _response = self._raw_client.entity_news(entity_id, limit=limit, request_options=request_options)
         return _response.data
 
 
@@ -263,22 +291,37 @@ class AsyncGeneralClient:
         return self._raw_client
 
     async def search(
-        self, *, limit: typing.Optional[int] = None, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+        self,
+        *,
+        q: str,
+        entity_type: typing.Optional[GeneralSearchRequestEntityType] = None,
+        limit: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> GeneralSearchResponse:
         """
-        Search across all entity types (companies, people, investors, funds, deals, etc.) in a unified query. Returns matching entities with their type and basic information. Use this for broad discovery before drilling into specific entity types.
+        Cross-entity search across companies and people.
+
+        Returns the company match first, then executives (C-suite) at that company, then other employees.
+
+        Supports `limit` parameter to control results count (default: 25, max: 100).
 
         Parameters
         ----------
+        q : str
+            Search query across all entity types (companies, people, investors)
+
+        entity_type : typing.Optional[GeneralSearchRequestEntityType]
+            Filter by entity type
+
         limit : typing.Optional[int]
-            Maximum results
+            Maximum number of results to return (1-100, default: 10)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        GeneralSearchResponse
             Successful response
 
         Examples
@@ -294,28 +337,45 @@ class AsyncGeneralClient:
 
 
         async def main() -> None:
-            await client.general.search()
+            await client.general.search(
+                q="AI safety researchers at OpenAI",
+                limit=10,
+            )
 
 
         asyncio.run(main())
         """
-        _response = await self._raw_client.search(limit=limit, request_options=request_options)
+        _response = await self._raw_client.search(
+            q=q, entity_type=entity_type, limit=limit, request_options=request_options
+        )
         return _response.data
 
     async def search_shared(
-        self, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+        self,
+        *,
+        q: typing.Optional[str] = None,
+        limit: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> GeneralSearchSharedResponse:
         """
-        Search for entities shared across your organization. Returns entities that multiple team members have accessed or tagged. Useful for discovering commonly referenced companies, investors, or people within your team.
+        Shared/saved search across entities.
+
+        Same as cross-entity search with shared filter support. Returns companies and people matching the query.
 
         Parameters
         ----------
+        q : typing.Optional[str]
+            Search query (optional)
+
+        limit : typing.Optional[int]
+            Maximum number of results to return (1-100, default: 10)
+
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        GeneralSearchSharedResponse
             Successful response
 
         Examples
@@ -336,25 +396,37 @@ class AsyncGeneralClient:
 
         asyncio.run(main())
         """
-        _response = await self._raw_client.search_shared(request_options=request_options)
+        _response = await self._raw_client.search_shared(q=q, limit=limit, request_options=request_options)
         return _response.data
 
     async def entity_people(
-        self, entity_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+        self,
+        entity_id: str,
+        *,
+        limit: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> GeneralEntityPeopleResponse:
         """
-        Get people associated with any entity (company employees, fund team members, investor partners, etc.). Returns names, titles, and LinkedIn profiles for key people.
+        Get people associated with an entity (company employees/leadership).
+
+        Returns executives first (C-suite, VP, Director), then other employees. Results are deduplicated.
+
+        Supports `limit` parameter (default: 25, max: 100).
 
         Parameters
         ----------
         entity_id : str
+            Entity ID (any type)
+
+        limit : typing.Optional[int]
+            Maximum results to return (default: 25, max: 100)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        GeneralEntityPeopleResponse
             Successful response
 
         Examples
@@ -377,25 +449,26 @@ class AsyncGeneralClient:
 
         asyncio.run(main())
         """
-        _response = await self._raw_client.entity_people(entity_id, request_options=request_options)
+        _response = await self._raw_client.entity_people(entity_id, limit=limit, request_options=request_options)
         return _response.data
 
     async def entity_locations(
         self, entity_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> GeneralEntityLocationsResponse:
         """
         Get office locations for any entity. Returns headquarters and branch office addresses with city, state, country, and full address details.
 
         Parameters
         ----------
         entity_id : str
+            Entity ID (any type)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        GeneralEntityLocationsResponse
             Successful response
 
         Examples
@@ -423,20 +496,21 @@ class AsyncGeneralClient:
 
     async def entity_affiliates(
         self, entity_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> GeneralEntityAffiliatesResponse:
         """
         Get affiliated entities and subsidiaries for any entity. Returns parent companies, subsidiaries, and related entities with ownership information.
 
         Parameters
         ----------
         entity_id : str
+            Entity ID (any type)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        GeneralEntityAffiliatesResponse
             Successful response
 
         Examples
@@ -463,21 +537,29 @@ class AsyncGeneralClient:
         return _response.data
 
     async def entity_news(
-        self, entity_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+        self,
+        entity_id: str,
+        *,
+        limit: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> GeneralEntityNewsResponse:
         """
         Get recent news articles and mentions for any entity. Returns article titles, URLs, sources, publication dates, and snippets. Useful for tracking announcements, funding news, and company updates.
 
         Parameters
         ----------
         entity_id : str
+            Entity ID (any type)
+
+        limit : typing.Optional[int]
+            Maximum number of results to return (1-100, default: 10)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        GeneralEntityNewsResponse
             Successful response
 
         Examples
@@ -500,46 +582,5 @@ class AsyncGeneralClient:
 
         asyncio.run(main())
         """
-        _response = await self._raw_client.entity_news(entity_id, request_options=request_options)
-        return _response.data
-
-    async def entity_updates(
-        self, entity_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
-        """
-        Get changelog of data updates for any entity. Returns history of changes to the entity's profile, tracking when information was added or modified. Useful for monitoring data freshness.
-
-        Parameters
-        ----------
-        entity_id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        typing.Dict[str, typing.Any]
-            Successful response
-
-        Examples
-        --------
-        import asyncio
-
-        from runcaptain import AsyncCaptain
-
-        client = AsyncCaptain(
-            organization_id="YOUR_ORGANIZATION_ID",
-            key="YOUR_KEY",
-        )
-
-
-        async def main() -> None:
-            await client.general.entity_updates(
-                entity_id="openai",
-            )
-
-
-        asyncio.run(main())
-        """
-        _response = await self._raw_client.entity_updates(entity_id, request_options=request_options)
+        _response = await self._raw_client.entity_news(entity_id, limit=limit, request_options=request_options)
         return _response.data

@@ -5,7 +5,6 @@ import typing
 from ..core.client_wrapper import AsyncClientWrapper, SyncClientWrapper
 from ..core.request_options import RequestOptions
 from ..types.query_response_v2 import QueryResponseV2
-from ..types.query_stream_event import QueryStreamEvent
 from .raw_client import AsyncRawQueryClient, RawQueryClient
 
 # this is used as the default value for optional parameters
@@ -27,126 +26,20 @@ class QueryClient:
         """
         return self._raw_client
 
-    def collection_v2stream(
-        self,
-        collection_name: str,
-        *,
-        query: str,
-        inference: typing.Optional[bool] = OMIT,
-        top_k: typing.Optional[int] = OMIT,
-        rerank: typing.Optional[bool] = OMIT,
-        metadata_filter: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
-        custom_prompt: typing.Optional[str] = OMIT,
-        request_options: typing.Optional[RequestOptions] = None,
-    ) -> typing.Iterator[QueryStreamEvent]:
-        """
-        Execute a natural language query against a collection.
-
-        When `inference=true`, returns an AI-generated response with relevant documents.
-        When `inference=false`, returns raw search results with content and metadata.
-
-        ## Streaming (SSE)
-
-        When `stream: true` and `inference: true`, the response is a Server-Sent Events stream. Every `data:` field is a JSON object with a `type` discriminator.
-
-        ### SSE Event Types
-
-        | `type` value | Schema | Description |
-        |---|---|---|
-        | `text.delta` | `QueryStreamTextEvent` | Incremental text chunk of the AI response. |
-        | `tool.start` | `QueryStreamToolStartEvent` | The agent is performing a knowledge-base search. |
-        | `tool.end` | `QueryStreamToolEndEvent` | A tool call completed. `tool_call_id` correlates with the preceding `tool.start`. |
-        | `stream_complete` | `QueryStreamCompleteEvent` | Stream finished successfully. Close the connection. |
-        | `stream_error` | `QueryStreamErrorEvent` | An error occurred. Close the connection. |
-
-        ### Example SSE Stream
-
-        ```
-        data: {"type":"tool.start","seq":1,"run_id":"run_abc","tool_call_id":"tc_1","name":"searchKnowledgeBase","args":{"query":"revenue projections Q4"}}
-
-        data: {"type":"tool.end","seq":2,"run_id":"run_abc","tool_call_id":"tc_1","name":"searchKnowledgeBase","ok":true,"result_summary":{"resultCount":12}}
-
-        data: {"type":"text.delta","seq":3,"run_id":"run_abc","data":"Based on the documents"}
-        data: {"type":"text.delta","seq":4,"run_id":"run_abc","data":" provided, the revenue"}
-        data: {"type":"text.delta","seq":5,"run_id":"run_abc","data":" projections for Q4 show"}
-        data: {"type":"text.delta","seq":6,"run_id":"run_abc","data":" a 15% increase over Q3."}
-
-        data: {"type":"stream_complete","metadata":{"totalResults":12,"totalSearches":1},"stats":{"totalTokens":150}}
-        ```
-
-        ### Notes
-
-        - The agent may perform multiple searches per query. Each search produces a `tool.start` / `tool.end` pair.
-        - Text chunks are interleaved between tool events â€” text arrives after the agent has gathered results from a search.
-        - Connect with `Accept: text/event-stream` and set a generous timeout (120s+) for long responses.
-
-        Parameters
-        ----------
-        collection_name : str
-
-        query : str
-            The natural language query to search for
-
-        inference : typing.Optional[bool]
-            Enable LLM-generated answers based on the relevant sections retrieved. When false, returns raw search results.
-
-        top_k : typing.Optional[int]
-            Number of results to return. Only valid when inference=false. Not supported when inference=true (the agent controls its own search strategy).
-
-        rerank : typing.Optional[bool]
-            Enable Voyage AI rerank-2.5 reranking for improved relevance ordering. Adds ~100-300ms latency.
-
-        metadata_filter : typing.Optional[typing.Dict[str, typing.Any]]
-            Filter expression for vector search. Supports: $eq, $ne, $gt, $gte, $lt, $lte, $in, $nin, $and, $or
-
-        custom_prompt : typing.Optional[str]
-            Custom system prompt to override the default RAG prompt when inference=true. Allows customizing how the LLM processes and responds to the query with the retrieved context.
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Yields
-        ------
-        typing.Iterator[QueryStreamEvent]
-
-
-        Examples
-        --------
-        from runcaptain import Captain
-
-        client = Captain(
-            organization_id="YOUR_ORGANIZATION_ID",
-            key="YOUR_KEY",
-        )
-        response = client.query.collection_v2stream(
-            collection_name="collection_name",
-            query="query",
-        )
-        for chunk in response:
-            yield chunk
-        """
-        with self._raw_client.collection_v2stream(
-            collection_name,
-            query=query,
-            inference=inference,
-            top_k=top_k,
-            rerank=rerank,
-            metadata_filter=metadata_filter,
-            custom_prompt=custom_prompt,
-            request_options=request_options,
-        ) as r:
-            yield from r.data
-
     def collection_v2(
         self,
         collection_name: str,
         *,
         query: str,
+        idempotency_key: typing.Optional[str] = None,
         inference: typing.Optional[bool] = OMIT,
+        stream: typing.Optional[bool] = OMIT,
         top_k: typing.Optional[int] = OMIT,
         rerank: typing.Optional[bool] = OMIT,
         metadata_filter: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
         custom_prompt: typing.Optional[str] = OMIT,
+        include_bbox: typing.Optional[bool] = OMIT,
+        search_results: typing.Optional[bool] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> QueryResponseV2:
         """
@@ -187,24 +80,45 @@ class QueryClient:
         ### Notes
 
         - The agent may perform multiple searches per query. Each search produces a `tool.start` / `tool.end` pair.
-        - Text chunks are interleaved between tool events â€” text arrives after the agent has gathered results from a search.
+        - Text chunks are interleaved between tool events  -  text arrives after the agent has gathered results from a search.
         - Connect with `Accept: text/event-stream` and set a generous timeout (120s+) for long responses.
+
+        ## Bounding Box Data
+
+        Set `include_bbox: true` (inference=false only) to receive element-level layout coordinates for each search result. Each result will include a `layout` object with normalized bounding box blocks for PDF and DOCX files.
+
+        Each block contains:
+        - `type`: element type (text, title, section_header, list_item, table, figure, key_value, header, footer)
+        - `content`: the text content
+        - `page`: page number
+        - `bbox`: normalized 0-1 coordinates `{ top, left, width, height }` relative to page dimensions
+        - `confidence`: extraction confidence (high/low) when available
+        - `image_url`: presigned URL for figure/chart images when available
+
+        Files without OCR data (TXT, CSV, images) will have `layout: null`.
 
         Parameters
         ----------
         collection_name : str
+            Name of the collection to query
 
         query : str
             The natural language query to search for
 
+        idempotency_key : typing.Optional[str]
+            UUID for request deduplication
+
         inference : typing.Optional[bool]
             Enable LLM-generated answers based on the relevant sections retrieved. When false, returns raw search results.
+
+        stream : typing.Optional[bool]
+            Enable real-time streaming of the response
 
         top_k : typing.Optional[int]
             Number of results to return. Only valid when inference=false. Not supported when inference=true (the agent controls its own search strategy).
 
         rerank : typing.Optional[bool]
-            Enable Voyage AI rerank-2.5 reranking for improved relevance ordering. Adds ~100-300ms latency.
+            Enable reranking for improved relevance ordering. Uses Gemini Flash 2.5 by default, or Voyage AI rerank-2.5 as fallback. Adds ~100-300ms latency.
 
         metadata_filter : typing.Optional[typing.Dict[str, typing.Any]]
             Filter expression for vector search. Supports: $eq, $ne, $gt, $gte, $lt, $lte, $in, $nin, $and, $or
@@ -212,13 +126,19 @@ class QueryClient:
         custom_prompt : typing.Optional[str]
             Custom system prompt to override the default RAG prompt when inference=true. Allows customizing how the LLM processes and responds to the query with the retrieved context.
 
+        include_bbox : typing.Optional[bool]
+            Include normalized bounding box layout data for each search result. Returns element-level positions (titles, paragraphs, tables, figures, form fields) with page coordinates for PDF and DOCX files. Only supported with inference=false.
+
+        search_results : typing.Optional[bool]
+            When inference=true, include the raw search result chunks that were used as context for the LLM response. Defaults to false. Always true when inference=false.
+
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
         QueryResponseV2
-
+            Successful Response  -  returns JSON when `stream: false`, or SSE event stream when `stream: true`.
 
         Examples
         --------
@@ -231,19 +151,25 @@ class QueryClient:
         client.query.collection_v2(
             collection_name="my_documents",
             query="What are the key terms in the contract?",
-            inference=False,
+            inference=True,
+            stream=True,
             rerank=True,
             top_k=10,
+            include_bbox=False,
         )
         """
         _response = self._raw_client.collection_v2(
             collection_name,
             query=query,
+            idempotency_key=idempotency_key,
             inference=inference,
+            stream=stream,
             top_k=top_k,
             rerank=rerank,
             metadata_filter=metadata_filter,
             custom_prompt=custom_prompt,
+            include_bbox=include_bbox,
+            search_results=search_results,
             request_options=request_options,
         )
         return _response.data
@@ -264,135 +190,20 @@ class AsyncQueryClient:
         """
         return self._raw_client
 
-    async def collection_v2stream(
-        self,
-        collection_name: str,
-        *,
-        query: str,
-        inference: typing.Optional[bool] = OMIT,
-        top_k: typing.Optional[int] = OMIT,
-        rerank: typing.Optional[bool] = OMIT,
-        metadata_filter: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
-        custom_prompt: typing.Optional[str] = OMIT,
-        request_options: typing.Optional[RequestOptions] = None,
-    ) -> typing.AsyncIterator[QueryStreamEvent]:
-        """
-        Execute a natural language query against a collection.
-
-        When `inference=true`, returns an AI-generated response with relevant documents.
-        When `inference=false`, returns raw search results with content and metadata.
-
-        ## Streaming (SSE)
-
-        When `stream: true` and `inference: true`, the response is a Server-Sent Events stream. Every `data:` field is a JSON object with a `type` discriminator.
-
-        ### SSE Event Types
-
-        | `type` value | Schema | Description |
-        |---|---|---|
-        | `text.delta` | `QueryStreamTextEvent` | Incremental text chunk of the AI response. |
-        | `tool.start` | `QueryStreamToolStartEvent` | The agent is performing a knowledge-base search. |
-        | `tool.end` | `QueryStreamToolEndEvent` | A tool call completed. `tool_call_id` correlates with the preceding `tool.start`. |
-        | `stream_complete` | `QueryStreamCompleteEvent` | Stream finished successfully. Close the connection. |
-        | `stream_error` | `QueryStreamErrorEvent` | An error occurred. Close the connection. |
-
-        ### Example SSE Stream
-
-        ```
-        data: {"type":"tool.start","seq":1,"run_id":"run_abc","tool_call_id":"tc_1","name":"searchKnowledgeBase","args":{"query":"revenue projections Q4"}}
-
-        data: {"type":"tool.end","seq":2,"run_id":"run_abc","tool_call_id":"tc_1","name":"searchKnowledgeBase","ok":true,"result_summary":{"resultCount":12}}
-
-        data: {"type":"text.delta","seq":3,"run_id":"run_abc","data":"Based on the documents"}
-        data: {"type":"text.delta","seq":4,"run_id":"run_abc","data":" provided, the revenue"}
-        data: {"type":"text.delta","seq":5,"run_id":"run_abc","data":" projections for Q4 show"}
-        data: {"type":"text.delta","seq":6,"run_id":"run_abc","data":" a 15% increase over Q3."}
-
-        data: {"type":"stream_complete","metadata":{"totalResults":12,"totalSearches":1},"stats":{"totalTokens":150}}
-        ```
-
-        ### Notes
-
-        - The agent may perform multiple searches per query. Each search produces a `tool.start` / `tool.end` pair.
-        - Text chunks are interleaved between tool events â€” text arrives after the agent has gathered results from a search.
-        - Connect with `Accept: text/event-stream` and set a generous timeout (120s+) for long responses.
-
-        Parameters
-        ----------
-        collection_name : str
-
-        query : str
-            The natural language query to search for
-
-        inference : typing.Optional[bool]
-            Enable LLM-generated answers based on the relevant sections retrieved. When false, returns raw search results.
-
-        top_k : typing.Optional[int]
-            Number of results to return. Only valid when inference=false. Not supported when inference=true (the agent controls its own search strategy).
-
-        rerank : typing.Optional[bool]
-            Enable Voyage AI rerank-2.5 reranking for improved relevance ordering. Adds ~100-300ms latency.
-
-        metadata_filter : typing.Optional[typing.Dict[str, typing.Any]]
-            Filter expression for vector search. Supports: $eq, $ne, $gt, $gte, $lt, $lte, $in, $nin, $and, $or
-
-        custom_prompt : typing.Optional[str]
-            Custom system prompt to override the default RAG prompt when inference=true. Allows customizing how the LLM processes and responds to the query with the retrieved context.
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Yields
-        ------
-        typing.AsyncIterator[QueryStreamEvent]
-
-
-        Examples
-        --------
-        import asyncio
-
-        from runcaptain import AsyncCaptain
-
-        client = AsyncCaptain(
-            organization_id="YOUR_ORGANIZATION_ID",
-            key="YOUR_KEY",
-        )
-
-
-        async def main() -> None:
-            response = await client.query.collection_v2stream(
-                collection_name="collection_name",
-                query="query",
-            )
-            async for chunk in response:
-                yield chunk
-
-
-        asyncio.run(main())
-        """
-        async with self._raw_client.collection_v2stream(
-            collection_name,
-            query=query,
-            inference=inference,
-            top_k=top_k,
-            rerank=rerank,
-            metadata_filter=metadata_filter,
-            custom_prompt=custom_prompt,
-            request_options=request_options,
-        ) as r:
-            async for _chunk in r.data:
-                yield _chunk
-
     async def collection_v2(
         self,
         collection_name: str,
         *,
         query: str,
+        idempotency_key: typing.Optional[str] = None,
         inference: typing.Optional[bool] = OMIT,
+        stream: typing.Optional[bool] = OMIT,
         top_k: typing.Optional[int] = OMIT,
         rerank: typing.Optional[bool] = OMIT,
         metadata_filter: typing.Optional[typing.Dict[str, typing.Any]] = OMIT,
         custom_prompt: typing.Optional[str] = OMIT,
+        include_bbox: typing.Optional[bool] = OMIT,
+        search_results: typing.Optional[bool] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> QueryResponseV2:
         """
@@ -433,24 +244,45 @@ class AsyncQueryClient:
         ### Notes
 
         - The agent may perform multiple searches per query. Each search produces a `tool.start` / `tool.end` pair.
-        - Text chunks are interleaved between tool events â€” text arrives after the agent has gathered results from a search.
+        - Text chunks are interleaved between tool events  -  text arrives after the agent has gathered results from a search.
         - Connect with `Accept: text/event-stream` and set a generous timeout (120s+) for long responses.
+
+        ## Bounding Box Data
+
+        Set `include_bbox: true` (inference=false only) to receive element-level layout coordinates for each search result. Each result will include a `layout` object with normalized bounding box blocks for PDF and DOCX files.
+
+        Each block contains:
+        - `type`: element type (text, title, section_header, list_item, table, figure, key_value, header, footer)
+        - `content`: the text content
+        - `page`: page number
+        - `bbox`: normalized 0-1 coordinates `{ top, left, width, height }` relative to page dimensions
+        - `confidence`: extraction confidence (high/low) when available
+        - `image_url`: presigned URL for figure/chart images when available
+
+        Files without OCR data (TXT, CSV, images) will have `layout: null`.
 
         Parameters
         ----------
         collection_name : str
+            Name of the collection to query
 
         query : str
             The natural language query to search for
 
+        idempotency_key : typing.Optional[str]
+            UUID for request deduplication
+
         inference : typing.Optional[bool]
             Enable LLM-generated answers based on the relevant sections retrieved. When false, returns raw search results.
+
+        stream : typing.Optional[bool]
+            Enable real-time streaming of the response
 
         top_k : typing.Optional[int]
             Number of results to return. Only valid when inference=false. Not supported when inference=true (the agent controls its own search strategy).
 
         rerank : typing.Optional[bool]
-            Enable Voyage AI rerank-2.5 reranking for improved relevance ordering. Adds ~100-300ms latency.
+            Enable reranking for improved relevance ordering. Uses Gemini Flash 2.5 by default, or Voyage AI rerank-2.5 as fallback. Adds ~100-300ms latency.
 
         metadata_filter : typing.Optional[typing.Dict[str, typing.Any]]
             Filter expression for vector search. Supports: $eq, $ne, $gt, $gte, $lt, $lte, $in, $nin, $and, $or
@@ -458,13 +290,19 @@ class AsyncQueryClient:
         custom_prompt : typing.Optional[str]
             Custom system prompt to override the default RAG prompt when inference=true. Allows customizing how the LLM processes and responds to the query with the retrieved context.
 
+        include_bbox : typing.Optional[bool]
+            Include normalized bounding box layout data for each search result. Returns element-level positions (titles, paragraphs, tables, figures, form fields) with page coordinates for PDF and DOCX files. Only supported with inference=false.
+
+        search_results : typing.Optional[bool]
+            When inference=true, include the raw search result chunks that were used as context for the LLM response. Defaults to false. Always true when inference=false.
+
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
         QueryResponseV2
-
+            Successful Response  -  returns JSON when `stream: false`, or SSE event stream when `stream: true`.
 
         Examples
         --------
@@ -482,9 +320,11 @@ class AsyncQueryClient:
             await client.query.collection_v2(
                 collection_name="my_documents",
                 query="What are the key terms in the contract?",
-                inference=False,
+                inference=True,
+                stream=True,
                 rerank=True,
                 top_k=10,
+                include_bbox=False,
             )
 
 
@@ -493,11 +333,15 @@ class AsyncQueryClient:
         _response = await self._raw_client.collection_v2(
             collection_name,
             query=query,
+            idempotency_key=idempotency_key,
             inference=inference,
+            stream=stream,
             top_k=top_k,
             rerank=rerank,
             metadata_filter=metadata_filter,
             custom_prompt=custom_prompt,
+            include_bbox=include_bbox,
+            search_results=search_results,
             request_options=request_options,
         )
         return _response.data

@@ -7,19 +7,24 @@ from ..core.api_error import ApiError
 from ..core.client_wrapper import AsyncClientWrapper, SyncClientWrapper
 from ..core.http_response import AsyncHttpResponse, HttpResponse
 from ..core.jsonable_encoder import jsonable_encoder
+from ..core.parse_error import ParsingError
 from ..core.pydantic_utilities import parse_obj_as
 from ..core.request_options import RequestOptions
 from ..errors.not_found_error import NotFoundError
 from ..errors.unauthorized_error import UnauthorizedError
+from .types.fundamentals_lookup_table_values_response import FundamentalsLookupTableValuesResponse
+from .types.fundamentals_lookup_tables_response import FundamentalsLookupTablesResponse
+from .types.fundamentals_sandbox_response import FundamentalsSandboxResponse
+from pydantic import ValidationError
 
 
-class RawFundamentalsClient:
+class RawSandboxDataClient:
     def __init__(self, *, client_wrapper: SyncClientWrapper):
         self._client_wrapper = client_wrapper
 
-    def sandbox(
+    def fundamentals_sandbox(
         self, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> HttpResponse[FundamentalsSandboxResponse]:
         """
         Get sample entities for testing and development. Returns mock company, person, investor, and fund data for sandbox environment testing.
 
@@ -30,7 +35,7 @@ class RawFundamentalsClient:
 
         Returns
         -------
-        HttpResponse[typing.Dict[str, typing.Any]]
+        HttpResponse[FundamentalsSandboxResponse]
             Successful response
         """
         _response = self._client_wrapper.httpx_client.request(
@@ -41,9 +46,9 @@ class RawFundamentalsClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    FundamentalsSandboxResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=FundamentalsSandboxResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -62,11 +67,15 @@ class RawFundamentalsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
-    def lookup_tables(
+    def fundamentals_lookup_tables(
         self, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> HttpResponse[FundamentalsLookupTablesResponse]:
         """
         Get available reference lookup tables including industry codes, country codes, and entity type classifications. Returns list of available tables with descriptions.
 
@@ -77,7 +86,7 @@ class RawFundamentalsClient:
 
         Returns
         -------
-        HttpResponse[typing.Dict[str, typing.Any]]
+        HttpResponse[FundamentalsLookupTablesResponse]
             Successful response
         """
         _response = self._client_wrapper.httpx_client.request(
@@ -88,9 +97,9 @@ class RawFundamentalsClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    FundamentalsLookupTablesResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=FundamentalsLookupTablesResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -109,24 +118,29 @@ class RawFundamentalsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
-    def lookup_table_values(
+    def fundamentals_lookup_table_values(
         self, table_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> HttpResponse[FundamentalsLookupTableValuesResponse]:
         """
         Get values from a specific lookup table. Returns table data with codes, descriptions, and hierarchical relationships for reference data.
 
         Parameters
         ----------
         table_id : str
+            Lookup table ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[typing.Dict[str, typing.Any]]
+        HttpResponse[FundamentalsLookupTableValuesResponse]
             Successful response
         """
         _response = self._client_wrapper.httpx_client.request(
@@ -137,9 +151,9 @@ class RawFundamentalsClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    FundamentalsLookupTableValuesResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=FundamentalsLookupTableValuesResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -169,16 +183,20 @@ class RawFundamentalsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
 
-class AsyncRawFundamentalsClient:
+class AsyncRawSandboxDataClient:
     def __init__(self, *, client_wrapper: AsyncClientWrapper):
         self._client_wrapper = client_wrapper
 
-    async def sandbox(
+    async def fundamentals_sandbox(
         self, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> AsyncHttpResponse[FundamentalsSandboxResponse]:
         """
         Get sample entities for testing and development. Returns mock company, person, investor, and fund data for sandbox environment testing.
 
@@ -189,7 +207,7 @@ class AsyncRawFundamentalsClient:
 
         Returns
         -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+        AsyncHttpResponse[FundamentalsSandboxResponse]
             Successful response
         """
         _response = await self._client_wrapper.httpx_client.request(
@@ -200,9 +218,9 @@ class AsyncRawFundamentalsClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    FundamentalsSandboxResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=FundamentalsSandboxResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -221,11 +239,15 @@ class AsyncRawFundamentalsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
-    async def lookup_tables(
+    async def fundamentals_lookup_tables(
         self, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> AsyncHttpResponse[FundamentalsLookupTablesResponse]:
         """
         Get available reference lookup tables including industry codes, country codes, and entity type classifications. Returns list of available tables with descriptions.
 
@@ -236,7 +258,7 @@ class AsyncRawFundamentalsClient:
 
         Returns
         -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+        AsyncHttpResponse[FundamentalsLookupTablesResponse]
             Successful response
         """
         _response = await self._client_wrapper.httpx_client.request(
@@ -247,9 +269,9 @@ class AsyncRawFundamentalsClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    FundamentalsLookupTablesResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=FundamentalsLookupTablesResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -268,24 +290,29 @@ class AsyncRawFundamentalsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
-    async def lookup_table_values(
+    async def fundamentals_lookup_table_values(
         self, table_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> AsyncHttpResponse[FundamentalsLookupTableValuesResponse]:
         """
         Get values from a specific lookup table. Returns table data with codes, descriptions, and hierarchical relationships for reference data.
 
         Parameters
         ----------
         table_id : str
+            Lookup table ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+        AsyncHttpResponse[FundamentalsLookupTableValuesResponse]
             Successful response
         """
         _response = await self._client_wrapper.httpx_client.request(
@@ -296,9 +323,9 @@ class AsyncRawFundamentalsClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    FundamentalsLookupTableValuesResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=FundamentalsLookupTableValuesResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -328,4 +355,8 @@ class AsyncRawFundamentalsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)

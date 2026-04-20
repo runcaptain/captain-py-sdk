@@ -7,11 +7,19 @@ from ..core.api_error import ApiError
 from ..core.client_wrapper import AsyncClientWrapper, SyncClientWrapper
 from ..core.http_response import AsyncHttpResponse, HttpResponse
 from ..core.jsonable_encoder import jsonable_encoder
+from ..core.parse_error import ParsingError
 from ..core.pydantic_utilities import parse_obj_as
 from ..core.request_options import RequestOptions
 from ..errors.not_found_error import NotFoundError
 from ..errors.not_implemented_error import NotImplementedError
 from ..errors.unauthorized_error import UnauthorizedError
+from .types.service_providers_bio_response import ServiceProvidersBioResponse
+from .types.service_providers_companies_response import ServiceProvidersCompaniesResponse
+from .types.service_providers_deals_response import ServiceProvidersDealsResponse
+from .types.service_providers_funds_response import ServiceProvidersFundsResponse
+from .types.service_providers_investors_response import ServiceProvidersInvestorsResponse
+from .types.service_providers_search_response import ServiceProvidersSearchResponse
+from pydantic import ValidationError
 
 
 class RawServiceProvidersClient:
@@ -21,33 +29,38 @@ class RawServiceProvidersClient:
     def search(
         self,
         *,
+        q: str,
         limit: typing.Optional[int] = None,
         provider_type: typing.Optional[str] = None,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> HttpResponse[ServiceProvidersSearchResponse]:
         """
         Search for service providers including law firms, accounting firms, investment banks, and consultants. Returns matching provider profiles with specializations and notable clients.
 
         Parameters
         ----------
+        q : str
+            Provider name or keyword (e.g., 'Wilson Sonsini')
+
         limit : typing.Optional[int]
-            Maximum results
+            Maximum number of results to return (1-100, default: 10)
 
         provider_type : typing.Optional[str]
-            Provider type filter
+            Filter by provider type (e.g., 'law', 'accounting', 'investment_bank', 'consulting')
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[typing.Dict[str, typing.Any]]
+        HttpResponse[ServiceProvidersSearchResponse]
             Successful response
         """
         _response = self._client_wrapper.httpx_client.request(
             "v2/datasets/odyssey/service-providers/search",
             method="GET",
             params={
+                "q": q,
                 "limit": limit,
                 "provider_type": provider_type,
             },
@@ -56,9 +69,9 @@ class RawServiceProvidersClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    ServiceProvidersSearchResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=ServiceProvidersSearchResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -77,24 +90,29 @@ class RawServiceProvidersClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     def bio(
         self, provider_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> HttpResponse[ServiceProvidersBioResponse]:
         """
         Get comprehensive service provider profile including firm description, practice areas, office locations, and notable work. This is the primary endpoint for provider overview data.
 
         Parameters
         ----------
         provider_id : str
+            Service provider entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[typing.Dict[str, typing.Any]]
+        HttpResponse[ServiceProvidersBioResponse]
             Successful response
         """
         _response = self._client_wrapper.httpx_client.request(
@@ -105,9 +123,9 @@ class RawServiceProvidersClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    ServiceProvidersBioResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=ServiceProvidersBioResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -137,24 +155,29 @@ class RawServiceProvidersClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     def companies(
         self, provider_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> HttpResponse[ServiceProvidersCompaniesResponse]:
         """
         Get companies that have engaged this service provider. Returns client list with engagement types and sectors served.
 
         Parameters
         ----------
         provider_id : str
+            Service provider entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[typing.Dict[str, typing.Any]]
+        HttpResponse[ServiceProvidersCompaniesResponse]
             Successful response
         """
         _response = self._client_wrapper.httpx_client.request(
@@ -165,9 +188,9 @@ class RawServiceProvidersClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    ServiceProvidersCompaniesResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=ServiceProvidersCompaniesResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -208,24 +231,29 @@ class RawServiceProvidersClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     def deals(
         self, provider_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> HttpResponse[ServiceProvidersDealsResponse]:
         """
         Get deals where this provider was involved as advisor, counsel, or banker. Returns transaction history with roles and deal values.
 
         Parameters
         ----------
         provider_id : str
+            Service provider entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[typing.Dict[str, typing.Any]]
+        HttpResponse[ServiceProvidersDealsResponse]
             Successful response
         """
         _response = self._client_wrapper.httpx_client.request(
@@ -236,9 +264,9 @@ class RawServiceProvidersClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    ServiceProvidersDealsResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=ServiceProvidersDealsResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -279,24 +307,29 @@ class RawServiceProvidersClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     def investors(
         self, provider_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> HttpResponse[ServiceProvidersInvestorsResponse]:
         """
         Get investors that have engaged this service provider. Returns investor clients with engagement types and fund formation work.
 
         Parameters
         ----------
         provider_id : str
+            Service provider entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[typing.Dict[str, typing.Any]]
+        HttpResponse[ServiceProvidersInvestorsResponse]
             Successful response
         """
         _response = self._client_wrapper.httpx_client.request(
@@ -307,9 +340,9 @@ class RawServiceProvidersClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    ServiceProvidersInvestorsResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=ServiceProvidersInvestorsResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -350,24 +383,29 @@ class RawServiceProvidersClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     def funds(
         self, provider_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> HttpResponse[ServiceProvidersFundsResponse]:
         """
         Get funds that have engaged this service provider. Returns fund formation and compliance work with engagement details.
 
         Parameters
         ----------
         provider_id : str
+            Service provider entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[typing.Dict[str, typing.Any]]
+        HttpResponse[ServiceProvidersFundsResponse]
             Successful response
         """
         _response = self._client_wrapper.httpx_client.request(
@@ -378,9 +416,9 @@ class RawServiceProvidersClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    ServiceProvidersFundsResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=ServiceProvidersFundsResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -421,25 +459,29 @@ class RawServiceProvidersClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     def limited_partners(
         self, provider_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> HttpResponse[None]:
         """
-        Get limited partners that have engaged this service provider. Returns LP clients with service types and relationship details.
+        **Coming Soon** - Get limited partners that have engaged this service provider. Returns LP clients with service types and relationship details.
 
         Parameters
         ----------
         provider_id : str
+            Service provider entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[typing.Dict[str, typing.Any]]
-            Successful response
+        HttpResponse[None]
         """
         _response = self._client_wrapper.httpx_client.request(
             f"v2/datasets/odyssey/service-providers/{jsonable_encoder(provider_id)}/limited-partners",
@@ -448,14 +490,7 @@ class RawServiceProvidersClient:
         )
         try:
             if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    typing.Dict[str, typing.Any],
-                    parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return HttpResponse(response=_response, data=_data)
+                return HttpResponse(response=_response, data=None)
             if _response.status_code == 401:
                 raise UnauthorizedError(
                     headers=dict(_response.headers),
@@ -492,66 +527,10 @@ class RawServiceProvidersClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
-    def updates(
-        self, provider_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
-        """
-        Get changelog of updates to service provider profile data. Returns history of changes including new engagements, office openings, and team changes with timestamps.
-
-        Parameters
-        ----------
-        provider_id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        HttpResponse[typing.Dict[str, typing.Any]]
-            Successful response
-        """
-        _response = self._client_wrapper.httpx_client.request(
-            f"v2/datasets/odyssey/service-providers/{jsonable_encoder(provider_id)}/updates",
-            method="GET",
-            request_options=request_options,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    typing.Dict[str, typing.Any],
-                    parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return HttpResponse(response=_response, data=_data)
-            if _response.status_code == 401:
-                raise UnauthorizedError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            if _response.status_code == 404:
-                raise NotFoundError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
 
@@ -562,33 +541,38 @@ class AsyncRawServiceProvidersClient:
     async def search(
         self,
         *,
+        q: str,
         limit: typing.Optional[int] = None,
         provider_type: typing.Optional[str] = None,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> AsyncHttpResponse[ServiceProvidersSearchResponse]:
         """
         Search for service providers including law firms, accounting firms, investment banks, and consultants. Returns matching provider profiles with specializations and notable clients.
 
         Parameters
         ----------
+        q : str
+            Provider name or keyword (e.g., 'Wilson Sonsini')
+
         limit : typing.Optional[int]
-            Maximum results
+            Maximum number of results to return (1-100, default: 10)
 
         provider_type : typing.Optional[str]
-            Provider type filter
+            Filter by provider type (e.g., 'law', 'accounting', 'investment_bank', 'consulting')
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+        AsyncHttpResponse[ServiceProvidersSearchResponse]
             Successful response
         """
         _response = await self._client_wrapper.httpx_client.request(
             "v2/datasets/odyssey/service-providers/search",
             method="GET",
             params={
+                "q": q,
                 "limit": limit,
                 "provider_type": provider_type,
             },
@@ -597,9 +581,9 @@ class AsyncRawServiceProvidersClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    ServiceProvidersSearchResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=ServiceProvidersSearchResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -618,24 +602,29 @@ class AsyncRawServiceProvidersClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def bio(
         self, provider_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> AsyncHttpResponse[ServiceProvidersBioResponse]:
         """
         Get comprehensive service provider profile including firm description, practice areas, office locations, and notable work. This is the primary endpoint for provider overview data.
 
         Parameters
         ----------
         provider_id : str
+            Service provider entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+        AsyncHttpResponse[ServiceProvidersBioResponse]
             Successful response
         """
         _response = await self._client_wrapper.httpx_client.request(
@@ -646,9 +635,9 @@ class AsyncRawServiceProvidersClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    ServiceProvidersBioResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=ServiceProvidersBioResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -678,24 +667,29 @@ class AsyncRawServiceProvidersClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def companies(
         self, provider_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> AsyncHttpResponse[ServiceProvidersCompaniesResponse]:
         """
         Get companies that have engaged this service provider. Returns client list with engagement types and sectors served.
 
         Parameters
         ----------
         provider_id : str
+            Service provider entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+        AsyncHttpResponse[ServiceProvidersCompaniesResponse]
             Successful response
         """
         _response = await self._client_wrapper.httpx_client.request(
@@ -706,9 +700,9 @@ class AsyncRawServiceProvidersClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    ServiceProvidersCompaniesResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=ServiceProvidersCompaniesResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -749,24 +743,29 @@ class AsyncRawServiceProvidersClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def deals(
         self, provider_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> AsyncHttpResponse[ServiceProvidersDealsResponse]:
         """
         Get deals where this provider was involved as advisor, counsel, or banker. Returns transaction history with roles and deal values.
 
         Parameters
         ----------
         provider_id : str
+            Service provider entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+        AsyncHttpResponse[ServiceProvidersDealsResponse]
             Successful response
         """
         _response = await self._client_wrapper.httpx_client.request(
@@ -777,9 +776,9 @@ class AsyncRawServiceProvidersClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    ServiceProvidersDealsResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=ServiceProvidersDealsResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -820,24 +819,29 @@ class AsyncRawServiceProvidersClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def investors(
         self, provider_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> AsyncHttpResponse[ServiceProvidersInvestorsResponse]:
         """
         Get investors that have engaged this service provider. Returns investor clients with engagement types and fund formation work.
 
         Parameters
         ----------
         provider_id : str
+            Service provider entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+        AsyncHttpResponse[ServiceProvidersInvestorsResponse]
             Successful response
         """
         _response = await self._client_wrapper.httpx_client.request(
@@ -848,9 +852,9 @@ class AsyncRawServiceProvidersClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    ServiceProvidersInvestorsResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=ServiceProvidersInvestorsResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -891,24 +895,29 @@ class AsyncRawServiceProvidersClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def funds(
         self, provider_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> AsyncHttpResponse[ServiceProvidersFundsResponse]:
         """
         Get funds that have engaged this service provider. Returns fund formation and compliance work with engagement details.
 
         Parameters
         ----------
         provider_id : str
+            Service provider entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+        AsyncHttpResponse[ServiceProvidersFundsResponse]
             Successful response
         """
         _response = await self._client_wrapper.httpx_client.request(
@@ -919,9 +928,9 @@ class AsyncRawServiceProvidersClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    ServiceProvidersFundsResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=ServiceProvidersFundsResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -962,25 +971,29 @@ class AsyncRawServiceProvidersClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def limited_partners(
         self, provider_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> AsyncHttpResponse[None]:
         """
-        Get limited partners that have engaged this service provider. Returns LP clients with service types and relationship details.
+        **Coming Soon** - Get limited partners that have engaged this service provider. Returns LP clients with service types and relationship details.
 
         Parameters
         ----------
         provider_id : str
+            Service provider entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
-            Successful response
+        AsyncHttpResponse[None]
         """
         _response = await self._client_wrapper.httpx_client.request(
             f"v2/datasets/odyssey/service-providers/{jsonable_encoder(provider_id)}/limited-partners",
@@ -989,14 +1002,7 @@ class AsyncRawServiceProvidersClient:
         )
         try:
             if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    typing.Dict[str, typing.Any],
-                    parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return AsyncHttpResponse(response=_response, data=_data)
+                return AsyncHttpResponse(response=_response, data=None)
             if _response.status_code == 401:
                 raise UnauthorizedError(
                     headers=dict(_response.headers),
@@ -1033,64 +1039,8 @@ class AsyncRawServiceProvidersClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
-    async def updates(
-        self, provider_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
-        """
-        Get changelog of updates to service provider profile data. Returns history of changes including new engagements, office openings, and team changes with timestamps.
-
-        Parameters
-        ----------
-        provider_id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
-            Successful response
-        """
-        _response = await self._client_wrapper.httpx_client.request(
-            f"v2/datasets/odyssey/service-providers/{jsonable_encoder(provider_id)}/updates",
-            method="GET",
-            request_options=request_options,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    typing.Dict[str, typing.Any],
-                    parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return AsyncHttpResponse(response=_response, data=_data)
-            if _response.status_code == 401:
-                raise UnauthorizedError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            if _response.status_code == 404:
-                raise NotFoundError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)

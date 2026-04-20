@@ -9,6 +9,7 @@ if typing.TYPE_CHECKING:
     from .index_azure_directory_request_v2processing_type import IndexAzureDirectoryRequestV2ProcessingType
     from .index_azure_file_request_v2processing_type import IndexAzureFileRequestV2ProcessingType
     from .index_azure_request_v2processing_type import IndexAzureRequestV2ProcessingType
+    from .index_file_v2request_processing_type import IndexFileV2RequestProcessingType
     from .index_gcs_directory_request_v2processing_type import IndexGcsDirectoryRequestV2ProcessingType
     from .index_gcs_file_request_v2processing_type import IndexGcsFileRequestV2ProcessingType
     from .index_gcs_request_v2processing_type import IndexGcsRequestV2ProcessingType
@@ -26,6 +27,7 @@ _dynamic_imports: typing.Dict[str, str] = {
     "IndexAzureDirectoryRequestV2ProcessingType": ".index_azure_directory_request_v2processing_type",
     "IndexAzureFileRequestV2ProcessingType": ".index_azure_file_request_v2processing_type",
     "IndexAzureRequestV2ProcessingType": ".index_azure_request_v2processing_type",
+    "IndexFileV2RequestProcessingType": ".index_file_v2request_processing_type",
     "IndexGcsDirectoryRequestV2ProcessingType": ".index_gcs_directory_request_v2processing_type",
     "IndexGcsFileRequestV2ProcessingType": ".index_gcs_file_request_v2processing_type",
     "IndexGcsRequestV2ProcessingType": ".index_gcs_request_v2processing_type",
@@ -67,6 +69,7 @@ __all__ = [
     "IndexAzureDirectoryRequestV2ProcessingType",
     "IndexAzureFileRequestV2ProcessingType",
     "IndexAzureRequestV2ProcessingType",
+    "IndexFileV2RequestProcessingType",
     "IndexGcsDirectoryRequestV2ProcessingType",
     "IndexGcsFileRequestV2ProcessingType",
     "IndexGcsRequestV2ProcessingType",

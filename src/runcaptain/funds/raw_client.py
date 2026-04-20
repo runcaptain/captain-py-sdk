@@ -7,11 +7,16 @@ from ..core.api_error import ApiError
 from ..core.client_wrapper import AsyncClientWrapper, SyncClientWrapper
 from ..core.http_response import AsyncHttpResponse, HttpResponse
 from ..core.jsonable_encoder import jsonable_encoder
+from ..core.parse_error import ParsingError
 from ..core.pydantic_utilities import parse_obj_as
 from ..core.request_options import RequestOptions
 from ..errors.not_found_error import NotFoundError
 from ..errors.not_implemented_error import NotImplementedError
 from ..errors.unauthorized_error import UnauthorizedError
+from .types.funds_active_investments_response import FundsActiveInvestmentsResponse
+from .types.funds_bio_response import FundsBioResponse
+from .types.funds_search_response import FundsSearchResponse
+from pydantic import ValidationError
 
 
 class RawFundsClient:
@@ -21,33 +26,43 @@ class RawFundsClient:
     def search(
         self,
         *,
+        q: str,
+        fund_type: typing.Optional[str] = None,
         vintage_year: typing.Optional[int] = None,
         limit: typing.Optional[int] = None,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> HttpResponse[FundsSearchResponse]:
         """
         Search for venture capital and private equity funds by name. Returns matching fund profiles with size, vintage year, and investment focus. Use this to find fund entity IDs for detailed lookups.
 
         Parameters
         ----------
+        q : str
+            Fund name or keyword (e.g., 'Sequoia Capital Fund XIV')
+
+        fund_type : typing.Optional[str]
+            Filter by fund type (e.g., 'venture', 'buyout', 'growth_equity', 'real_estate', 'debt')
+
         vintage_year : typing.Optional[int]
-            Filter by vintage year
+            Filter by fund vintage year (e.g., 2023)
 
         limit : typing.Optional[int]
-            Maximum results
+            Maximum number of results to return (1-100, default: 10)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[typing.Dict[str, typing.Any]]
+        HttpResponse[FundsSearchResponse]
             Successful response
         """
         _response = self._client_wrapper.httpx_client.request(
             "v2/datasets/odyssey/funds/search",
             method="GET",
             params={
+                "q": q,
+                "fund_type": fund_type,
                 "vintage_year": vintage_year,
                 "limit": limit,
             },
@@ -56,9 +71,9 @@ class RawFundsClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    FundsSearchResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=FundsSearchResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -77,24 +92,29 @@ class RawFundsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     def bio(
         self, fund_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> HttpResponse[FundsBioResponse]:
         """
         Get comprehensive fund profile including fund size, vintage year, investment strategy, stage focus, and sector focus. This is the primary endpoint for fund overview data.
 
         Parameters
         ----------
         fund_id : str
+            Fund entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[typing.Dict[str, typing.Any]]
+        HttpResponse[FundsBioResponse]
             Successful response
         """
         _response = self._client_wrapper.httpx_client.request(
@@ -105,9 +125,9 @@ class RawFundsClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    FundsBioResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=FundsBioResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -137,25 +157,29 @@ class RawFundsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     def performance(
         self, fund_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> HttpResponse[None]:
         """
-        Coming Soon: Get fund performance metrics including IRR, TVPI, DPI, and RVPI. Will return LP-level performance data when implemented with proprietary fund reporting.
+        **Coming Soon** - Get fund performance metrics including IRR, TVPI, DPI, and RVPI.
 
         Parameters
         ----------
         fund_id : str
+            Fund entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[typing.Dict[str, typing.Any]]
-            Successful response
+        HttpResponse[None]
         """
         _response = self._client_wrapper.httpx_client.request(
             f"v2/datasets/odyssey/funds/{jsonable_encoder(fund_id)}/performance",
@@ -164,14 +188,7 @@ class RawFundsClient:
         )
         try:
             if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    typing.Dict[str, typing.Any],
-                    parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return HttpResponse(response=_response, data=_data)
+                return HttpResponse(response=_response, data=None)
             if _response.status_code == 401:
                 raise UnauthorizedError(
                     headers=dict(_response.headers),
@@ -208,37 +225,59 @@ class RawFundsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     def active_investments(
-        self, fund_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+        self,
+        fund_id: str,
+        *,
+        page: typing.Optional[int] = None,
+        page_size: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> HttpResponse[FundsActiveInvestmentsResponse]:
         """
         Get current portfolio companies invested by this specific fund. Returns company names, investment amounts, and current status.
+
+        Supports pagination via `page` and `page_size` query parameters. Response includes `total_in_database` for the full count across all pages.
 
         Parameters
         ----------
         fund_id : str
+            Fund entity ID
+
+        page : typing.Optional[int]
+            Page number for pagination (default: 1)
+
+        page_size : typing.Optional[int]
+            Results per page (default: 50, max: 1000)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[typing.Dict[str, typing.Any]]
+        HttpResponse[FundsActiveInvestmentsResponse]
             Successful response
         """
         _response = self._client_wrapper.httpx_client.request(
             f"v2/datasets/odyssey/funds/{jsonable_encoder(fund_id)}/active-investments",
             method="GET",
+            params={
+                "page": page,
+                "page_size": page_size,
+            },
             request_options=request_options,
         )
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    FundsActiveInvestmentsResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=FundsActiveInvestmentsResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -268,85 +307,29 @@ class RawFundsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
-    def all_investments(
-        self, fund_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
-        """
-        Get complete investment history for this specific fund including current and exited positions. Returns all companies backed by the fund with outcomes.
-
-        Parameters
-        ----------
-        fund_id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        HttpResponse[typing.Dict[str, typing.Any]]
-            Successful response
-        """
-        _response = self._client_wrapper.httpx_client.request(
-            f"v2/datasets/odyssey/funds/{jsonable_encoder(fund_id)}/all-investments",
-            method="GET",
-            request_options=request_options,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    typing.Dict[str, typing.Any],
-                    parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return HttpResponse(response=_response, data=_data)
-            if _response.status_code == 401:
-                raise UnauthorizedError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            if _response.status_code == 404:
-                raise NotFoundError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     def commitments(
         self, fund_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> HttpResponse[None]:
         """
-        Get limited partner commitments to the fund including LP names and commitment amounts. Returns investor base and capital structure.
+        **Coming Soon** - Get limited partner commitments to the fund including LP names and commitment amounts. Returns investor base and capital structure.
 
         Parameters
         ----------
         fund_id : str
+            Fund entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[typing.Dict[str, typing.Any]]
-            Successful response
+        HttpResponse[None]
         """
         _response = self._client_wrapper.httpx_client.request(
             f"v2/datasets/odyssey/funds/{jsonable_encoder(fund_id)}/commitments",
@@ -355,14 +338,7 @@ class RawFundsClient:
         )
         try:
             if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    typing.Dict[str, typing.Any],
-                    parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return HttpResponse(response=_response, data=_data)
+                return HttpResponse(response=_response, data=None)
             if _response.status_code == 401:
                 raise UnauthorizedError(
                     headers=dict(_response.headers),
@@ -399,25 +375,29 @@ class RawFundsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     def cash_flows(
         self, fund_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> HttpResponse[None]:
         """
-        Coming Soon: Get fund cash flow history including capital calls and distributions. Will return quarterly cash flow statements when implemented with LP reporting data.
+        **Coming Soon** - Get fund cash flow history including capital calls and distributions.
 
         Parameters
         ----------
         fund_id : str
+            Fund entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[typing.Dict[str, typing.Any]]
-            Successful response
+        HttpResponse[None]
         """
         _response = self._client_wrapper.httpx_client.request(
             f"v2/datasets/odyssey/funds/{jsonable_encoder(fund_id)}/cash-flows",
@@ -426,14 +406,7 @@ class RawFundsClient:
         )
         try:
             if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    typing.Dict[str, typing.Any],
-                    parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return HttpResponse(response=_response, data=_data)
+                return HttpResponse(response=_response, data=None)
             if _response.status_code == 401:
                 raise UnauthorizedError(
                     headers=dict(_response.headers),
@@ -470,25 +443,27 @@ class RawFundsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
-    def benchmark(
-        self, fund_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+    def benchmark(self, fund_id: str, *, request_options: typing.Optional[RequestOptions] = None) -> HttpResponse[None]:
         """
-        Coming Soon: Get fund performance compared to industry benchmarks and peer funds. Will return quartile rankings and comparative metrics when implemented.
+        **Coming Soon** - Get fund performance compared to industry benchmarks and peer funds.
 
         Parameters
         ----------
         fund_id : str
+            Fund entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[typing.Dict[str, typing.Any]]
-            Successful response
+        HttpResponse[None]
         """
         _response = self._client_wrapper.httpx_client.request(
             f"v2/datasets/odyssey/funds/{jsonable_encoder(fund_id)}/benchmark",
@@ -497,14 +472,7 @@ class RawFundsClient:
         )
         try:
             if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    typing.Dict[str, typing.Any],
-                    parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return HttpResponse(response=_response, data=_data)
+                return HttpResponse(response=_response, data=None)
             if _response.status_code == 401:
                 raise UnauthorizedError(
                     headers=dict(_response.headers),
@@ -541,85 +509,29 @@ class RawFundsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
-    def people(
-        self, fund_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
-        """
-        Get investment team members for the fund including partners, principals, and associates. Returns names, titles, and LinkedIn profiles.
-
-        Parameters
-        ----------
-        fund_id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        HttpResponse[typing.Dict[str, typing.Any]]
-            Successful response
-        """
-        _response = self._client_wrapper.httpx_client.request(
-            f"v2/datasets/odyssey/funds/{jsonable_encoder(fund_id)}/people",
-            method="GET",
-            request_options=request_options,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    typing.Dict[str, typing.Any],
-                    parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return HttpResponse(response=_response, data=_data)
-            if _response.status_code == 401:
-                raise UnauthorizedError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            if _response.status_code == 404:
-                raise NotFoundError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     def preferences(
         self, fund_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> HttpResponse[None]:
         """
-        Get investment criteria and preferences for the fund including stage focus, sector preferences, geography, and check size ranges.
+        **Coming Soon** - Get investment criteria and preferences for the fund including stage focus, sector preferences, geography, and check size ranges.
 
         Parameters
         ----------
         fund_id : str
+            Fund entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[typing.Dict[str, typing.Any]]
-            Successful response
+        HttpResponse[None]
         """
         _response = self._client_wrapper.httpx_client.request(
             f"v2/datasets/odyssey/funds/{jsonable_encoder(fund_id)}/preferences",
@@ -628,14 +540,7 @@ class RawFundsClient:
         )
         try:
             if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    typing.Dict[str, typing.Any],
-                    parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return HttpResponse(response=_response, data=_data)
+                return HttpResponse(response=_response, data=None)
             if _response.status_code == 401:
                 raise UnauthorizedError(
                     headers=dict(_response.headers),
@@ -672,66 +577,10 @@ class RawFundsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
-    def updates(
-        self, fund_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Any]]:
-        """
-        Get changelog of updates to fund profile data. Returns history of changes including new investments, exits, and team changes with timestamps.
-
-        Parameters
-        ----------
-        fund_id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        HttpResponse[typing.Dict[str, typing.Any]]
-            Successful response
-        """
-        _response = self._client_wrapper.httpx_client.request(
-            f"v2/datasets/odyssey/funds/{jsonable_encoder(fund_id)}/updates",
-            method="GET",
-            request_options=request_options,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    typing.Dict[str, typing.Any],
-                    parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return HttpResponse(response=_response, data=_data)
-            if _response.status_code == 401:
-                raise UnauthorizedError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            if _response.status_code == 404:
-                raise NotFoundError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
 
@@ -742,33 +591,43 @@ class AsyncRawFundsClient:
     async def search(
         self,
         *,
+        q: str,
+        fund_type: typing.Optional[str] = None,
         vintage_year: typing.Optional[int] = None,
         limit: typing.Optional[int] = None,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> AsyncHttpResponse[FundsSearchResponse]:
         """
         Search for venture capital and private equity funds by name. Returns matching fund profiles with size, vintage year, and investment focus. Use this to find fund entity IDs for detailed lookups.
 
         Parameters
         ----------
+        q : str
+            Fund name or keyword (e.g., 'Sequoia Capital Fund XIV')
+
+        fund_type : typing.Optional[str]
+            Filter by fund type (e.g., 'venture', 'buyout', 'growth_equity', 'real_estate', 'debt')
+
         vintage_year : typing.Optional[int]
-            Filter by vintage year
+            Filter by fund vintage year (e.g., 2023)
 
         limit : typing.Optional[int]
-            Maximum results
+            Maximum number of results to return (1-100, default: 10)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+        AsyncHttpResponse[FundsSearchResponse]
             Successful response
         """
         _response = await self._client_wrapper.httpx_client.request(
             "v2/datasets/odyssey/funds/search",
             method="GET",
             params={
+                "q": q,
+                "fund_type": fund_type,
                 "vintage_year": vintage_year,
                 "limit": limit,
             },
@@ -777,9 +636,9 @@ class AsyncRawFundsClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    FundsSearchResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=FundsSearchResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -798,24 +657,29 @@ class AsyncRawFundsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def bio(
         self, fund_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> AsyncHttpResponse[FundsBioResponse]:
         """
         Get comprehensive fund profile including fund size, vintage year, investment strategy, stage focus, and sector focus. This is the primary endpoint for fund overview data.
 
         Parameters
         ----------
         fund_id : str
+            Fund entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+        AsyncHttpResponse[FundsBioResponse]
             Successful response
         """
         _response = await self._client_wrapper.httpx_client.request(
@@ -826,9 +690,9 @@ class AsyncRawFundsClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    FundsBioResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=FundsBioResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -858,25 +722,29 @@ class AsyncRawFundsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def performance(
         self, fund_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> AsyncHttpResponse[None]:
         """
-        Coming Soon: Get fund performance metrics including IRR, TVPI, DPI, and RVPI. Will return LP-level performance data when implemented with proprietary fund reporting.
+        **Coming Soon** - Get fund performance metrics including IRR, TVPI, DPI, and RVPI.
 
         Parameters
         ----------
         fund_id : str
+            Fund entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
-            Successful response
+        AsyncHttpResponse[None]
         """
         _response = await self._client_wrapper.httpx_client.request(
             f"v2/datasets/odyssey/funds/{jsonable_encoder(fund_id)}/performance",
@@ -885,14 +753,7 @@ class AsyncRawFundsClient:
         )
         try:
             if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    typing.Dict[str, typing.Any],
-                    parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return AsyncHttpResponse(response=_response, data=_data)
+                return AsyncHttpResponse(response=_response, data=None)
             if _response.status_code == 401:
                 raise UnauthorizedError(
                     headers=dict(_response.headers),
@@ -929,37 +790,59 @@ class AsyncRawFundsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def active_investments(
-        self, fund_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+        self,
+        fund_id: str,
+        *,
+        page: typing.Optional[int] = None,
+        page_size: typing.Optional[int] = None,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> AsyncHttpResponse[FundsActiveInvestmentsResponse]:
         """
         Get current portfolio companies invested by this specific fund. Returns company names, investment amounts, and current status.
+
+        Supports pagination via `page` and `page_size` query parameters. Response includes `total_in_database` for the full count across all pages.
 
         Parameters
         ----------
         fund_id : str
+            Fund entity ID
+
+        page : typing.Optional[int]
+            Page number for pagination (default: 1)
+
+        page_size : typing.Optional[int]
+            Results per page (default: 50, max: 1000)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
+        AsyncHttpResponse[FundsActiveInvestmentsResponse]
             Successful response
         """
         _response = await self._client_wrapper.httpx_client.request(
             f"v2/datasets/odyssey/funds/{jsonable_encoder(fund_id)}/active-investments",
             method="GET",
+            params={
+                "page": page,
+                "page_size": page_size,
+            },
             request_options=request_options,
         )
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Any],
+                    FundsActiveInvestmentsResponse,
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
+                        type_=FundsActiveInvestmentsResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -989,85 +872,29 @@ class AsyncRawFundsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
-    async def all_investments(
-        self, fund_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
-        """
-        Get complete investment history for this specific fund including current and exited positions. Returns all companies backed by the fund with outcomes.
-
-        Parameters
-        ----------
-        fund_id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
-            Successful response
-        """
-        _response = await self._client_wrapper.httpx_client.request(
-            f"v2/datasets/odyssey/funds/{jsonable_encoder(fund_id)}/all-investments",
-            method="GET",
-            request_options=request_options,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    typing.Dict[str, typing.Any],
-                    parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return AsyncHttpResponse(response=_response, data=_data)
-            if _response.status_code == 401:
-                raise UnauthorizedError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            if _response.status_code == 404:
-                raise NotFoundError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def commitments(
         self, fund_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> AsyncHttpResponse[None]:
         """
-        Get limited partner commitments to the fund including LP names and commitment amounts. Returns investor base and capital structure.
+        **Coming Soon** - Get limited partner commitments to the fund including LP names and commitment amounts. Returns investor base and capital structure.
 
         Parameters
         ----------
         fund_id : str
+            Fund entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
-            Successful response
+        AsyncHttpResponse[None]
         """
         _response = await self._client_wrapper.httpx_client.request(
             f"v2/datasets/odyssey/funds/{jsonable_encoder(fund_id)}/commitments",
@@ -1076,14 +903,7 @@ class AsyncRawFundsClient:
         )
         try:
             if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    typing.Dict[str, typing.Any],
-                    parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return AsyncHttpResponse(response=_response, data=_data)
+                return AsyncHttpResponse(response=_response, data=None)
             if _response.status_code == 401:
                 raise UnauthorizedError(
                     headers=dict(_response.headers),
@@ -1120,25 +940,29 @@ class AsyncRawFundsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def cash_flows(
         self, fund_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> AsyncHttpResponse[None]:
         """
-        Coming Soon: Get fund cash flow history including capital calls and distributions. Will return quarterly cash flow statements when implemented with LP reporting data.
+        **Coming Soon** - Get fund cash flow history including capital calls and distributions.
 
         Parameters
         ----------
         fund_id : str
+            Fund entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
-            Successful response
+        AsyncHttpResponse[None]
         """
         _response = await self._client_wrapper.httpx_client.request(
             f"v2/datasets/odyssey/funds/{jsonable_encoder(fund_id)}/cash-flows",
@@ -1147,14 +971,7 @@ class AsyncRawFundsClient:
         )
         try:
             if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    typing.Dict[str, typing.Any],
-                    parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return AsyncHttpResponse(response=_response, data=_data)
+                return AsyncHttpResponse(response=_response, data=None)
             if _response.status_code == 401:
                 raise UnauthorizedError(
                     headers=dict(_response.headers),
@@ -1191,25 +1008,29 @@ class AsyncRawFundsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def benchmark(
         self, fund_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> AsyncHttpResponse[None]:
         """
-        Coming Soon: Get fund performance compared to industry benchmarks and peer funds. Will return quartile rankings and comparative metrics when implemented.
+        **Coming Soon** - Get fund performance compared to industry benchmarks and peer funds.
 
         Parameters
         ----------
         fund_id : str
+            Fund entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
-            Successful response
+        AsyncHttpResponse[None]
         """
         _response = await self._client_wrapper.httpx_client.request(
             f"v2/datasets/odyssey/funds/{jsonable_encoder(fund_id)}/benchmark",
@@ -1218,14 +1039,7 @@ class AsyncRawFundsClient:
         )
         try:
             if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    typing.Dict[str, typing.Any],
-                    parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return AsyncHttpResponse(response=_response, data=_data)
+                return AsyncHttpResponse(response=_response, data=None)
             if _response.status_code == 401:
                 raise UnauthorizedError(
                     headers=dict(_response.headers),
@@ -1262,85 +1076,29 @@ class AsyncRawFundsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
-    async def people(
-        self, fund_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
-        """
-        Get investment team members for the fund including partners, principals, and associates. Returns names, titles, and LinkedIn profiles.
-
-        Parameters
-        ----------
-        fund_id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
-            Successful response
-        """
-        _response = await self._client_wrapper.httpx_client.request(
-            f"v2/datasets/odyssey/funds/{jsonable_encoder(fund_id)}/people",
-            method="GET",
-            request_options=request_options,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    typing.Dict[str, typing.Any],
-                    parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return AsyncHttpResponse(response=_response, data=_data)
-            if _response.status_code == 401:
-                raise UnauthorizedError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            if _response.status_code == 404:
-                raise NotFoundError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def preferences(
         self, fund_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
+    ) -> AsyncHttpResponse[None]:
         """
-        Get investment criteria and preferences for the fund including stage focus, sector preferences, geography, and check size ranges.
+        **Coming Soon** - Get investment criteria and preferences for the fund including stage focus, sector preferences, geography, and check size ranges.
 
         Parameters
         ----------
         fund_id : str
+            Fund entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
-            Successful response
+        AsyncHttpResponse[None]
         """
         _response = await self._client_wrapper.httpx_client.request(
             f"v2/datasets/odyssey/funds/{jsonable_encoder(fund_id)}/preferences",
@@ -1349,14 +1107,7 @@ class AsyncRawFundsClient:
         )
         try:
             if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    typing.Dict[str, typing.Any],
-                    parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return AsyncHttpResponse(response=_response, data=_data)
+                return AsyncHttpResponse(response=_response, data=None)
             if _response.status_code == 401:
                 raise UnauthorizedError(
                     headers=dict(_response.headers),
@@ -1393,64 +1144,8 @@ class AsyncRawFundsClient:
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
-    async def updates(
-        self, fund_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Any]]:
-        """
-        Get changelog of updates to fund profile data. Returns history of changes including new investments, exits, and team changes with timestamps.
-
-        Parameters
-        ----------
-        fund_id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        AsyncHttpResponse[typing.Dict[str, typing.Any]]
-            Successful response
-        """
-        _response = await self._client_wrapper.httpx_client.request(
-            f"v2/datasets/odyssey/funds/{jsonable_encoder(fund_id)}/updates",
-            method="GET",
-            request_options=request_options,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    typing.Dict[str, typing.Any],
-                    parse_obj_as(
-                        type_=typing.Dict[str, typing.Any],  # type: ignore
-                        object_=_response.json(),
-                    ),
-                )
-                return AsyncHttpResponse(response=_response, data=_data)
-            if _response.status_code == 401:
-                raise UnauthorizedError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            if _response.status_code == 404:
-                raise NotFoundError(
-                    headers=dict(_response.headers),
-                    body=typing.cast(
-                        typing.Any,
-                        parse_obj_as(
-                            type_=typing.Any,  # type: ignore
-                            object_=_response.json(),
-                        ),
-                    ),
-                )
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        except ValidationError as e:
+            raise ParsingError(
+                status_code=_response.status_code, headers=dict(_response.headers), body=_response.json(), cause=e
+            )
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)

@@ -11,6 +11,10 @@ class JobCancelResponseV2(UniversalBaseModel):
     status: str
     message: str
     cancelled_at: typing.Optional[str] = None
+    cleanup_initiated: typing.Optional[bool] = pydantic.Field(default=None)
+    """
+    True if background data cleanup (RDS + Turbopuffer) was started
+    """
 
     if IS_PYDANTIC_V2:
         model_config: typing.ClassVar[pydantic.ConfigDict] = pydantic.ConfigDict(extra="allow", frozen=True)  # type: ignore # Pydantic v2

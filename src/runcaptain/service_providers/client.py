@@ -5,6 +5,12 @@ import typing
 from ..core.client_wrapper import AsyncClientWrapper, SyncClientWrapper
 from ..core.request_options import RequestOptions
 from .raw_client import AsyncRawServiceProvidersClient, RawServiceProvidersClient
+from .types.service_providers_bio_response import ServiceProvidersBioResponse
+from .types.service_providers_companies_response import ServiceProvidersCompaniesResponse
+from .types.service_providers_deals_response import ServiceProvidersDealsResponse
+from .types.service_providers_funds_response import ServiceProvidersFundsResponse
+from .types.service_providers_investors_response import ServiceProvidersInvestorsResponse
+from .types.service_providers_search_response import ServiceProvidersSearchResponse
 
 
 class ServiceProvidersClient:
@@ -25,27 +31,31 @@ class ServiceProvidersClient:
     def search(
         self,
         *,
+        q: str,
         limit: typing.Optional[int] = None,
         provider_type: typing.Optional[str] = None,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> ServiceProvidersSearchResponse:
         """
         Search for service providers including law firms, accounting firms, investment banks, and consultants. Returns matching provider profiles with specializations and notable clients.
 
         Parameters
         ----------
+        q : str
+            Provider name or keyword (e.g., 'Wilson Sonsini')
+
         limit : typing.Optional[int]
-            Maximum results
+            Maximum number of results to return (1-100, default: 10)
 
         provider_type : typing.Optional[str]
-            Provider type filter
+            Filter by provider type (e.g., 'law', 'accounting', 'investment_bank', 'consulting')
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        ServiceProvidersSearchResponse
             Successful response
 
         Examples
@@ -56,27 +66,33 @@ class ServiceProvidersClient:
             organization_id="YOUR_ORGANIZATION_ID",
             key="YOUR_KEY",
         )
-        client.service_providers.search()
+        client.service_providers.search(
+            q="Wilson Sonsini",
+            limit=10,
+        )
         """
-        _response = self._raw_client.search(limit=limit, provider_type=provider_type, request_options=request_options)
+        _response = self._raw_client.search(
+            q=q, limit=limit, provider_type=provider_type, request_options=request_options
+        )
         return _response.data
 
     def bio(
         self, provider_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> ServiceProvidersBioResponse:
         """
         Get comprehensive service provider profile including firm description, practice areas, office locations, and notable work. This is the primary endpoint for provider overview data.
 
         Parameters
         ----------
         provider_id : str
+            Service provider entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        ServiceProvidersBioResponse
             Successful response
 
         Examples
@@ -96,20 +112,21 @@ class ServiceProvidersClient:
 
     def companies(
         self, provider_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> ServiceProvidersCompaniesResponse:
         """
         Get companies that have engaged this service provider. Returns client list with engagement types and sectors served.
 
         Parameters
         ----------
         provider_id : str
+            Service provider entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        ServiceProvidersCompaniesResponse
             Successful response
 
         Examples
@@ -129,20 +146,21 @@ class ServiceProvidersClient:
 
     def deals(
         self, provider_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> ServiceProvidersDealsResponse:
         """
         Get deals where this provider was involved as advisor, counsel, or banker. Returns transaction history with roles and deal values.
 
         Parameters
         ----------
         provider_id : str
+            Service provider entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        ServiceProvidersDealsResponse
             Successful response
 
         Examples
@@ -162,20 +180,21 @@ class ServiceProvidersClient:
 
     def investors(
         self, provider_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> ServiceProvidersInvestorsResponse:
         """
         Get investors that have engaged this service provider. Returns investor clients with engagement types and fund formation work.
 
         Parameters
         ----------
         provider_id : str
+            Service provider entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        ServiceProvidersInvestorsResponse
             Successful response
 
         Examples
@@ -195,20 +214,21 @@ class ServiceProvidersClient:
 
     def funds(
         self, provider_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> ServiceProvidersFundsResponse:
         """
         Get funds that have engaged this service provider. Returns fund formation and compliance work with engagement details.
 
         Parameters
         ----------
         provider_id : str
+            Service provider entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        ServiceProvidersFundsResponse
             Successful response
 
         Examples
@@ -226,23 +246,21 @@ class ServiceProvidersClient:
         _response = self._raw_client.funds(provider_id, request_options=request_options)
         return _response.data
 
-    def limited_partners(
-        self, provider_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    def limited_partners(self, provider_id: str, *, request_options: typing.Optional[RequestOptions] = None) -> None:
         """
-        Get limited partners that have engaged this service provider. Returns LP clients with service types and relationship details.
+        **Coming Soon** - Get limited partners that have engaged this service provider. Returns LP clients with service types and relationship details.
 
         Parameters
         ----------
         provider_id : str
+            Service provider entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
-            Successful response
+        None
 
         Examples
         --------
@@ -257,39 +275,6 @@ class ServiceProvidersClient:
         )
         """
         _response = self._raw_client.limited_partners(provider_id, request_options=request_options)
-        return _response.data
-
-    def updates(
-        self, provider_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
-        """
-        Get changelog of updates to service provider profile data. Returns history of changes including new engagements, office openings, and team changes with timestamps.
-
-        Parameters
-        ----------
-        provider_id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        typing.Dict[str, typing.Any]
-            Successful response
-
-        Examples
-        --------
-        from runcaptain import Captain
-
-        client = Captain(
-            organization_id="YOUR_ORGANIZATION_ID",
-            key="YOUR_KEY",
-        )
-        client.service_providers.updates(
-            provider_id="wilson-sonsini",
-        )
-        """
-        _response = self._raw_client.updates(provider_id, request_options=request_options)
         return _response.data
 
 
@@ -311,27 +296,31 @@ class AsyncServiceProvidersClient:
     async def search(
         self,
         *,
+        q: str,
         limit: typing.Optional[int] = None,
         provider_type: typing.Optional[str] = None,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> ServiceProvidersSearchResponse:
         """
         Search for service providers including law firms, accounting firms, investment banks, and consultants. Returns matching provider profiles with specializations and notable clients.
 
         Parameters
         ----------
+        q : str
+            Provider name or keyword (e.g., 'Wilson Sonsini')
+
         limit : typing.Optional[int]
-            Maximum results
+            Maximum number of results to return (1-100, default: 10)
 
         provider_type : typing.Optional[str]
-            Provider type filter
+            Filter by provider type (e.g., 'law', 'accounting', 'investment_bank', 'consulting')
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        ServiceProvidersSearchResponse
             Successful response
 
         Examples
@@ -347,32 +336,36 @@ class AsyncServiceProvidersClient:
 
 
         async def main() -> None:
-            await client.service_providers.search()
+            await client.service_providers.search(
+                q="Wilson Sonsini",
+                limit=10,
+            )
 
 
         asyncio.run(main())
         """
         _response = await self._raw_client.search(
-            limit=limit, provider_type=provider_type, request_options=request_options
+            q=q, limit=limit, provider_type=provider_type, request_options=request_options
         )
         return _response.data
 
     async def bio(
         self, provider_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> ServiceProvidersBioResponse:
         """
         Get comprehensive service provider profile including firm description, practice areas, office locations, and notable work. This is the primary endpoint for provider overview data.
 
         Parameters
         ----------
         provider_id : str
+            Service provider entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        ServiceProvidersBioResponse
             Successful response
 
         Examples
@@ -400,20 +393,21 @@ class AsyncServiceProvidersClient:
 
     async def companies(
         self, provider_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> ServiceProvidersCompaniesResponse:
         """
         Get companies that have engaged this service provider. Returns client list with engagement types and sectors served.
 
         Parameters
         ----------
         provider_id : str
+            Service provider entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        ServiceProvidersCompaniesResponse
             Successful response
 
         Examples
@@ -441,20 +435,21 @@ class AsyncServiceProvidersClient:
 
     async def deals(
         self, provider_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> ServiceProvidersDealsResponse:
         """
         Get deals where this provider was involved as advisor, counsel, or banker. Returns transaction history with roles and deal values.
 
         Parameters
         ----------
         provider_id : str
+            Service provider entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        ServiceProvidersDealsResponse
             Successful response
 
         Examples
@@ -482,20 +477,21 @@ class AsyncServiceProvidersClient:
 
     async def investors(
         self, provider_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> ServiceProvidersInvestorsResponse:
         """
         Get investors that have engaged this service provider. Returns investor clients with engagement types and fund formation work.
 
         Parameters
         ----------
         provider_id : str
+            Service provider entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        ServiceProvidersInvestorsResponse
             Successful response
 
         Examples
@@ -523,20 +519,21 @@ class AsyncServiceProvidersClient:
 
     async def funds(
         self, provider_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> ServiceProvidersFundsResponse:
         """
         Get funds that have engaged this service provider. Returns fund formation and compliance work with engagement details.
 
         Parameters
         ----------
         provider_id : str
+            Service provider entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
+        ServiceProvidersFundsResponse
             Successful response
 
         Examples
@@ -564,21 +561,21 @@ class AsyncServiceProvidersClient:
 
     async def limited_partners(
         self, provider_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> None:
         """
-        Get limited partners that have engaged this service provider. Returns LP clients with service types and relationship details.
+        **Coming Soon** - Get limited partners that have engaged this service provider. Returns LP clients with service types and relationship details.
 
         Parameters
         ----------
         provider_id : str
+            Service provider entity ID
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        typing.Dict[str, typing.Any]
-            Successful response
+        None
 
         Examples
         --------
@@ -601,45 +598,4 @@ class AsyncServiceProvidersClient:
         asyncio.run(main())
         """
         _response = await self._raw_client.limited_partners(provider_id, request_options=request_options)
-        return _response.data
-
-    async def updates(
-        self, provider_id: str, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Any]:
-        """
-        Get changelog of updates to service provider profile data. Returns history of changes including new engagements, office openings, and team changes with timestamps.
-
-        Parameters
-        ----------
-        provider_id : str
-
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        typing.Dict[str, typing.Any]
-            Successful response
-
-        Examples
-        --------
-        import asyncio
-
-        from runcaptain import AsyncCaptain
-
-        client = AsyncCaptain(
-            organization_id="YOUR_ORGANIZATION_ID",
-            key="YOUR_KEY",
-        )
-
-
-        async def main() -> None:
-            await client.service_providers.updates(
-                provider_id="wilson-sonsini",
-            )
-
-
-        asyncio.run(main())
-        """
-        _response = await self._raw_client.updates(provider_id, request_options=request_options)
         return _response.data

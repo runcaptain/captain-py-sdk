@@ -17,7 +17,6 @@ if typing.TYPE_CHECKING:
     from .credit_analysis.client import AsyncCreditAnalysisClient, CreditAnalysisClient
     from .datasets.client import AsyncDatasetsClient, DatasetsClient
     from .deals.client import AsyncDealsClient, DealsClient
-    from .fundamentals.client import AsyncFundamentalsClient, FundamentalsClient
     from .funds.client import AsyncFundsClient, FundsClient
     from .general.client import AsyncGeneralClient, GeneralClient
     from .indexing.client import AsyncIndexingClient, IndexingClient
@@ -27,6 +26,7 @@ if typing.TYPE_CHECKING:
     from .patents.client import AsyncPatentsClient, PatentsClient
     from .people.client import AsyncPeopleClient, PeopleClient
     from .query.client import AsyncQueryClient, QueryClient
+    from .sandbox_data.client import AsyncSandboxDataClient, SandboxDataClient
     from .service_providers.client import AsyncServiceProvidersClient, ServiceProvidersClient
 
 
@@ -121,7 +121,7 @@ class Captain:
         self._service_providers: typing.Optional[ServiceProvidersClient] = None
         self._patents: typing.Optional[PatentsClient] = None
         self._credit_analysis: typing.Optional[CreditAnalysisClient] = None
-        self._fundamentals: typing.Optional[FundamentalsClient] = None
+        self._sandbox_data: typing.Optional[SandboxDataClient] = None
 
     @property
     def collections(self):
@@ -244,12 +244,12 @@ class Captain:
         return self._credit_analysis
 
     @property
-    def fundamentals(self):
-        if self._fundamentals is None:
-            from .fundamentals.client import FundamentalsClient  # noqa: E402
+    def sandbox_data(self):
+        if self._sandbox_data is None:
+            from .sandbox_data.client import SandboxDataClient  # noqa: E402
 
-            self._fundamentals = FundamentalsClient(client_wrapper=self._client_wrapper)
-        return self._fundamentals
+            self._sandbox_data = SandboxDataClient(client_wrapper=self._client_wrapper)
+        return self._sandbox_data
 
 
 class AsyncCaptain:
@@ -343,7 +343,7 @@ class AsyncCaptain:
         self._service_providers: typing.Optional[AsyncServiceProvidersClient] = None
         self._patents: typing.Optional[AsyncPatentsClient] = None
         self._credit_analysis: typing.Optional[AsyncCreditAnalysisClient] = None
-        self._fundamentals: typing.Optional[AsyncFundamentalsClient] = None
+        self._sandbox_data: typing.Optional[AsyncSandboxDataClient] = None
 
     @property
     def collections(self):
@@ -466,12 +466,12 @@ class AsyncCaptain:
         return self._credit_analysis
 
     @property
-    def fundamentals(self):
-        if self._fundamentals is None:
-            from .fundamentals.client import AsyncFundamentalsClient  # noqa: E402
+    def sandbox_data(self):
+        if self._sandbox_data is None:
+            from .sandbox_data.client import AsyncSandboxDataClient  # noqa: E402
 
-            self._fundamentals = AsyncFundamentalsClient(client_wrapper=self._client_wrapper)
-        return self._fundamentals
+            self._sandbox_data = AsyncSandboxDataClient(client_wrapper=self._client_wrapper)
+        return self._sandbox_data
 
 
 def _get_base_url(*, base_url: typing.Optional[str] = None, environment: CaptainEnvironment) -> str:

@@ -13,6 +13,7 @@ if typing.TYPE_CHECKING:
     from .collection_item_v2 import CollectionItemV2
     from .collection_list_response_v2 import CollectionListResponseV2
     from .collection_response_v2 import CollectionResponseV2
+    from .conflict_error_body import ConflictErrorBody
     from .dataset_article_response import DatasetArticleResponse
     from .dataset_search_response import DatasetSearchResponse
     from .dataset_search_result import DatasetSearchResult
@@ -31,9 +32,12 @@ if typing.TYPE_CHECKING:
     from .job_progress import JobProgress
     from .job_progress_current_stage import JobProgressCurrentStage
     from .job_result import JobResult
+    from .job_rollback_response_v2 import JobRollbackResponseV2
     from .job_status import JobStatus
     from .job_status_response_v2 import JobStatusResponseV2
     from .job_status_response_v2job_type import JobStatusResponseV2JobType
+    from .not_implemented_error_body import NotImplementedErrorBody
+    from .not_implemented_error_body_details import NotImplementedErrorBodyDetails
     from .query_response_v2 import QueryResponseV2
     from .query_stream_complete_event import QueryStreamCompleteEvent
     from .query_stream_error_event import QueryStreamErrorEvent
@@ -48,10 +52,13 @@ if typing.TYPE_CHECKING:
     from .query_stream_text_event import QueryStreamTextEvent
     from .query_stream_tool_end_event import QueryStreamToolEndEvent
     from .query_stream_tool_start_event import QueryStreamToolStartEvent
-    from .relevant_document_v2 import RelevantDocumentV2
+    from .scientific_ask_response import ScientificAskResponse
+    from .scientific_source import ScientificSource
     from .search_result import SearchResult
     from .standard_response_v2 import StandardResponseV2
     from .token_balance import TokenBalance
+    from .validate_parsing_script_response_v2 import ValidateParsingScriptResponseV2
+    from .validate_parsing_script_response_v2error_type import ValidateParsingScriptResponseV2ErrorType
     from .validation_error import ValidationError
     from .validation_error_loc_item import ValidationErrorLocItem
 _dynamic_imports: typing.Dict[str, str] = {
@@ -62,6 +69,7 @@ _dynamic_imports: typing.Dict[str, str] = {
     "CollectionItemV2": ".collection_item_v2",
     "CollectionListResponseV2": ".collection_list_response_v2",
     "CollectionResponseV2": ".collection_response_v2",
+    "ConflictErrorBody": ".conflict_error_body",
     "DatasetArticleResponse": ".dataset_article_response",
     "DatasetSearchResponse": ".dataset_search_response",
     "DatasetSearchResult": ".dataset_search_result",
@@ -80,9 +88,12 @@ _dynamic_imports: typing.Dict[str, str] = {
     "JobProgress": ".job_progress",
     "JobProgressCurrentStage": ".job_progress_current_stage",
     "JobResult": ".job_result",
+    "JobRollbackResponseV2": ".job_rollback_response_v2",
     "JobStatus": ".job_status",
     "JobStatusResponseV2": ".job_status_response_v2",
     "JobStatusResponseV2JobType": ".job_status_response_v2job_type",
+    "NotImplementedErrorBody": ".not_implemented_error_body",
+    "NotImplementedErrorBodyDetails": ".not_implemented_error_body_details",
     "QueryResponseV2": ".query_response_v2",
     "QueryStreamCompleteEvent": ".query_stream_complete_event",
     "QueryStreamErrorEvent": ".query_stream_error_event",
@@ -95,10 +106,13 @@ _dynamic_imports: typing.Dict[str, str] = {
     "QueryStreamTextEvent": ".query_stream_text_event",
     "QueryStreamToolEndEvent": ".query_stream_tool_end_event",
     "QueryStreamToolStartEvent": ".query_stream_tool_start_event",
-    "RelevantDocumentV2": ".relevant_document_v2",
+    "ScientificAskResponse": ".scientific_ask_response",
+    "ScientificSource": ".scientific_source",
     "SearchResult": ".search_result",
     "StandardResponseV2": ".standard_response_v2",
     "TokenBalance": ".token_balance",
+    "ValidateParsingScriptResponseV2": ".validate_parsing_script_response_v2",
+    "ValidateParsingScriptResponseV2ErrorType": ".validate_parsing_script_response_v2error_type",
     "ValidationError": ".validation_error",
     "ValidationErrorLocItem": ".validation_error_loc_item",
 }
@@ -133,6 +147,7 @@ __all__ = [
     "CollectionItemV2",
     "CollectionListResponseV2",
     "CollectionResponseV2",
+    "ConflictErrorBody",
     "DatasetArticleResponse",
     "DatasetSearchResponse",
     "DatasetSearchResult",
@@ -151,9 +166,12 @@ __all__ = [
     "JobProgress",
     "JobProgressCurrentStage",
     "JobResult",
+    "JobRollbackResponseV2",
     "JobStatus",
     "JobStatusResponseV2",
     "JobStatusResponseV2JobType",
+    "NotImplementedErrorBody",
+    "NotImplementedErrorBodyDetails",
     "QueryResponseV2",
     "QueryStreamCompleteEvent",
     "QueryStreamErrorEvent",
@@ -166,10 +184,13 @@ __all__ = [
     "QueryStreamTextEvent",
     "QueryStreamToolEndEvent",
     "QueryStreamToolStartEvent",
-    "RelevantDocumentV2",
+    "ScientificAskResponse",
+    "ScientificSource",
     "SearchResult",
     "StandardResponseV2",
     "TokenBalance",
+    "ValidateParsingScriptResponseV2",
+    "ValidateParsingScriptResponseV2ErrorType",
     "ValidationError",
     "ValidationErrorLocItem",
 ]
